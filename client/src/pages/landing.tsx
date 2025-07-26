@@ -18,7 +18,7 @@ export default function Landing() {
                 <p className="text-sm text-gray-600">Enterprise Software Solutions</p>
               </div>
             </div>
-            <Button onClick={() => window.location.href = '/api/login'}>
+            <Button onClick={() => window.location.href = '/auth'}>
               Sign In
             </Button>
           </div>
@@ -39,7 +39,7 @@ export default function Landing() {
           <div className="mt-5 max-w-md mx-auto sm:flex sm:justify-center md:mt-8">
             <Button 
               size="lg"
-              onClick={() => window.location.href = '/api/login'}
+              onClick={() => window.location.href = '/auth'}
               className="w-full sm:w-auto"
             >
               Get Started

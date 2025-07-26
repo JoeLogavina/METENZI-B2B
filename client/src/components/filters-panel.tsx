@@ -58,7 +58,7 @@ export default function FiltersPanel({ filters, onFiltersChange }: FiltersPanelP
                 <SelectValue placeholder="Regions" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Regions</SelectItem>
+                <SelectItem value="all">All Regions</SelectItem>
                 <SelectItem value="Global">Global</SelectItem>
                 <SelectItem value="EU">EU</SelectItem>
                 <SelectItem value="US">US</SelectItem>
@@ -70,7 +70,7 @@ export default function FiltersPanel({ filters, onFiltersChange }: FiltersPanelP
                 <SelectValue placeholder="Platform" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Platforms</SelectItem>
+                <SelectItem value="all">All Platforms</SelectItem>
                 <SelectItem value="Windows">Windows</SelectItem>
                 <SelectItem value="Mac">Mac</SelectItem>
                 <SelectItem value="Both">Both</SelectItem>

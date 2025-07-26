@@ -28,9 +28,11 @@ export const sessions = pgTable(
 // User roles enum
 export const userRoleEnum = pgEnum("user_role", ["b2b_user", "admin", "super_admin"]);
 
-// User storage table (mandatory for Replit Auth)
+// User storage table
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  username: varchar("username").unique().notNull(),
+  password: varchar("password").notNull(),
   email: varchar("email").unique(),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
@@ -244,6 +246,7 @@ export const insertAdminPermissionsSchema = createInsertSchema(adminPermissions)
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
+export type InsertUser = typeof users.$inferInsert;
 export type Product = typeof products.$inferSelect;
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type Category = typeof categories.$inferSelect;

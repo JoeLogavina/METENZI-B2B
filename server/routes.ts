@@ -1,28 +1,23 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupAuth } from "./auth";
 import { insertProductSchema, insertCategorySchema, insertLicenseKeySchema, insertCartItemSchema } from "@shared/schema";
 import { z } from "zod";
 
-export async function registerRoutes(app: Express): Promise<Server> {
+// Authentication middleware
+const isAuthenticated = (req: any, res: any, next: any) => {
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.status(401).json({ message: "Unauthorized" });
+};
+
+export function registerRoutes(app: Express): Server {
   // Auth middleware
-  await setupAuth(app);
+  setupAuth(app);
 
   // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      res.json(user);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
-    }
-  });
 
   // Product routes
   app.get('/api/products', async (req, res) => {
@@ -60,7 +55,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/products', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(req.user.id);
       if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
         return res.status(403).json({ message: "Insufficient permissions" });
       }
@@ -87,7 +82,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/categories', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(req.user.id);
       if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
         return res.status(403).json({ message: "Insufficient permissions" });
       }
@@ -104,7 +99,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // License key routes
   app.get('/api/license-keys', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(req.user.id);
       if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
         return res.status(403).json({ message: "Insufficient permissions" });
       }
@@ -120,7 +115,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/license-keys', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(req.user.id);
       if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
         return res.status(403).json({ message: "Insufficient permissions" });
       }
@@ -137,7 +132,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Cart routes
   app.get('/api/cart', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const cartItems = await storage.getCartItems(userId);
       res.json(cartItems);
     } catch (error) {
@@ -148,7 +143,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/cart', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const cartData = insertCartItemSchema.parse({ ...req.body, userId });
       const cartItem = await storage.addToCart(cartData);
       res.status(201).json(cartItem);
@@ -182,7 +177,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Order routes
   app.post('/api/orders', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const cartItems = await storage.getCartItems(userId);
       
       if (cartItems.length === 0) {
@@ -237,7 +232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/orders', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       let orders;
@@ -257,7 +252,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin routes
   app.get('/api/admin/users', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(req.user.id);
       if (!user || user.role !== 'super_admin') {
         return res.status(403).json({ message: "Super admin access required" });
       }
@@ -272,7 +267,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put('/api/admin/users/:id/role', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(req.user.id);
       if (!user || user.role !== 'super_admin') {
         return res.status(403).json({ message: "Super admin access required" });
       }
@@ -288,7 +283,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/admin/dashboard', isAuthenticated, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(req.user.id);
       if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
         return res.status(403).json({ message: "Admin access required" });
       }
