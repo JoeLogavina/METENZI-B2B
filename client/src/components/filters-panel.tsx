@@ -110,7 +110,7 @@ export default function FiltersPanel({ filters, onFiltersChange }: FiltersPanelP
             <div className="space-y-4">
               {/* Price Range */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-700">Price Range (BAM)</Label>
+                <Label className="text-sm font-medium text-gray-700">Price Range (EUR)</Label>
                 <div className="flex space-x-2">
                   <Input
                     type="number"

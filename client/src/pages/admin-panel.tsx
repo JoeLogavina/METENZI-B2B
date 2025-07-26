@@ -147,7 +147,7 @@ export default function AdminPanel() {
                         <div className="ml-4">
                           <p className="text-sm font-medium text-gray-600">Total Sales</p>
                           <p className="text-2xl font-semibold text-gray-900">
-                            {statsLoading ? '...' : stats?.totalSales || 'BAM 0'}
+                            {statsLoading ? '...' : stats?.totalSales || '€0'}
                           </p>
                         </div>
                       </div>

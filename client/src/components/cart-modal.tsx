@@ -188,7 +188,7 @@ export default function CartModal({ isOpen, onClose, cartItems, isLoading }: Car
                       <span className="text-sm text-gray-500">SKU: {item.product.sku}</span>
                     </div>
                     <p className="text-lg font-semibold text-gray-900 mt-1">
-                      BAM {parseFloat(item.product.price).toLocaleString()}
+                      €{parseFloat(item.product.price).toLocaleString()}
                       <span className="text-sm text-gray-500 font-normal"> per license</span>
                     </p>
                   </div>
@@ -217,7 +217,7 @@ export default function CartModal({ isOpen, onClose, cartItems, isLoading }: Car
 
                   <div className="text-right">
                     <p className="font-semibold text-gray-900">
-                      BAM {(parseFloat(item.product.price) * item.quantity).toLocaleString()}
+                      €{(parseFloat(item.product.price) * item.quantity).toLocaleString()}
                     </p>
                     <Button
                       variant="ghost"
@@ -243,7 +243,7 @@ export default function CartModal({ isOpen, onClose, cartItems, isLoading }: Car
               <div className="flex justify-between items-center">
                 <span className="text-lg font-semibold">Total:</span>
                 <span className="text-2xl font-bold text-primary">
-                  BAM {totalAmount.toLocaleString()}
+                  €{totalAmount.toLocaleString()}
                 </span>
               </div>
               

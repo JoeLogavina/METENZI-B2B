@@ -176,7 +176,7 @@ export default function ProductTable({
                   </td>
                   <td className="py-4 px-6">
                     <div className="text-sm text-gray-900">
-                      <span className="font-semibold">BAM {parseFloat(product.price).toLocaleString()}</span>
+                      <span className="font-semibold">€{parseFloat(product.price).toLocaleString()}</span>
                       <div className="text-xs text-gray-500">per license</div>
                     </div>
                   </td>

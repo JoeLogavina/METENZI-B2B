@@ -370,7 +370,7 @@ export class DatabaseStorage implements IStorage {
 
     return {
       totalUsers: userCount.count,
-      totalSales: `BAM ${parseFloat(salesResult.total || '0').toLocaleString()}`,
+      totalSales: `€${parseFloat(salesResult.total || '0').toLocaleString()}`,
       activeKeys: keyCount.count,
       totalProducts: productCount.count,
     };
