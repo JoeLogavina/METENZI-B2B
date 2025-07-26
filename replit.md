@@ -2,7 +2,14 @@
 
 ## Overview
 
-This is a full-stack B2B software license management platform built with React, Express, and PostgreSQL. The application provides enterprise customers with a streamlined interface to browse, purchase, and manage software licenses, while offering administrators comprehensive tools for inventory and user management.
+This is a full-stack B2B software license management platform built with React, Express, and PostgreSQL. The application provides enterprise customers with a streamlined interface to browse, purchase, and manage software licenses, while offering administrators comprehensive tools for inventory and user management. The system now uses custom username/password authentication and displays all prices in EUR currency.
+
+## Recent Changes (January 2025)
+- Migrated from Replit Auth to custom username/password authentication system
+- Implemented EUR currency display throughout the application (€790, €1,890, €250, etc.)
+- Created admin and B2B user test accounts (admin/Kalendar1, b2buser/Kalendar1)
+- Fixed authentication infinite loop and 401 request issues
+- Updated all user ID references to work with new authentication system
 
 ## User Preferences
 
@@ -34,10 +41,11 @@ Preferred communication style: Simple, everyday language.
 ## Key Components
 
 ### Authentication System
-- **Provider**: Replit OIDC for secure authentication
+- **Provider**: Custom username/password authentication with Passport.js
 - **Session Storage**: PostgreSQL-backed sessions using connect-pg-simple
 - **Authorization**: Role-based access control (b2b_user, admin, super_admin)
 - **Security**: HTTP-only cookies with secure flags for production
+- **Accounts**: admin/Kalendar1 (super_admin), b2buser/Kalendar1 (b2b_user)
 
 ### User Interface Components
 - **Layout**: Responsive sidebar navigation with role-based menu items

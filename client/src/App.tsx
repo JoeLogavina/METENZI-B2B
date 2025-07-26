@@ -35,6 +35,7 @@ function Router() {
         <>
           <Route path="/" component={B2BShop} />
           <Route path="/admin" component={AdminPanel} />
+          <Route path="/auth" component={() => <div>Redirecting...</div>} />
         </>
       )}
       <Route component={NotFound} />

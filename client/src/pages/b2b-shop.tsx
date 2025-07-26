@@ -36,7 +36,7 @@ export default function B2BShop() {
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/api/login";
+        window.location.href = "/auth";
       }, 500);
       return;
     }
@@ -44,7 +44,25 @@ export default function B2BShop() {
 
   // Fetch products
   const { data: products = [], isLoading: productsLoading } = useQuery<ProductWithStock[]>({
-    queryKey: ["/api/products", filters],
+    queryKey: ["/api/products"],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (filters.region) params.append('region', filters.region);
+      if (filters.platform) params.append('platform', filters.platform);
+      if (filters.search) params.append('search', filters.search);
+      if (filters.priceMin) params.append('priceMin', filters.priceMin);
+      if (filters.priceMax) params.append('priceMax', filters.priceMax);
+      
+      const res = await fetch(`/api/products?${params.toString()}`, {
+        credentials: 'include'
+      });
+      
+      if (!res.ok) {
+        throw new Error(`${res.status}: ${res.statusText}`);
+      }
+      
+      return await res.json();
+    },
     enabled: isAuthenticated,
   });
 
