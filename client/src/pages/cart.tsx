@@ -23,7 +23,7 @@ interface CartItem {
     description: string;
     price: number;
     region: string;
-    supportedPlatforms: string[];
+    platform: string;
     stockCount: number;
   };
 }
@@ -253,14 +253,9 @@ export default function CartPage() {
                           <Badge variant="outline" className="text-xs border-[#ddd] text-gray-700">
                             {item.product.region}
                           </Badge>
-                          {item.product.supportedPlatforms.map((platform) => (
-                            <span
-                              key={platform}
-                              className="text-xs bg-[#4D9DE0] text-white px-2 py-1 rounded-[5px] font-medium"
-                            >
-                              {platform}
-                            </span>
-                          ))}
+                          <span className="text-xs bg-[#4D9DE0] text-white px-2 py-1 rounded-[5px] font-medium">
+                            {item.product.platform}
+                          </span>
                         </div>
                       </div>
 

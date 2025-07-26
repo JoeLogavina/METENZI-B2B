@@ -39,7 +39,7 @@ interface CartItem {
     description: string;
     price: number;
     region: string;
-    supportedPlatforms: string[];
+    platform: string;
     stockCount: number;
   };
 }
