@@ -1,0 +1,133 @@
+pattern:
+
+Dizajn Pattern - "Clean Business Interface"
+
+Color Palette:
+
+Coffee Mist (#4D585A) - Primarni header, tabele, modal headers
+
+Sky Blue (#4D9DE0) - Primarni dugmad, fokus stanja, pozitivni akcije
+
+Coral Red (#E15554) - Sekundarni dugmad, greške, negativni akcije, upozorenja
+
+Light Gray (#f5f6f5) - Background stranice
+
+White (#ffffff) - Kontejneri, kartice, modal pozadine
+
+Border Gray (#ddd, #e5e5e5) - Granice, separatori
+
+Typography:
+
+Font Family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif
+
+Headers: 18-26px, font-weight 600, uppercase sa letter-spacing 0.5px
+
+Labels: 14px, font-weight 600
+
+Body text: 13-14px, regular weight
+
+Amounts/Numbers: SF Mono/Monaco monospace font, font-weight 500-600
+
+Layout Pattern:
+
+┌─────────────────────────────────┐
+│ Header (#4D585A)                │
+│ ├─ Title (26px, white)          │
+│ └─ Action Buttons (#4D9DE0)     │
+├─────────────────────────────────┤
+│ Filters Bar (#f8f8f8)           │
+│ ├─ Dropdowns + Inputs           │
+│ └─ Sort Buttons                 │
+├─────────────────────────────────┤
+│ Content Area (white)            │
+│ └─ Table/Cards/Form             │
+└─────────────────────────────────┘
+
+Component Styles:
+
+Containers:
+
+border-radius: 8px
+
+box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1)
+
+overflow: hidden
+
+Buttons:
+
+Padding: 10px 20px (standard), 8px 12px (small)
+
+Border-radius: 5px
+
+Font-weight: 500-600
+
+Transition: background-color 0.2s
+
+Form Inputs:
+
+Padding: 10px
+
+Border: 1px solid #ddd
+
+Border-radius: 5px
+
+Focus: border-color: #4D9DE0
+
+Tables:
+
+Header: Coffee Mist background, white text, uppercase
+
+Rows: Alternating hover states, tr:hover { background: #f8f8f8 }
+
+Padding: 10-12px za ćelije
+
+Modals:
+
+Centered positioning: top: 50%, left: 50%, transform: translate(-50%, -50%)
+
+Overlay: rgba(0, 0, 0, 0.5)
+
+Width: 500px, max-width: 90%
+
+Status/State Colors:
+
+Success/Active: Green (#16a34a, white letters)
+
+Warning: Yellow (#eab308, white letters)
+
+Critical/Error: Red (#dc2626, white letters)
+
+Info: Blue (#4D9DE0)
+
+Instructions za Developer/AI:
+
+"Kreiraj interfejs koristeći Clean Business Pattern sa:"
+
+Coffee Mist (#4D585A) header sa Sky Blue (#4D9DE0) primary dugmadima
+
+Inter font family, monospace za brojeve
+
+8px border-radius za glavne kontejnere, 5px za dugmad/inpute
+
+Sticky headers sa white text, uppercase styling
+
+Light gray (#f5f6f5) page background, white content areas
+
+Coral Red (#E15554) za cancel/delete akcije
+
+Subtle box-shadows (0 2px 5px rgba(0,0,0,0.1))
+
+Responsive design sa mobile-first approach
+
+Hover states sa background transitions (0.2s)
+
+Form validacija sa red borders i error messages
+
+Responsive Breakpoints:
+
+Desktop: 1200px+
+
+Tablet: 768px-1199px
+
+Mobile: <768px
+
