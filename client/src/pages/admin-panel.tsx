@@ -3,7 +3,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { isUnauthorizedError } from "@/lib/authUtils";
-import Sidebar from "@/components/sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
@@ -26,7 +25,7 @@ interface DashboardStats {
 }
 
 export default function AdminPanel() {
-  const { user, isLoading, isAuthenticated } = useAuth();
+  const { user, isLoading, isAuthenticated, logout, isLoggingOut } = useAuth();
   const { toast } = useToast();
   const [activeSection, setActiveSection] = useState("dashboard");
 
@@ -81,44 +80,93 @@ export default function AdminPanel() {
   ].filter(item => item.allowed);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
-      <Sidebar activeItem="admin" userRole={(user as any)?.role} />
-      
-      <div className="flex-1 flex overflow-hidden">
+    <div className="min-h-screen bg-[#f5f6f5] font-['Inter',-apple-system,BlinkMacSystemFont,sans-serif]">
+      {/* Admin Header */}
+      <header className="bg-[#4D585A] border-b border-[#3a4446] px-6 py-4 shadow-[0_2px_5px_rgba(0,0,0,0.1)]">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className="w-8 h-8 bg-[#4D9DE0] rounded flex items-center justify-center">
+              <Settings className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-semibold text-white uppercase tracking-[0.5px]">ADMIN PORTAL</h1>
+              <p className="text-sm text-gray-300">System Administration & Management</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-4">
+            <div className="text-sm text-white flex items-center">
+              <Users className="w-4 h-4 mr-1" />
+              <span className="font-medium capitalize">{(user as any)?.role?.replace('_', ' ')}</span>
+            </div>
+            <div className="text-sm text-white flex items-center">
+              <Users className="w-4 h-4 mr-1" />
+              <span className="font-medium">{(user as any)?.username}</span>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => window.location.href = "/"}
+              className="bg-[#4D9DE0] hover:bg-[#4a94d1] text-white border-0 px-4 py-2 rounded-[5px] font-medium transition-colors duration-200"
+            >
+              B2B PORTAL
+            </Button>
+            <Button
+              size="sm"
+              onClick={logout}
+              disabled={isLoggingOut}
+              className="bg-[#E15554] hover:bg-[#c74443] text-white border-0 px-4 py-2 rounded-[5px] font-medium transition-colors duration-200"
+            >
+              {isLoggingOut ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              ) : (
+                "LOGOUT"
+              )}
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      <div className="flex h-[calc(100vh-80px)]">
         {/* Admin Sidebar */}
-        <div className="w-64 bg-gray-50 border-r border-gray-200 flex flex-col">
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Admin Panel</h2>
-            <p className="text-sm text-gray-500 capitalize">{(user as any)?.role?.replace('_', ' ')} Access</p>
+        <div className="w-64 bg-[#4D585A] text-white flex-shrink-0">
+          <div className="p-4 border-b border-[#3a4446]">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-[#4D9DE0] rounded flex items-center justify-center">
+                <Settings className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-sm uppercase tracking-[0.5px]">ADMIN PANEL</h2>
+                <p className="text-xs text-gray-300 uppercase tracking-[0.5px]">MANAGEMENT</p>
+              </div>
+            </div>
           </div>
           
-          <nav className="flex-1 p-4 space-y-2">
+          <nav className="mt-4">
             {sidebarItems.map((item) => (
-              <button
+              <div
                 key={item.id}
                 onClick={() => setActiveSection(item.id)}
-                className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                className={`flex items-center px-4 py-3 text-sm transition-colors duration-200 cursor-pointer ${
                   activeSection === item.id
-                    ? 'text-primary bg-primary/10'
-                    : 'text-gray-700 hover:bg-gray-100'
+                    ? 'bg-[#4D9DE0] text-white border-r-2 border-[#3ba3e8]' 
+                    : 'text-gray-300 hover:bg-[#5a6668]'
                 }`}
               >
-                <item.icon className="w-5 h-5 mr-3" />
-                {item.label}
-              </button>
+                <item.icon className="w-4 h-4 mr-3" />
+                <span className="uppercase tracking-[0.5px] font-medium text-xs">{item.label}</span>
+              </div>
             ))}
           </nav>
         </div>
 
         {/* Admin Content */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-white">
+        <div className="flex-1 flex flex-col overflow-hidden">
           <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-            <h3 className="text-xl font-semibold text-gray-900 capitalize">
-              {activeSection === 'dashboard' ? 'Dashboard Overview' : activeSection.replace('_', ' ')}
+            <h3 className="text-xl font-semibold text-[#4D585A] uppercase tracking-[0.5px]">
+              {activeSection === 'dashboard' ? 'DASHBOARD OVERVIEW' : activeSection.replace('_', ' ').toUpperCase()}
             </h3>
           </div>
           
-          <div className="flex-1 overflow-auto p-6 bg-gray-50">
+          <div className="flex-1 overflow-auto p-6 bg-[#f5f6f5]">
             {activeSection === 'dashboard' && (
               <div className="space-y-8">
                 {/* Dashboard Stats */}

@@ -138,7 +138,7 @@ export default function B2BShop() {
     { icon: FileText, label: "ORDERS", active: false, href: "/orders", allowed: true },
     { icon: BarChart3, label: "REPORTS", active: false, href: "/reports", allowed: user?.role === 'admin' || user?.role === 'super_admin' },
     { icon: CreditCard, label: "INVOICES", active: false, href: "/invoices", allowed: user?.role === 'admin' || user?.role === 'super_admin' },
-    { icon: Settings, label: "ADMIN PANEL", active: false, href: "/admin", allowed: user?.role === 'admin' || user?.role === 'super_admin' },
+
     { icon: Settings, label: "SETTINGS", active: false, href: "/settings", allowed: true },
     { icon: HelpCircle, label: "SUPPORT", active: false, href: "/support", allowed: true },
   ].filter(item => item.allowed);
