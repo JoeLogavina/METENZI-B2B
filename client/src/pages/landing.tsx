@@ -74,7 +74,10 @@ export default function Landing() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card 
+              className="cursor-pointer hover:shadow-lg transition-shadow duration-200 hover:bg-gray-50"
+              onClick={() => window.location.href = '/admin-login'}
+            >
               <CardContent className="p-6 text-center">
                 <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4">
                   <Users className="h-6 w-6 text-primary" />

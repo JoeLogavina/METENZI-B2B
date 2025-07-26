@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import Landing from "@/pages/landing";
 import AuthPage from "@/pages/auth-page";
+import AdminLogin from "@/pages/admin-login";
 import B2BShop from "@/pages/b2b-shop";
 import CartPage from "@/pages/cart";
 import CheckoutPage from "@/pages/checkout";
@@ -32,6 +33,7 @@ function Router() {
         <>
           <Route path="/" component={Landing} />
           <Route path="/auth" component={AuthPage} />
+          <Route path="/admin-login" component={AdminLogin} />
         </>
       ) : (
         <>
@@ -39,8 +41,10 @@ function Router() {
           <Route path="/b2b-shop" component={B2BShop} />
           <Route path="/cart" component={CartPage} />
           <Route path="/checkout" component={CheckoutPage} />
-          <Route path="/admin" component={AdminPanel} />
+          <Route path="/admin-panel" component={AdminPanel} />
+          <Route path="/admin" component={() => <Redirect to="/admin-panel" />} />
           <Route path="/auth" component={() => <Redirect to="/" />} />
+          <Route path="/admin-login" component={() => <Redirect to="/admin-panel" />} />
         </>
       )}
       <Route component={NotFound} />
