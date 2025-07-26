@@ -1,0 +1,380 @@
+import {
+  users,
+  products,
+  categories,
+  licenseKeys,
+  orders,
+  orderItems,
+  cartItems,
+  adminPermissions,
+  type User,
+  type UpsertUser,
+  type Product,
+  type ProductWithStock,
+  type InsertProduct,
+  type Category,
+  type InsertCategory,
+  type LicenseKey,
+  type InsertLicenseKey,
+  type Order,
+  type InsertOrder,
+  type OrderItem,
+  type InsertOrderItem,
+  type CartItem,
+  type InsertCartItem,
+  type AdminPermissions,
+  type InsertAdminPermissions,
+} from "@shared/schema";
+import { db } from "./db";
+import { eq, and, desc, sql, count } from "drizzle-orm";
+
+export interface IStorage {
+  // User operations (mandatory for Replit Auth)
+  getUser(id: string): Promise<User | undefined>;
+  upsertUser(user: UpsertUser): Promise<User>;
+  updateUserRole(id: string, role: "b2b_user" | "admin" | "super_admin"): Promise<void>;
+  
+  // Product operations
+  getProducts(filters?: {
+    region?: string;
+    platform?: string;
+    category?: string;
+    search?: string;
+    priceMin?: number;
+    priceMax?: number;
+  }): Promise<ProductWithStock[]>;
+  getProduct(id: string): Promise<Product | undefined>;
+  createProduct(product: InsertProduct): Promise<Product>;
+  updateProduct(id: string, product: Partial<InsertProduct>): Promise<Product>;
+  deleteProduct(id: string): Promise<void>;
+  
+  // Category operations
+  getCategories(): Promise<Category[]>;
+  createCategory(category: InsertCategory): Promise<Category>;
+  
+  // License key operations
+  getLicenseKeys(productId?: string): Promise<LicenseKey[]>;
+  createLicenseKey(key: InsertLicenseKey): Promise<LicenseKey>;
+  getAvailableKey(productId: string): Promise<LicenseKey | undefined>;
+  markKeyAsUsed(keyId: string, userId: string): Promise<void>;
+  getProductStock(productId: string): Promise<number>;
+  
+  // Cart operations
+  getCartItems(userId: string): Promise<(CartItem & { product: Product })[]>;
+  addToCart(item: InsertCartItem): Promise<CartItem>;
+  updateCartItem(id: string, quantity: number): Promise<void>;
+  removeFromCart(id: string): Promise<void>;
+  clearCart(userId: string): Promise<void>;
+  
+  // Order operations
+  createOrder(order: InsertOrder): Promise<Order>;
+  createOrderItem(item: InsertOrderItem): Promise<OrderItem>;
+  getOrders(userId?: string): Promise<(Order & { items: (OrderItem & { product: Product })[] })[]>;
+  updateOrderStatus(orderId: string, status: string): Promise<void>;
+  
+  // Admin operations
+  getAllUsers(): Promise<User[]>;
+  getUserPermissions(userId: string): Promise<AdminPermissions | undefined>;
+  updateUserPermissions(userId: string, permissions: InsertAdminPermissions): Promise<AdminPermissions>;
+  
+  // Dashboard stats
+  getDashboardStats(): Promise<{
+    totalUsers: number;
+    totalSales: string;
+    activeKeys: number;
+    totalProducts: number;
+  }>;
+}
+
+export class DatabaseStorage implements IStorage {
+  // User operations
+  async getUser(id: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(userData)
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          ...userData,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return user;
+  }
+
+  async updateUserRole(id: string, role: "b2b_user" | "admin" | "super_admin"): Promise<void> {
+    await db.update(users).set({ role, updatedAt: new Date() }).where(eq(users.id, id));
+  }
+
+  // Product operations
+  async getProducts(filters?: {
+    region?: string;
+    platform?: string;
+    category?: string;
+    search?: string;
+    priceMin?: number;
+    priceMax?: number;
+  }): Promise<ProductWithStock[]> {
+    let whereConditions = [eq(products.isActive, true)];
+    
+    // Apply filters if provided
+    if (filters?.region && filters.region !== 'all') {
+      whereConditions.push(eq(products.region, filters.region));
+    }
+    if (filters?.platform && filters.platform !== 'all') {
+      whereConditions.push(eq(products.platform, filters.platform));
+    }
+
+    const result = await db
+      .select({
+        id: products.id,
+        sku: products.sku,
+        name: products.name,
+        description: products.description,
+        price: products.price,
+        categoryId: products.categoryId,
+        region: products.region,
+        platform: products.platform,
+        imageUrl: products.imageUrl,
+        isActive: products.isActive,
+        createdAt: products.createdAt,
+        updatedAt: products.updatedAt,
+        stockCount: sql<number>`COUNT(CASE WHEN ${licenseKeys.isUsed} = false THEN 1 END)`,
+      })
+      .from(products)
+      .leftJoin(licenseKeys, eq(products.id, licenseKeys.productId))
+      .where(and(...whereConditions))
+      .groupBy(products.id)
+      .orderBy(desc(products.createdAt));
+      
+    return result as ProductWithStock[];
+  }
+
+  async getProduct(id: string): Promise<Product | undefined> {
+    const [product] = await db.select().from(products).where(eq(products.id, id));
+    return product;
+  }
+
+  async createProduct(product: InsertProduct): Promise<Product> {
+    const [newProduct] = await db.insert(products).values(product).returning();
+    return newProduct;
+  }
+
+  async updateProduct(id: string, product: Partial<InsertProduct>): Promise<Product> {
+    const [updatedProduct] = await db
+      .update(products)
+      .set({ ...product, updatedAt: new Date() })
+      .where(eq(products.id, id))
+      .returning();
+    return updatedProduct;
+  }
+
+  async deleteProduct(id: string): Promise<void> {
+    await db.update(products).set({ isActive: false }).where(eq(products.id, id));
+  }
+
+  // Category operations
+  async getCategories(): Promise<Category[]> {
+    return await db.select().from(categories).orderBy(categories.name);
+  }
+
+  async createCategory(category: InsertCategory): Promise<Category> {
+    const [newCategory] = await db.insert(categories).values(category).returning();
+    return newCategory;
+  }
+
+  // License key operations
+  async getLicenseKeys(productId?: string): Promise<LicenseKey[]> {
+    if (productId) {
+      return await db.select().from(licenseKeys)
+        .where(eq(licenseKeys.productId, productId))
+        .orderBy(desc(licenseKeys.createdAt));
+    }
+    return await db.select().from(licenseKeys)
+      .orderBy(desc(licenseKeys.createdAt));
+  }
+
+  async createLicenseKey(key: InsertLicenseKey): Promise<LicenseKey> {
+    const [newKey] = await db.insert(licenseKeys).values(key).returning();
+    return newKey;
+  }
+
+  async getAvailableKey(productId: string): Promise<LicenseKey | undefined> {
+    const [key] = await db
+      .select()
+      .from(licenseKeys)
+      .where(and(eq(licenseKeys.productId, productId), eq(licenseKeys.isUsed, false)))
+      .limit(1);
+    return key;
+  }
+
+  async markKeyAsUsed(keyId: string, userId: string): Promise<void> {
+    await db
+      .update(licenseKeys)
+      .set({
+        isUsed: true,
+        usedBy: userId,
+        usedAt: new Date(),
+      })
+      .where(eq(licenseKeys.id, keyId));
+  }
+
+  async getProductStock(productId: string): Promise<number> {
+    const [result] = await db
+      .select({ count: count() })
+      .from(licenseKeys)
+      .where(and(eq(licenseKeys.productId, productId), eq(licenseKeys.isUsed, false)));
+    return result.count;
+  }
+
+  // Cart operations
+  async getCartItems(userId: string): Promise<(CartItem & { product: Product })[]> {
+    return await db
+      .select({
+        id: cartItems.id,
+        userId: cartItems.userId,
+        productId: cartItems.productId,
+        quantity: cartItems.quantity,
+        createdAt: cartItems.createdAt,
+        product: products,
+      })
+      .from(cartItems)
+      .innerJoin(products, eq(cartItems.productId, products.id))
+      .where(eq(cartItems.userId, userId));
+  }
+
+  async addToCart(item: InsertCartItem): Promise<CartItem> {
+    // Check if item already exists
+    const [existingItem] = await db
+      .select()
+      .from(cartItems)
+      .where(and(eq(cartItems.userId, item.userId), eq(cartItems.productId, item.productId)));
+
+    if (existingItem) {
+      // Update quantity
+      const [updatedItem] = await db
+        .update(cartItems)
+        .set({ quantity: existingItem.quantity + item.quantity })
+        .where(eq(cartItems.id, existingItem.id))
+        .returning();
+      return updatedItem;
+    } else {
+      // Add new item
+      const [newItem] = await db.insert(cartItems).values(item).returning();
+      return newItem;
+    }
+  }
+
+  async updateCartItem(id: string, quantity: number): Promise<void> {
+    await db.update(cartItems).set({ quantity }).where(eq(cartItems.id, id));
+  }
+
+  async removeFromCart(id: string): Promise<void> {
+    await db.delete(cartItems).where(eq(cartItems.id, id));
+  }
+
+  async clearCart(userId: string): Promise<void> {
+    await db.delete(cartItems).where(eq(cartItems.userId, userId));
+  }
+
+  // Order operations
+  async createOrder(order: InsertOrder): Promise<Order> {
+    const [newOrder] = await db.insert(orders).values(order).returning();
+    return newOrder;
+  }
+
+  async createOrderItem(item: InsertOrderItem): Promise<OrderItem> {
+    const [newItem] = await db.insert(orderItems).values(item).returning();
+    return newItem;
+  }
+
+  async getOrders(userId?: string): Promise<(Order & { items: (OrderItem & { product: Product })[] })[]> {
+    const ordersList = userId 
+      ? await db.select().from(orders).where(eq(orders.userId, userId)).orderBy(desc(orders.createdAt))
+      : await db.select().from(orders).orderBy(desc(orders.createdAt));
+    
+    const ordersWithItems = await Promise.all(
+      ordersList.map(async (order) => {
+        const items = await db
+          .select({
+            id: orderItems.id,
+            orderId: orderItems.orderId,
+            productId: orderItems.productId,
+            licenseKeyId: orderItems.licenseKeyId,
+            quantity: orderItems.quantity,
+            unitPrice: orderItems.unitPrice,
+            totalPrice: orderItems.totalPrice,
+            product: products,
+          })
+          .from(orderItems)
+          .innerJoin(products, eq(orderItems.productId, products.id))
+          .where(eq(orderItems.orderId, order.id));
+        
+        return { ...order, items };
+      })
+    );
+    
+    return ordersWithItems;
+  }
+
+  async updateOrderStatus(orderId: string, status: string): Promise<void> {
+    await db.update(orders).set({ status, updatedAt: new Date() }).where(eq(orders.id, orderId));
+  }
+
+  // Admin operations
+  async getAllUsers(): Promise<User[]> {
+    return await db.select().from(users).orderBy(desc(users.createdAt));
+  }
+
+  async getUserPermissions(userId: string): Promise<AdminPermissions | undefined> {
+    const [permissions] = await db
+      .select()
+      .from(adminPermissions)
+      .where(eq(adminPermissions.userId, userId));
+    return permissions;
+  }
+
+  async updateUserPermissions(userId: string, permissions: InsertAdminPermissions): Promise<AdminPermissions> {
+    const [updated] = await db
+      .insert(adminPermissions)
+      .values({ ...permissions, userId })
+      .onConflictDoUpdate({
+        target: adminPermissions.userId,
+        set: { ...permissions, updatedAt: new Date() },
+      })
+      .returning();
+    return updated;
+  }
+
+  // Dashboard stats
+  async getDashboardStats(): Promise<{
+    totalUsers: number;
+    totalSales: string;
+    activeKeys: number;
+    totalProducts: number;
+  }> {
+    const [userCount] = await db.select({ count: count() }).from(users);
+    const [productCount] = await db.select({ count: count() }).from(products).where(eq(products.isActive, true));
+    const [keyCount] = await db.select({ count: count() }).from(licenseKeys).where(eq(licenseKeys.isUsed, false));
+    
+    const [salesResult] = await db
+      .select({ total: sql<string>`COALESCE(SUM(${orders.totalAmount}), 0)` })
+      .from(orders)
+      .where(eq(orders.status, 'completed'));
+
+    return {
+      totalUsers: userCount.count,
+      totalSales: `BAM ${parseFloat(salesResult.total || '0').toLocaleString()}`,
+      activeKeys: keyCount.count,
+      totalProducts: productCount.count,
+    };
+  }
+}
+
+export const storage = new DatabaseStorage();
