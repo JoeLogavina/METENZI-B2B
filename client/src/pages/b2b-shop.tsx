@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, Search, Filter, Grid, List, Plus, Minus, Package, User, Settings, BarChart3, FileText, Users, CreditCard, HelpCircle, ChevronDown, Calendar } from "lucide-react";
+import { Link } from "wouter";
 import { type ProductWithStock } from "@shared/schema";
 
 export default function B2BShop() {
@@ -28,7 +29,7 @@ export default function B2BShop() {
     sku: "",
   });
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
-  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isCartHovered, setIsCartHovered] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   // Redirect if not authenticated
@@ -190,18 +191,73 @@ export default function B2BShop() {
                 <Package className="w-4 h-4 mr-1" />
                 <span className="font-mono font-medium">{products.length}</span> available
               </div>
-              <Button
-                size="sm"
-                onClick={() => setIsCartOpen(true)}
-                className="relative bg-[#4D9DE0] hover:bg-[#3ba3e8] text-white border-0 px-5 py-2 rounded-[5px] font-medium transition-colors duration-200"
-              >
-                <ShoppingCart className="h-4 w-4" />
-                {cartItemCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-[#E15554] text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-mono font-semibold">
-                    {cartItemCount}
-                  </span>
+              <div className="relative">
+                <Link href="/cart">
+                  <Button
+                    size="sm"
+                    onMouseEnter={() => setIsCartHovered(true)}
+                    onMouseLeave={() => setIsCartHovered(false)}
+                    className="relative bg-[#4D9DE0] hover:bg-[#3ba3e8] text-white border-0 px-5 py-2 rounded-[5px] font-medium transition-colors duration-200"
+                  >
+                    <ShoppingCart className="h-4 w-4" />
+                    {cartItemCount > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-[#E15554] text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-mono font-semibold">
+                        {cartItemCount}
+                      </span>
+                    )}
+                  </Button>
+                </Link>
+                
+                {/* Cart Hover Preview */}
+                {isCartHovered && (
+                  <div 
+                    className="absolute right-0 top-12 w-80 bg-white rounded-[8px] shadow-[0_8px_25px_rgba(0,0,0,0.15)] border border-[#ddd] z-50"
+                    onMouseEnter={() => setIsCartHovered(true)}
+                    onMouseLeave={() => setIsCartHovered(false)}
+                  >
+                    <div className="p-4 border-b border-[#e5e5e5]">
+                      <h3 className="text-sm font-semibold uppercase tracking-[0.5px] text-[#4D585A]">Shopping Cart Preview</h3>
+                    </div>
+                    <div className="p-4 max-h-60 overflow-y-auto">
+                      {cartItems.length === 0 ? (
+                        <p className="text-gray-500 text-center py-4">Your cart is empty</p>
+                      ) : (
+                        <div className="space-y-3">
+                          {cartItems.slice(0, 3).map((item: any) => (
+                            <div key={item.id} className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <p className="text-sm font-semibold text-[#4D585A] truncate">{item.product?.name}</p>
+                                <p className="text-xs text-gray-500">€{item.product?.price} × {item.quantity}</p>
+                              </div>
+                              <div className="text-sm font-mono font-semibold text-[#4D585A]">
+                                €{(item.product?.price * item.quantity).toFixed(2)}
+                              </div>
+                            </div>
+                          ))}
+                          {cartItems.length > 3 && (
+                            <p className="text-xs text-gray-500 text-center">
+                              +{cartItems.length - 3} more items
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    {cartItems.length > 0 && (
+                      <div className="p-4 border-t border-[#e5e5e5]">
+                        <div className="flex justify-between items-center mb-3">
+                          <span className="text-sm font-semibold text-[#4D585A]">Total:</span>
+                          <span className="font-mono font-semibold text-[#4D585A]">
+                            €{cartItems.reduce((sum: number, item: any) => sum + (item.product?.price * item.quantity), 0).toFixed(2)}
+                          </span>
+                        </div>
+                        <div className="text-xs text-gray-600 text-center">
+                          Click cart icon to view full cart
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 )}
-              </Button>
+              </div>
             </div>
           </div>
         </header>
@@ -416,54 +472,7 @@ export default function B2BShop() {
         </div>
       </div>
 
-      {/* Cart Modal */}
-      {isCartOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-[8px] p-6 w-96 max-h-[80vh] overflow-y-auto shadow-[0_2px_5px_rgba(0,0,0,0.1)]">
-            <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#e5e5e5]">
-              <h3 className="text-lg font-semibold uppercase tracking-[0.5px] text-[#4D585A]">Shopping Cart</h3>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setIsCartOpen(false)}
-                className="text-[#E15554] hover:bg-[#f8f8f8] rounded-[5px] transition-colors duration-200"
-              >
-                ×
-              </Button>
-            </div>
-            <div className="space-y-4">
-              {cartItems.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">Your cart is empty</p>
-              ) : (
-                cartItems.map((item: any) => (
-                  <div key={item.id} className="flex items-center justify-between border-b pb-2">
-                    <div>
-                      <p className="font-semibold text-[#4D585A]">{item.product?.name}</p>
-                      <p className="text-sm text-gray-500">€{item.product?.price} × <span className="font-mono">{item.quantity}</span></p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-mono font-semibold text-[#4D585A]">€{(item.product?.price * item.quantity).toFixed(2)}</p>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-            {cartItems.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-[#e5e5e5]">
-                <div className="flex justify-between items-center mb-4">
-                  <span className="font-semibold text-[#4D585A] uppercase tracking-[0.5px]">Total:</span>
-                  <span className="font-mono font-semibold text-lg text-[#4D585A]">
-                    €{cartItems.reduce((sum: number, item: any) => sum + (item.product?.price * item.quantity), 0).toFixed(2)}
-                  </span>
-                </div>
-                <Button className="w-full bg-[#4D9DE0] hover:bg-[#3ba3e8] text-white border-0 py-3 rounded-[5px] font-semibold uppercase tracking-[0.5px] transition-colors duration-200">
-                  Proceed to Checkout
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+
     </div>
   );
 }
