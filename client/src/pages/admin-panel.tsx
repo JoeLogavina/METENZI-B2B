@@ -81,7 +81,7 @@ export default function AdminPanel() {
   ].filter(item => item.allowed);
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-gray-50">
       <Sidebar activeItem="admin" userRole={(user as any)?.role} />
       
       <div className="flex-1 flex overflow-hidden">
@@ -111,14 +111,14 @@ export default function AdminPanel() {
         </div>
 
         {/* Admin Content */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-hidden bg-white">
           <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
             <h3 className="text-xl font-semibold text-gray-900 capitalize">
               {activeSection === 'dashboard' ? 'Dashboard Overview' : activeSection.replace('_', ' ')}
             </h3>
           </div>
           
-          <div className="flex-1 overflow-auto p-6">
+          <div className="flex-1 overflow-auto p-6 bg-gray-50">
             {activeSection === 'dashboard' && (
               <div className="space-y-8">
                 {/* Dashboard Stats */}
