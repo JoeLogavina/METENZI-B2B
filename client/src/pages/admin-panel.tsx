@@ -32,9 +32,10 @@ export default function AdminPanel() {
 
   // Redirect if not authenticated or not admin
   useEffect(() => {
+    console.log("Admin panel auth check:", { isLoading, isAuthenticated, userRole: (user as any)?.role, user });
     if (!isLoading && (!isAuthenticated || ((user as any)?.role !== 'admin' && (user as any)?.role !== 'super_admin'))) {
       toast({
-        title: "Unauthorized",
+        title: "Unauthorized", 
         description: "Admin access required. Redirecting...",
         variant: "destructive",
       });
