@@ -131,15 +131,16 @@ export default function B2BShop() {
   }
 
   const sidebarItems = [
-    { icon: Package, label: "B2B SHOP", active: true },
-    { icon: Grid, label: "CATALOG", active: false },
-    { icon: Users, label: "CLIENTS", active: false },
-    { icon: FileText, label: "ORDERS", active: false },
-    { icon: BarChart3, label: "REPORTS", active: false },
-    { icon: CreditCard, label: "INVOICES", active: false },
-    { icon: Settings, label: "SETTINGS", active: false },
-    { icon: HelpCircle, label: "SUPPORT", active: false },
-  ];
+    { icon: Package, label: "B2B SHOP", active: true, href: "/", allowed: true },
+    { icon: Grid, label: "CATALOG", active: false, href: "/catalog", allowed: true },
+    { icon: Users, label: "CLIENTS", active: false, href: "/clients", allowed: user?.role === 'admin' || user?.role === 'super_admin' },
+    { icon: FileText, label: "ORDERS", active: false, href: "/orders", allowed: true },
+    { icon: BarChart3, label: "REPORTS", active: false, href: "/reports", allowed: user?.role === 'admin' || user?.role === 'super_admin' },
+    { icon: CreditCard, label: "INVOICES", active: false, href: "/invoices", allowed: user?.role === 'admin' || user?.role === 'super_admin' },
+    { icon: Settings, label: "ADMIN PANEL", active: false, href: "/admin", allowed: user?.role === 'admin' || user?.role === 'super_admin' },
+    { icon: Settings, label: "SETTINGS", active: false, href: "/settings", allowed: true },
+    { icon: HelpCircle, label: "SUPPORT", active: false, href: "/support", allowed: true },
+  ].filter(item => item.allowed);
 
   return (
     <div className="min-h-screen bg-[#f5f6f5] flex font-['Inter',-apple-system,BlinkMacSystemFont,sans-serif]">
@@ -159,17 +160,18 @@ export default function B2BShop() {
         
         <nav className="mt-4">
           {sidebarItems.map((item, index) => (
-            <div
-              key={index}
-              className={`flex items-center px-4 py-3 text-sm transition-colors duration-200 ${
-                item.active 
-                  ? 'bg-[#4D9DE0] text-white border-r-2 border-[#3ba3e8]' 
-                  : 'text-gray-300 hover:bg-[#5a6668]'
-              }`}
-            >
-              <item.icon className="w-4 h-4 mr-3" />
-              <span className="uppercase tracking-[0.5px] font-medium text-xs">{item.label}</span>
-            </div>
+            <Link key={index} href={item.href}>
+              <div
+                className={`flex items-center px-4 py-3 text-sm transition-colors duration-200 cursor-pointer ${
+                  item.active 
+                    ? 'bg-[#4D9DE0] text-white border-r-2 border-[#3ba3e8]' 
+                    : 'text-gray-300 hover:bg-[#5a6668]'
+                }`}
+              >
+                <item.icon className="w-4 h-4 mr-3" />
+                <span className="uppercase tracking-[0.5px] font-medium text-xs">{item.label}</span>
+              </div>
+            </Link>
           ))}
         </nav>
       </div>
