@@ -23,7 +23,9 @@ import {
   User, 
   Mail, 
   Phone,
-  Building
+  Building,
+  Banknote,
+  FileText
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
@@ -296,10 +298,10 @@ export default function CheckoutPage() {
           {/* Checkout Form */}
           <div className="lg:col-span-2 space-y-6">
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <div className="space-y-6">
                 {/* Billing Information */}
                 <Card className="bg-white rounded-[8px] shadow-[0_2px_5px_rgba(0,0,0,0.1)] border-[#ddd]">
-                  <CardHeader className="bg-[#4D585A] text-white rounded-t-[8px]">
+                  <CardHeader className="bg-[#B8B8B8] text-white rounded-t-[8px] py-3">
                     <CardTitle className="flex items-center text-lg font-semibold uppercase tracking-[0.5px]">
                       <Building className="w-5 h-5 mr-2" />
                       Billing Information
@@ -401,7 +403,7 @@ export default function CheckoutPage() {
 
                 {/* Billing Address */}
                 <Card className="bg-white rounded-[8px] shadow-[0_2px_5px_rgba(0,0,0,0.1)] border-[#ddd]">
-                  <CardHeader className="bg-[#4D585A] text-white rounded-t-[8px]">
+                  <CardHeader className="bg-[#B8B8B8] text-white rounded-t-[8px] py-3">
                     <CardTitle className="flex items-center text-lg font-semibold uppercase tracking-[0.5px]">
                       <MapPin className="w-5 h-5 mr-2" />
                       Billing Address
@@ -494,7 +496,7 @@ export default function CheckoutPage() {
 
                 {/* Payment Method */}
                 <Card className="bg-white rounded-[8px] shadow-[0_2px_5px_rgba(0,0,0,0.1)] border-[#ddd]">
-                  <CardHeader className="bg-[#4D585A] text-white rounded-t-[8px]">
+                  <CardHeader className="bg-[#B8B8B8] text-white rounded-t-[8px] py-3">
                     <CardTitle className="flex items-center text-lg font-semibold uppercase tracking-[0.5px]">
                       <CreditCard className="w-5 h-5 mr-2" />
                       Payment Method
@@ -506,19 +508,62 @@ export default function CheckoutPage() {
                       name="paymentMethod"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-sm font-semibold text-gray-700">Payment Method</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger className="border-[#ddd] rounded-[5px] focus:border-[#4D9DE0]">
-                                <SelectValue />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="credit_card">Credit Card</SelectItem>
-                              <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                              <SelectItem value="purchase_order">Purchase Order</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <FormLabel className="text-sm font-semibold text-gray-700 mb-3 block">Select Payment Method</FormLabel>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {/* Credit Card */}
+                            <div 
+                              className={`border-2 rounded-[8px] p-4 cursor-pointer transition-all duration-200 ${
+                                field.value === 'credit_card' 
+                                  ? 'border-[#4D9DE0] bg-[#4D9DE0]/5' 
+                                  : 'border-[#ddd] hover:border-[#4D9DE0]/50'
+                              }`}
+                              onClick={() => field.onChange('credit_card')}
+                            >
+                              <div className="text-center">
+                                <CreditCard className={`w-8 h-8 mx-auto mb-2 ${
+                                  field.value === 'credit_card' ? 'text-[#4D9DE0]' : 'text-gray-600'
+                                }`} />
+                                <h3 className="font-semibold text-sm text-gray-800">Credit Card</h3>
+                                <p className="text-xs text-gray-600 mt-1">Visa, Mastercard, Amex</p>
+                              </div>
+                            </div>
+
+                            {/* Bank Transfer */}
+                            <div 
+                              className={`border-2 rounded-[8px] p-4 cursor-pointer transition-all duration-200 ${
+                                field.value === 'bank_transfer' 
+                                  ? 'border-[#4D9DE0] bg-[#4D9DE0]/5' 
+                                  : 'border-[#ddd] hover:border-[#4D9DE0]/50'
+                              }`}
+                              onClick={() => field.onChange('bank_transfer')}
+                            >
+                              <div className="text-center">
+                                <Banknote className={`w-8 h-8 mx-auto mb-2 ${
+                                  field.value === 'bank_transfer' ? 'text-[#4D9DE0]' : 'text-gray-600'
+                                }`} />
+                                <h3 className="font-semibold text-sm text-gray-800">Bank Transfer</h3>
+                                <p className="text-xs text-gray-600 mt-1">SEPA, Wire Transfer</p>
+                              </div>
+                            </div>
+
+                            {/* Purchase Order */}
+                            <div 
+                              className={`border-2 rounded-[8px] p-4 cursor-pointer transition-all duration-200 ${
+                                field.value === 'purchase_order' 
+                                  ? 'border-[#4D9DE0] bg-[#4D9DE0]/5' 
+                                  : 'border-[#ddd] hover:border-[#4D9DE0]/50'
+                              }`}
+                              onClick={() => field.onChange('purchase_order')}
+                            >
+                              <div className="text-center">
+                                <FileText className={`w-8 h-8 mx-auto mb-2 ${
+                                  field.value === 'purchase_order' ? 'text-[#4D9DE0]' : 'text-gray-600'
+                                }`} />
+                                <h3 className="font-semibold text-sm text-gray-800">Purchase Order</h3>
+                                <p className="text-xs text-gray-600 mt-1">Net 30 Payment Terms</p>
+                              </div>
+                            </div>
+                          </div>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -638,23 +683,14 @@ export default function CheckoutPage() {
                     )}
                   </CardContent>
                 </Card>
-
-                {/* Place Order Button */}
-                <Button
-                  type="submit"
-                  disabled={placeOrderMutation.isPending}
-                  className="w-full bg-[#4D9DE0] hover:bg-[#3ba3e8] text-white rounded-[5px] font-semibold uppercase tracking-[0.5px] py-4 text-lg transition-colors duration-200"
-                >
-                  {placeOrderMutation.isPending ? "Processing..." : `Place Order • €${finalAmount.toFixed(2)}`}
-                </Button>
-              </form>
+              </div>
             </Form>
           </div>
 
           {/* Order Summary */}
           <div className="lg:col-span-1">
             <Card className="bg-white rounded-[8px] shadow-[0_2px_5px_rgba(0,0,0,0.1)] border-[#ddd] sticky top-6">
-              <CardHeader className="bg-[#4D585A] text-white rounded-t-[8px]">
+              <CardHeader className="bg-[#B8B8B8] text-white rounded-t-[8px] py-3">
                 <CardTitle className="text-lg font-semibold uppercase tracking-[0.5px]">Order Summary</CardTitle>
               </CardHeader>
               <CardContent className="p-6">
@@ -696,6 +732,17 @@ export default function CheckoutPage() {
                       </span>
                     </div>
                   </div>
+                </div>
+
+                {/* Place Order Button */}
+                <div className="mt-6">
+                  <Button
+                    onClick={() => form.handleSubmit(onSubmit)()}
+                    disabled={placeOrderMutation.isPending}
+                    className="w-full bg-[#4D9DE0] hover:bg-[#3ba3e8] text-white rounded-[5px] font-semibold uppercase tracking-[0.5px] py-4 text-lg transition-colors duration-200"
+                  >
+                    {placeOrderMutation.isPending ? "Processing..." : `Place Order • €${finalAmount.toFixed(2)}`}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
