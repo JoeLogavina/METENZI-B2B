@@ -349,6 +349,21 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Admin product management routes
+  app.get("/api/admin/products", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const products = await storage.getAllProducts(); // Get ALL products for admin
+      res.json(products);
+    } catch (error) {
+      console.error("Error fetching admin products:", error);
+      res.status(500).json({ message: "Failed to fetch products" });
+    }
+  });
+
   app.patch("/api/admin/products/:id/status", isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.id);

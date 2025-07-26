@@ -50,7 +50,7 @@ export default function B2BShop() {
 
   // Fetch products
   const { data: products = [], isLoading: productsLoading } = useQuery<ProductWithStock[]>({
-    queryKey: ["/api/products"],
+    queryKey: ["/api/products", filters],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (filters.region) params.append('region', filters.region);
@@ -70,6 +70,8 @@ export default function B2BShop() {
       return await res.json();
     },
     enabled: isAuthenticated,
+    staleTime: 0, // Always consider data stale to get fresh data
+    gcTime: 0, // Don't cache in memory
   });
 
   // Fetch cart items

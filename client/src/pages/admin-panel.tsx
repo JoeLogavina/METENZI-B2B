@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,7 @@ interface DashboardStats {
 export default function AdminPanel() {
   const { user, isLoading, isAuthenticated, logout, isLoggingOut } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [activeSection, setActiveSection] = useState("dashboard");
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
@@ -66,8 +67,21 @@ export default function AdminPanel() {
   });
 
   const { data: products = [], isLoading: productsLoading, refetch: refetchProducts } = useQuery({
-    queryKey: ["/api/products"],
+    queryKey: ["/api/admin/products"],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/products', {
+        credentials: 'include'
+      });
+      
+      if (!res.ok) {
+        throw new Error(`${res.status}: ${res.statusText}`);
+      }
+      
+      return await res.json();
+    },
     enabled: isAuthenticated && activeSection === 'products',
+    staleTime: 0,
+    gcTime: 0,
   });
 
   // Toggle product status function
@@ -91,6 +105,8 @@ export default function AdminPanel() {
       });
 
       refetchProducts();
+      // Also invalidate the B2B shop products cache
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
     } catch (error) {
       toast({
         title: "Error",
@@ -523,6 +539,8 @@ export default function AdminPanel() {
                         setShowProductForm(false);
                         setEditingProduct(null);
                         refetchProducts();
+                        // Also invalidate the B2B shop products cache
+                        queryClient.invalidateQueries({ queryKey: ["/api/products"] });
                       } catch (error) {
                         toast({
                           title: "Error",

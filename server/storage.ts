@@ -45,6 +45,7 @@ export interface IStorage {
     priceMin?: number;
     priceMax?: number;
   }): Promise<ProductWithStock[]>;
+  getAllProducts(): Promise<ProductWithStock[]>; // For admin - includes inactive
   getProduct(id: string): Promise<Product | undefined>;
   createProduct(product: InsertProduct): Promise<Product>;
   updateProduct(id: string, product: Partial<InsertProduct>): Promise<Product>;
@@ -166,6 +167,32 @@ export class DatabaseStorage implements IStorage {
       .from(products)
       .leftJoin(licenseKeys, eq(products.id, licenseKeys.productId))
       .where(and(...whereConditions))
+      .groupBy(products.id)
+      .orderBy(desc(products.createdAt));
+      
+    return result as ProductWithStock[];
+  }
+
+  async getAllProducts(): Promise<ProductWithStock[]> {
+    // For admin - get ALL products regardless of isActive status
+    const result = await db
+      .select({
+        id: products.id,
+        sku: products.sku,
+        name: products.name,
+        description: products.description,
+        price: products.price,
+        categoryId: products.categoryId,
+        region: products.region,
+        platform: products.platform,
+        imageUrl: products.imageUrl,
+        isActive: products.isActive,
+        createdAt: products.createdAt,
+        updatedAt: products.updatedAt,
+        stockCount: sql<number>`COUNT(CASE WHEN ${licenseKeys.isUsed} = false THEN 1 END)`,
+      })
+      .from(products)
+      .leftJoin(licenseKeys, eq(products.id, licenseKeys.productId))
       .groupBy(products.id)
       .orderBy(desc(products.createdAt));
       
