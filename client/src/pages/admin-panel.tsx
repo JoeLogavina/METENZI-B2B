@@ -5,6 +5,11 @@ import { useQuery } from "@tanstack/react-query";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { 
   Users, 
   ShoppingCart, 
@@ -14,7 +19,10 @@ import {
   Settings,
   Shield,
   FileText,
-  X
+  X,
+  Plus,
+  Edit,
+  Trash2
 } from "lucide-react";
 
 interface DashboardStats {
@@ -28,6 +36,8 @@ export default function AdminPanel() {
   const { user, isLoading, isAuthenticated, logout, isLoggingOut } = useAuth();
   const { toast } = useToast();
   const [activeSection, setActiveSection] = useState("dashboard");
+  const [showProductForm, setShowProductForm] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<any>(null);
 
   // Redirect if not authenticated or not admin
   useEffect(() => {
@@ -54,6 +64,41 @@ export default function AdminPanel() {
     queryKey: ["/api/admin/users"],
     enabled: isAuthenticated && (user as any)?.role === 'super_admin' && activeSection === 'users',
   });
+
+  const { data: products = [], isLoading: productsLoading, refetch: refetchProducts } = useQuery({
+    queryKey: ["/api/products"],
+    enabled: isAuthenticated && activeSection === 'products',
+  });
+
+  // Toggle product status function
+  const toggleProductStatus = async (productId: string, isActive: boolean) => {
+    try {
+      const response = await fetch(`/api/admin/products/${productId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ isActive }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update product status');
+      }
+
+      toast({
+        title: "Success",
+        description: `Product ${isActive ? 'activated' : 'deactivated'} successfully`,
+      });
+
+      refetchProducts();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update product status",
+        variant: "destructive",
+      });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -324,7 +369,178 @@ export default function AdminPanel() {
               </Card>
             )}
 
-            {(activeSection === 'products' || activeSection === 'keys' || activeSection === 'permissions' || activeSection === 'reports') && (
+            {activeSection === 'products' && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 uppercase tracking-[0.5px]">PRODUCT MANAGEMENT</h3>
+                    <p className="text-gray-600">Manage software products visible to B2B users</p>
+                  </div>
+                  <Button
+                    onClick={() => setShowProductForm(true)}
+                    className="bg-[#4D9DE0] hover:bg-[#4a94d1] text-white"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    ADD PRODUCT
+                  </Button>
+                </div>
+
+                {/* Products Table */}
+                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                  <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-medium text-gray-900 uppercase tracking-[0.5px]">ALL PRODUCTS</h4>
+                      <div className="text-sm text-gray-500">
+                        {products?.length || 0} products
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {productsLoading ? (
+                          <tr>
+                            <td colSpan={6} className="px-6 py-12 text-center">
+                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4D9DE0] mx-auto"></div>
+                              <p className="mt-2 text-gray-500">Loading products...</p>
+                            </td>
+                          </tr>
+                        ) : products?.length === 0 ? (
+                          <tr>
+                            <td colSpan={6} className="px-6 py-12 text-center">
+                              <Package className="mx-auto h-12 w-12 text-gray-400" />
+                              <h3 className="mt-2 text-sm font-medium text-gray-900">No products</h3>
+                              <p className="mt-1 text-sm text-gray-500">Get started by creating a new product.</p>
+                            </td>
+                          </tr>
+                        ) : (
+                          products?.map((product: any) => (
+                            <tr key={product.id} className="hover:bg-gray-50">
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="flex items-center">
+                                  <div className="flex-shrink-0 h-10 w-10">
+                                    <div className="h-10 w-10 rounded-lg bg-[#4D9DE0] flex items-center justify-center">
+                                      <Package className="h-5 w-5 text-white" />
+                                    </div>
+                                  </div>
+                                  <div className="ml-4">
+                                    <div className="text-sm font-medium text-gray-900">{product.name}</div>
+                                    <div className="text-sm text-gray-500">{product.platform}</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                  {product.category}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 font-mono">
+                                €{product.price}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
+                                {product.stock}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                  product.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                }`}>
+                                  {product.isActive ? 'Active' : 'Inactive'}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setEditingProduct(product);
+                                    setShowProductForm(true);
+                                  }}
+                                  className="text-[#4D9DE0] border-[#4D9DE0] hover:bg-[#4D9DE0] hover:text-white"
+                                >
+                                  Edit
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => toggleProductStatus(product.id, !product.isActive)}
+                                  className={product.isActive ? 'text-red-600 border-red-600 hover:bg-red-600 hover:text-white' : 'text-green-600 border-green-600 hover:bg-green-600 hover:text-white'}
+                                >
+                                  {product.isActive ? 'Deactivate' : 'Activate'}
+                                </Button>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Product Form Modal */}
+            {showProductForm && (
+              <Dialog open={showProductForm} onOpenChange={setShowProductForm}>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle className="uppercase tracking-[0.5px]">
+                      {editingProduct ? 'EDIT PRODUCT' : 'ADD NEW PRODUCT'}
+                    </DialogTitle>
+                  </DialogHeader>
+                  <ProductForm 
+                    product={editingProduct}
+                    onSubmit={async (data) => {
+                      try {
+                        const url = editingProduct 
+                          ? `/api/admin/products/${editingProduct.id}`
+                          : '/api/admin/products';
+                        const method = editingProduct ? 'PUT' : 'POST';
+                        
+                        const response = await fetch(url, {
+                          method,
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify(data),
+                        });
+
+                        if (!response.ok) throw new Error('Failed to save product');
+
+                        toast({
+                          title: "Success",
+                          description: `Product ${editingProduct ? 'updated' : 'created'} successfully`,
+                        });
+
+                        setShowProductForm(false);
+                        setEditingProduct(null);
+                        refetchProducts();
+                      } catch (error) {
+                        toast({
+                          title: "Error",
+                          description: `Failed to ${editingProduct ? 'update' : 'create'} product`,
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                    onCancel={() => {
+                      setShowProductForm(false);
+                      setEditingProduct(null);
+                    }}
+                  />
+                </DialogContent>
+              </Dialog>
+            )}
+
+            {(activeSection === 'keys' || activeSection === 'permissions' || activeSection === 'reports') && (
               <Card>
                 <CardHeader>
                   <CardTitle className="capitalize">{activeSection.replace('_', ' ')} Management</CardTitle>
@@ -348,5 +564,192 @@ export default function AdminPanel() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Product Form Component
+function ProductForm({ 
+  product, 
+  onSubmit, 
+  onCancel 
+}: { 
+  product?: any; 
+  onSubmit: (data: any) => void; 
+  onCancel: () => void; 
+}) {
+  const [formData, setFormData] = useState({
+    name: product?.name || '',
+    description: product?.description || '',
+    price: product?.price || '',
+    category: product?.category || '',
+    platform: product?.platform || '',
+    region: product?.region || '',
+    stock: product?.stock || '',
+    isActive: product?.isActive ?? true,
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit({
+      ...formData,
+      price: parseFloat(formData.price),
+      stock: parseInt(formData.stock),
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="name" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+            PRODUCT NAME
+          </Label>
+          <Input
+            id="name"
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            className="mt-1"
+            required
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="category" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+            CATEGORY
+          </Label>
+          <Select 
+            value={formData.category} 
+            onValueChange={(value) => setFormData({ ...formData, category: value })}
+          >
+            <SelectTrigger className="mt-1">
+              <SelectValue placeholder="Select category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Development Tools">Development Tools</SelectItem>
+              <SelectItem value="Design Software">Design Software</SelectItem>
+              <SelectItem value="Security Software">Security Software</SelectItem>
+              <SelectItem value="Business Software">Business Software</SelectItem>
+              <SelectItem value="Productivity Tools">Productivity Tools</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <Label htmlFor="price" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+            PRICE (€)
+          </Label>
+          <Input
+            id="price"
+            type="number"
+            step="0.01"
+            value={formData.price}
+            onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+            className="mt-1"
+            required
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="stock" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+            STOCK
+          </Label>
+          <Input
+            id="stock"
+            type="number"
+            value={formData.stock}
+            onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
+            className="mt-1"
+            required
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="platform" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+            PLATFORM
+          </Label>
+          <Select 
+            value={formData.platform} 
+            onValueChange={(value) => setFormData({ ...formData, platform: value })}
+          >
+            <SelectTrigger className="mt-1">
+              <SelectValue placeholder="Select platform" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Windows">Windows</SelectItem>
+              <SelectItem value="Mac">Mac</SelectItem>
+              <SelectItem value="Linux">Linux</SelectItem>
+              <SelectItem value="Web">Web</SelectItem>
+              <SelectItem value="Cross-platform">Cross-platform</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <Label htmlFor="region" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+            REGION
+          </Label>
+          <Select 
+            value={formData.region} 
+            onValueChange={(value) => setFormData({ ...formData, region: value })}
+          >
+            <SelectTrigger className="mt-1">
+              <SelectValue placeholder="Select region" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Worldwide">Worldwide</SelectItem>
+              <SelectItem value="Europe">Europe</SelectItem>
+              <SelectItem value="North America">North America</SelectItem>
+              <SelectItem value="Asia">Asia</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div>
+        <Label htmlFor="description" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+          DESCRIPTION
+        </Label>
+        <Textarea
+          id="description"
+          value={formData.description}
+          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          className="mt-1"
+          rows={3}
+          required
+        />
+      </div>
+
+      <div className="flex items-center justify-between pt-4 border-t">
+        <div className="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            id="isActive"
+            checked={formData.isActive}
+            onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+            className="rounded border-gray-300"
+          />
+          <Label htmlFor="isActive" className="text-sm font-medium text-gray-700">
+            Active (visible to B2B users)
+          </Label>
+        </div>
+
+        <div className="flex space-x-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            className="px-6"
+          >
+            CANCEL
+          </Button>
+          <Button
+            type="submit"
+            className="bg-[#4D9DE0] hover:bg-[#4a94d1] text-white px-6"
+          >
+            {product ? 'UPDATE' : 'CREATE'} PRODUCT
+          </Button>
+        </div>
+      </div>
+    </form>
   );
 }

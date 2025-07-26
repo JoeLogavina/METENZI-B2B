@@ -348,6 +348,25 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Admin product management routes
+  app.patch("/api/admin/products/:id/status", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      const { isActive } = req.body;
+      
+      const updatedProduct = await storage.updateProduct(id, { isActive });
+      res.json(updatedProduct);
+    } catch (error) {
+      console.error("Error updating product status:", error);
+      res.status(500).json({ message: "Failed to update product status" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
