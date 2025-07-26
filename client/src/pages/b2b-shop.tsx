@@ -10,13 +10,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, Search, Filter, Grid, List, Plus, Minus, Package, User, Settings, BarChart3, FileText, Users, CreditCard, HelpCircle, ChevronDown, Calendar, LogOut } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { type ProductWithStock } from "@shared/schema";
 
 export default function B2BShop() {
   const { user, isLoading, isAuthenticated, logout, isLoggingOut } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [location, setLocation] = useLocation();
   
   const [filters, setFilters] = useState({
     region: "",
@@ -160,18 +161,21 @@ export default function B2BShop() {
         
         <nav className="mt-4">
           {sidebarItems.map((item, index) => (
-            <Link key={index} href={item.href}>
-              <div
-                className={`flex items-center px-4 py-3 text-sm transition-colors duration-200 cursor-pointer ${
-                  item.active 
-                    ? 'bg-[#4D9DE0] text-white border-r-2 border-[#3ba3e8]' 
-                    : 'text-gray-300 hover:bg-[#5a6668]'
-                }`}
-              >
-                <item.icon className="w-4 h-4 mr-3" />
-                <span className="uppercase tracking-[0.5px] font-medium text-xs">{item.label}</span>
-              </div>
-            </Link>
+            <div
+              key={index}
+              className={`flex items-center px-4 py-3 text-sm transition-colors duration-200 cursor-pointer ${
+                item.active 
+                  ? 'bg-[#4D9DE0] text-white border-r-2 border-[#3ba3e8]' 
+                  : 'text-gray-300 hover:bg-[#5a6668]'
+              }`}
+              onClick={() => {
+                console.log('Sidebar item clicked:', item.label, 'href:', item.href);
+                setLocation(item.href);
+              }}
+            >
+              <item.icon className="w-4 h-4 mr-3" />
+              <span className="uppercase tracking-[0.5px] font-medium text-xs">{item.label}</span>
+            </div>
           ))}
         </nav>
       </div>
