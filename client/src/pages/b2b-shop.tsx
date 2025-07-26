@@ -9,12 +9,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Search, Filter, Grid, List, Plus, Minus, Package, User, Settings, BarChart3, FileText, Users, CreditCard, HelpCircle, ChevronDown, Calendar } from "lucide-react";
+import { ShoppingCart, Search, Filter, Grid, List, Plus, Minus, Package, User, Settings, BarChart3, FileText, Users, CreditCard, HelpCircle, ChevronDown, Calendar, LogOut } from "lucide-react";
 import { Link } from "wouter";
 import { type ProductWithStock } from "@shared/schema";
 
 export default function B2BShop() {
-  const { user, isLoading, isAuthenticated } = useAuth();
+  const { user, isLoading, isAuthenticated, logout, isLoggingOut } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -188,9 +188,25 @@ export default function B2BShop() {
             </div>
             <div className="flex items-center space-x-4">
               <div className="text-sm text-white flex items-center">
+                <User className="w-4 h-4 mr-1" />
+                <span className="font-medium">{user?.username}</span>
+              </div>
+              <div className="text-sm text-white flex items-center">
                 <Package className="w-4 h-4 mr-1" />
                 <span className="font-mono font-medium">{products.length}</span> available
               </div>
+              <Button
+                size="sm"
+                onClick={logout}
+                disabled={isLoggingOut}
+                className="relative bg-[#E15554] hover:bg-[#c74443] text-white border-0 px-4 py-2 rounded-[5px] font-medium transition-colors duration-200"
+              >
+                {isLoggingOut ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                ) : (
+                  <LogOut className="h-4 w-4" />
+                )}
+              </Button>
               <div className="relative">
                 <Link href="/cart">
                   <Button
@@ -509,11 +525,20 @@ function ProductRow({ product, onAddToCart, isLoading }: {
       </td>
       <td className="px-3 py-3 whitespace-nowrap">
         <div className="flex items-center">
-          {product.supportedPlatforms && product.supportedPlatforms.includes('Windows') && (
+          {product.platform === 'Windows' && (
             <span className="text-xs bg-[#4D9DE0] text-white px-2 py-1 rounded-[5px] mr-1 font-medium">Windows</span>
           )}
-          {product.supportedPlatforms && product.supportedPlatforms.includes('macOS') && (
+          {product.platform === 'macOS' && (
             <span className="text-xs bg-gray-500 text-white px-2 py-1 rounded-[5px] mr-1 font-medium">macOS</span>
+          )}
+          {product.platform === 'Linux' && (
+            <span className="text-xs bg-green-600 text-white px-2 py-1 rounded-[5px] mr-1 font-medium">Linux</span>
+          )}
+          {product.platform === 'Both' && (
+            <>
+              <span className="text-xs bg-[#4D9DE0] text-white px-2 py-1 rounded-[5px] mr-1 font-medium">Windows</span>
+              <span className="text-xs bg-gray-500 text-white px-2 py-1 rounded-[5px] mr-1 font-medium">macOS</span>
+            </>
           )}
         </div>
       </td>

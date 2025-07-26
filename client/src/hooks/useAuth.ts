@@ -1,6 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 export function useAuth() {
+  const queryClient = useQueryClient();
+  
   const { data: user, isLoading, error } = useQuery({
     queryKey: ["/api/user"],
     queryFn: async () => {
@@ -32,9 +35,31 @@ export function useAuth() {
     refetchIntervalInBackground: false,
   });
 
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("POST", "/api/logout");
+    },
+    onSuccess: () => {
+      queryClient.setQueryData(["/api/user"], null);
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      queryClient.clear(); // Clear all cached data
+      // Redirect to auth page
+      window.location.href = "/auth";
+    },
+    onError: (error) => {
+      console.error("Logout failed:", error);
+      // Even if the request fails, clear local state and redirect
+      queryClient.setQueryData(["/api/user"], null);
+      queryClient.clear();
+      window.location.href = "/auth";
+    },
+  });
+
   return {
     user,
     isLoading,
     isAuthenticated: !!user,
+    logout: () => logoutMutation.mutate(),
+    isLoggingOut: logoutMutation.isPending,
   };
 }
