@@ -140,9 +140,12 @@ export default function AuthPage() {
                 </Button>
               </form>
 
-              <div className="mt-6 text-center">
+              <div className="mt-6 text-center space-y-1">
                 <p className="text-xs text-gray-500">
-                  Demo credentials: admin / Kalendar1
+                  Admin: admin / Kalendar1
+                </p>
+                <p className="text-xs text-gray-500">
+                  B2B User: b2buser / Kalendar1
                 </p>
               </div>
             </CardContent>
