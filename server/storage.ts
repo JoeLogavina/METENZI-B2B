@@ -32,7 +32,7 @@ export interface IStorage {
   // User operations
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(insertUser: InsertUser): Promise<User>;
+  createUser(insertUser: UpsertUser): Promise<User>;
   upsertUser(user: UpsertUser): Promise<User>;
   updateUserRole(id: string, role: "b2b_user" | "admin" | "super_admin"): Promise<void>;
   
@@ -73,6 +73,7 @@ export interface IStorage {
   createOrderItem(item: InsertOrderItem): Promise<OrderItem>;
   getOrders(userId?: string): Promise<(Order & { items: (OrderItem & { product: Product })[] })[]>;
   updateOrderStatus(orderId: string, status: string): Promise<void>;
+  updatePaymentStatus(orderId: string, paymentStatus: string): Promise<void>;
   
   // Admin operations
   getAllUsers(): Promise<User[]>;
@@ -100,7 +101,7 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
+  async createUser(insertUser: UpsertUser): Promise<User> {
     const [user] = await db
       .insert(users)
       .values(insertUser)
@@ -340,6 +341,10 @@ export class DatabaseStorage implements IStorage {
 
   async updateOrderStatus(orderId: string, status: string): Promise<void> {
     await db.update(orders).set({ status, updatedAt: new Date() }).where(eq(orders.id, orderId));
+  }
+
+  async updatePaymentStatus(orderId: string, paymentStatus: string): Promise<void> {
+    await db.update(orders).set({ paymentStatus, updatedAt: new Date() }).where(eq(orders.id, orderId));
   }
 
   // Admin operations

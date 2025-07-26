@@ -7,6 +7,8 @@ import { useAuth } from "@/hooks/useAuth";
 import Landing from "@/pages/landing";
 import AuthPage from "@/pages/auth-page";
 import B2BShop from "@/pages/b2b-shop";
+import CartPage from "@/pages/cart";
+import CheckoutPage from "@/pages/checkout";
 import AdminPanel from "@/pages/admin-panel";
 import NotFound from "@/pages/not-found";
 
@@ -34,6 +36,9 @@ function Router() {
       ) : (
         <>
           <Route path="/" component={B2BShop} />
+          <Route path="/b2b-shop" component={B2BShop} />
+          <Route path="/cart" component={CartPage} />
+          <Route path="/checkout" component={CheckoutPage} />
           <Route path="/admin" component={AdminPanel} />
           <Route path="/auth" component={() => <div>Redirecting...</div>} />
         </>

@@ -164,6 +164,17 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  app.patch('/api/cart/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { quantity } = req.body;
+      await storage.updateCartItem(req.params.id, quantity);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating cart item:", error);
+      res.status(500).json({ message: "Failed to update cart item" });
+    }
+  });
+
   app.delete('/api/cart/:id', isAuthenticated, async (req: any, res) => {
     try {
       await storage.removeFromCart(req.params.id);
@@ -174,27 +185,53 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  app.delete('/api/cart', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      await storage.clearCart(userId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error clearing cart:", error);
+      res.status(500).json({ message: "Failed to clear cart" });
+    }
+  });
+
   // Order routes
   app.post('/api/orders', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
+      const { billingInfo, paymentMethod, paymentDetails } = req.body;
+      
       const cartItems = await storage.getCartItems(userId);
       
       if (cartItems.length === 0) {
         return res.status(400).json({ message: "Cart is empty" });
       }
 
-      // Calculate total
+      // Calculate totals
       const totalAmount = cartItems.reduce((sum, item) => 
         sum + (parseFloat(item.product.price) * item.quantity), 0
       );
+      const taxAmount = totalAmount * 0.21; // 21% tax
+      const finalAmount = totalAmount + taxAmount;
 
-      // Create order
-      const order = await storage.createOrder({
+      // Generate order number
+      const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
+
+      // Create order with billing information
+      const orderData = {
         userId,
+        orderNumber,
         totalAmount: totalAmount.toString(),
+        taxAmount: taxAmount.toString(),
+        finalAmount: finalAmount.toString(),
         status: 'pending',
-      });
+        paymentMethod,
+        paymentStatus: 'pending',
+        ...billingInfo, // Includes companyName, firstName, lastName, email, phone, address, city, postalCode, country
+      };
+
+      const order = await storage.createOrder(orderData);
 
       // Create order items and assign license keys
       for (const cartItem of cartItems) {
@@ -219,11 +256,26 @@ export function registerRoutes(app: Express): Server {
         }
       }
 
-      // Clear cart and complete order
+      // Clear cart
       await storage.clearCart(userId);
-      await storage.updateOrderStatus(order.id, 'completed');
+      
+      // Simulate payment processing based on payment method
+      let updatedOrder = order;
+      if (paymentMethod === 'credit_card') {
+        // In a real app, this would integrate with Stripe, Square, etc.
+        // For demo purposes, we'll simulate successful payment
+        await storage.updateOrderStatus(order.id, 'completed');
+        await storage.updatePaymentStatus(order.id, 'paid');
+        updatedOrder = { ...order, status: 'completed', paymentStatus: 'paid' };
+      } else if (paymentMethod === 'purchase_order') {
+        // PO orders stay pending until manual approval
+        updatedOrder = { ...order, status: 'pending', paymentStatus: 'pending' };
+      } else if (paymentMethod === 'bank_transfer') {
+        // Bank transfer orders stay pending until payment received
+        updatedOrder = { ...order, status: 'pending', paymentStatus: 'pending' };
+      }
 
-      res.status(201).json(order);
+      res.status(201).json({ ...updatedOrder, orderNumber });
     } catch (error) {
       console.error("Error creating order:", error);
       res.status(500).json({ message: "Failed to create order" });

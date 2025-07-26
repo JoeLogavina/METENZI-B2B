@@ -82,8 +82,29 @@ export const licenseKeys = pgTable("license_keys", {
 export const orders = pgTable("orders", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").references(() => users.id).notNull(),
+  orderNumber: varchar("order_number").notNull().unique(),
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
+  taxAmount: decimal("tax_amount", { precision: 10, scale: 2 }).notNull().default('0'),
+  finalAmount: decimal("final_amount", { precision: 10, scale: 2 }).notNull(),
   status: varchar("status").default("pending").notNull(), // pending, completed, cancelled
+  
+  // Billing Information
+  companyName: varchar("company_name"),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  email: varchar("email"),
+  phone: varchar("phone"),
+  
+  // Billing Address
+  address: varchar("address"),
+  city: varchar("city"),
+  postalCode: varchar("postal_code"),
+  country: varchar("country"),
+  
+  // Payment Information
+  paymentMethod: varchar("payment_method"), // credit_card, bank_transfer, purchase_order
+  paymentStatus: varchar("payment_status").default("pending"), // pending, paid, failed
+  
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
