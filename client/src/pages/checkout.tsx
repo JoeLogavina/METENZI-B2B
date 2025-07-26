@@ -301,7 +301,7 @@ export default function CheckoutPage() {
               <div className="space-y-6">
                 {/* Billing Information */}
                 <Card className="bg-white rounded-[8px] shadow-[0_2px_5px_rgba(0,0,0,0.1)] border-[#ddd]">
-                  <CardHeader className="bg-[#B8B8B8] text-white rounded-t-[8px] py-3">
+                  <CardHeader className="bg-[#0077B6] text-white rounded-t-[8px] py-3">
                     <CardTitle className="flex items-center text-lg font-semibold uppercase tracking-[0.5px]">
                       <Building className="w-5 h-5 mr-2" />
                       Billing Information
@@ -403,7 +403,7 @@ export default function CheckoutPage() {
 
                 {/* Billing Address */}
                 <Card className="bg-white rounded-[8px] shadow-[0_2px_5px_rgba(0,0,0,0.1)] border-[#ddd]">
-                  <CardHeader className="bg-[#B8B8B8] text-white rounded-t-[8px] py-3">
+                  <CardHeader className="bg-[#0077B6] text-white rounded-t-[8px] py-3">
                     <CardTitle className="flex items-center text-lg font-semibold uppercase tracking-[0.5px]">
                       <MapPin className="w-5 h-5 mr-2" />
                       Billing Address
@@ -496,7 +496,7 @@ export default function CheckoutPage() {
 
                 {/* Payment Method */}
                 <Card className="bg-white rounded-[8px] shadow-[0_2px_5px_rgba(0,0,0,0.1)] border-[#ddd]">
-                  <CardHeader className="bg-[#B8B8B8] text-white rounded-t-[8px] py-3">
+                  <CardHeader className="bg-[#0077B6] text-white rounded-t-[8px] py-3">
                     <CardTitle className="flex items-center text-lg font-semibold uppercase tracking-[0.5px]">
                       <CreditCard className="w-5 h-5 mr-2" />
                       Payment Method
@@ -690,7 +690,7 @@ export default function CheckoutPage() {
           {/* Order Summary */}
           <div className="lg:col-span-1">
             <Card className="bg-white rounded-[8px] shadow-[0_2px_5px_rgba(0,0,0,0.1)] border-[#ddd] sticky top-6">
-              <CardHeader className="bg-[#B8B8B8] text-white rounded-t-[8px] py-3">
+              <CardHeader className="bg-[#0077B6] text-white rounded-t-[8px] py-3">
                 <CardTitle className="text-lg font-semibold uppercase tracking-[0.5px]">Order Summary</CardTitle>
               </CardHeader>
               <CardContent className="p-6">
