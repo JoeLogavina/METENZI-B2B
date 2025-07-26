@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Search, Filter, Grid, List, Plus, Minus, Package, User, Settings, BarChart3, FileText, Users, CreditCard, HelpCircle } from "lucide-react";
+import { ShoppingCart, Search, Filter, Grid, List, Plus, Minus, Package, User, Settings, BarChart3, FileText, Users, CreditCard, HelpCircle, ChevronDown, Calendar } from "lucide-react";
 import { type ProductWithStock } from "@shared/schema";
 
 export default function B2BShop() {
@@ -206,9 +206,9 @@ export default function B2BShop() {
           </div>
         </header>
 
-        {/* Search and Filters */}
+        {/* Top Search Bar */}
         <div className="bg-[#f8f8f8] border-b border-[#ddd] p-4">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4 flex-1">
               <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -219,7 +219,7 @@ export default function B2BShop() {
                   className="pl-10 border-[#ddd] rounded-[5px] focus:border-[#4D9DE0] transition-colors duration-200"
                 />
               </div>
-              <Select value={filters.region} onValueChange={(value) => setFilters(prev => ({ ...prev, region: value === 'all' ? '' : value }))}>
+              <Select value={filters.region || 'all'} onValueChange={(value) => setFilters(prev => ({ ...prev, region: value === 'all' ? '' : value }))}>
                 <SelectTrigger className="w-32 border-[#ddd] rounded-[5px] focus:border-[#4D9DE0]">
                   <SelectValue placeholder="Regions" />
                 </SelectTrigger>
@@ -230,7 +230,7 @@ export default function B2BShop() {
                   <SelectItem value="US">US</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={filters.platform} onValueChange={(value) => setFilters(prev => ({ ...prev, platform: value === 'all' ? '' : value }))}>
+              <Select value={filters.platform || 'all'} onValueChange={(value) => setFilters(prev => ({ ...prev, platform: value === 'all' ? '' : value }))}>
                 <SelectTrigger className="w-32 border-[#ddd] rounded-[5px] focus:border-[#4D9DE0]">
                   <SelectValue placeholder="Platform" />
                 </SelectTrigger>
@@ -244,15 +244,6 @@ export default function B2BShop() {
               </Select>
             </div>
             <div className="flex items-center space-x-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                className="text-sm hover:bg-[#e5e5e5] rounded-[5px] transition-colors duration-200"
-              >
-                <Filter className="w-4 h-4 mr-1" />
-                <span className="font-semibold">Advanced Filters</span>
-              </Button>
               <Select value={viewMode} onValueChange={(value: 'table' | 'grid') => setViewMode(value)}>
                 <SelectTrigger className="w-32 border-[#ddd] rounded-[5px] focus:border-[#4D9DE0]">
                   <SelectValue />
@@ -264,142 +255,162 @@ export default function B2BShop() {
               </Select>
             </div>
           </div>
-
-          {/* Advanced Filters */}
-          {showAdvancedFilters && (
-            <Card className="p-4 rounded-[8px] shadow-[0_2px_5px_rgba(0,0,0,0.1)] bg-white border-[#ddd]">
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-4 gap-4">
-                  <div>
-                    <label className="text-sm font-semibold text-gray-700 block mb-1">Price (EUR)</label>
-                    <div className="flex space-x-2">
-                      <Input
-                        placeholder="From"
-                        value={filters.priceMin}
-                        onChange={(e) => setFilters(prev => ({ ...prev, priceMin: e.target.value }))}
-                        className="text-sm border-[#ddd] rounded-[5px] focus:border-[#4D9DE0]"
-                      />
-                      <Input
-                        placeholder="To"
-                        value={filters.priceMax}
-                        onChange={(e) => setFilters(prev => ({ ...prev, priceMax: e.target.value }))}
-                        className="text-sm border-[#ddd] rounded-[5px] focus:border-[#4D9DE0]"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 block mb-1">Stock Level</label>
-                    <Select value={filters.stockLevel} onValueChange={(value) => setFilters(prev => ({ ...prev, stockLevel: value }))}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="All stock levels" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All stock levels</SelectItem>
-                        <SelectItem value="low">Low Stock</SelectItem>
-                        <SelectItem value="medium">Medium Stock</SelectItem>
-                        <SelectItem value="high">High Stock</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 block mb-1">Date Added</label>
-                    <Select value={filters.dateAdded} onValueChange={(value) => setFilters(prev => ({ ...prev, dateAdded: value }))}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Any time" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Any time</SelectItem>
-                        <SelectItem value="today">Today</SelectItem>
-                        <SelectItem value="week">This Week</SelectItem>
-                        <SelectItem value="month">This Month</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 block mb-1">Search SKU</label>
-                    <Input
-                      placeholder="Enter SKU..."
-                      value={filters.sku}
-                      onChange={(e) => setFilters(prev => ({ ...prev, sku: e.target.value }))}
-                    />
-                  </div>
-                </div>
-                <div className="flex justify-between">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setFilters({
-                      region: "", platform: "", search: "", priceMin: "", priceMax: "",
-                      stockLevel: "", dateAdded: "", sku: ""
-                    })}
-                    className="bg-[#E15554] hover:bg-[#d14343] text-white border-0 px-5 py-2 rounded-[5px] font-medium transition-colors duration-200"
-                  >
-                    Clear filters
-                  </Button>
-                  <Button 
-                    size="sm"
-                    className="bg-[#4D9DE0] hover:bg-[#3ba3e8] text-white border-0 px-5 py-2 rounded-[5px] font-medium transition-colors duration-200"
-                  >
-                    Apply Filters
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </div>
 
-        {/* Products Section */}
-        <div className="flex-1 p-6">
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-sm font-medium text-gray-700">Found {products.length} products</h3>
-            <div className="text-sm text-gray-500 flex items-center">
-              <List className="w-4 h-4 mr-1" />
-              List View
+        {/* Main Content Area with Sidebar */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* Advanced Filters Sidebar */}
+          <div className="w-80 bg-white border-r border-[#ddd] p-4 overflow-y-auto">
+            <div className="mb-4">
+              <div className="flex items-center mb-3">
+                <ChevronDown className="w-4 h-4 mr-2 text-gray-600" />
+                <h3 className="font-semibold text-sm uppercase tracking-[0.5px] text-[#4D585A]">Advanced Filters</h3>
+              </div>
+            </div>
+
+            {/* Price Filter */}
+            <div className="mb-6">
+              <div className="flex items-center mb-2">
+                <span className="w-3 h-3 mr-2">€</span>
+                <label className="text-sm font-semibold text-gray-700">Price (BAM)</label>
+              </div>
+              <div className="space-y-2">
+                <Input
+                  placeholder="From"
+                  value={filters.priceMin}
+                  onChange={(e) => setFilters(prev => ({ ...prev, priceMin: e.target.value }))}
+                  className="text-sm border-[#ddd] rounded-[5px] focus:border-[#4D9DE0]"
+                />
+                <Input
+                  placeholder="To"
+                  value={filters.priceMax}
+                  onChange={(e) => setFilters(prev => ({ ...prev, priceMax: e.target.value }))}
+                  className="text-sm border-[#ddd] rounded-[5px] focus:border-[#4D9DE0]"
+                />
+              </div>
+            </div>
+
+            {/* Stock Level Filter */}
+            <div className="mb-6">
+              <div className="flex items-center mb-2">
+                <Package className="w-3 h-3 mr-2 text-gray-600" />
+                <label className="text-sm font-semibold text-gray-700">Stock Level</label>
+              </div>
+              <Select value={filters.stockLevel || 'all'} onValueChange={(value) => setFilters(prev => ({ ...prev, stockLevel: value === 'all' ? '' : value }))}>
+                <SelectTrigger className="border-[#ddd] rounded-[5px] focus:border-[#4D9DE0]">
+                  <SelectValue placeholder="All stock levels" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All stock levels</SelectItem>
+                  <SelectItem value="low">Low Stock</SelectItem>
+                  <SelectItem value="medium">Medium Stock</SelectItem>
+                  <SelectItem value="high">High Stock</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Date Added Filter */}
+            <div className="mb-6">
+              <div className="flex items-center mb-2">
+                <Calendar className="w-3 h-3 mr-2 text-gray-600" />
+                <label className="text-sm font-semibold text-gray-700">Date Added</label>
+              </div>
+              <Select value={filters.dateAdded || 'all'} onValueChange={(value) => setFilters(prev => ({ ...prev, dateAdded: value === 'all' ? '' : value }))}>
+                <SelectTrigger className="border-[#ddd] rounded-[5px] focus:border-[#4D9DE0]">
+                  <SelectValue placeholder="Any time" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Any time</SelectItem>
+                  <SelectItem value="today">Today</SelectItem>
+                  <SelectItem value="week">This Week</SelectItem>
+                  <SelectItem value="month">This Month</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Search SKU Filter */}
+            <div className="mb-6">
+              <label className="text-sm font-semibold text-gray-700 block mb-2">Search SKU</label>
+              <Input
+                placeholder="Enter SKU..."
+                value={filters.sku}
+                onChange={(e) => setFilters(prev => ({ ...prev, sku: e.target.value }))}
+                className="border-[#ddd] rounded-[5px] focus:border-[#4D9DE0]"
+              />
+            </div>
+
+            {/* Filter Actions */}
+            <div className="space-y-2">
+              <Button
+                onClick={() => setFilters({
+                  region: "", platform: "", search: "", priceMin: "", priceMax: "",
+                  stockLevel: "", dateAdded: "", sku: ""
+                })}
+                className="w-full bg-transparent text-[#4D9DE0] border border-[#4D9DE0] hover:bg-[#4D9DE0] hover:text-white rounded-[5px] font-medium transition-colors duration-200"
+              >
+                Clear filters
+              </Button>
+              <Button 
+                className="w-full bg-[#4D9DE0] hover:bg-[#3ba3e8] text-white border-0 rounded-[5px] font-medium transition-colors duration-200"
+              >
+                Apply Filters
+              </Button>
             </div>
           </div>
 
-          {/* Product Table */}
-          <div className="bg-white rounded-[8px] shadow-[0_2px_5px_rgba(0,0,0,0.1)] overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="min-w-full">
-                <thead className="bg-[#4D585A] text-white">
-                  <tr>
-                    <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.5px]">SKU</th>
-                    <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.5px]">IMAGE</th>
-                    <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.5px]">PRODUCT</th>
-                    <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.5px]">PRICE</th>
-                    <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.5px]">REGION</th>
-                    <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.5px]">PLATFORM</th>
-                    <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.5px]">STOCK</th>
-                    <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.5px]">QUANTITY</th>
-                    <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.5px]">ACTION</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-[#e5e5e5]">
-                  {productsLoading ? (
+          {/* Products Section */}
+          <div className="flex-1 p-6 overflow-auto">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-700">Found {products.length} products</h3>
+              <div className="text-sm text-gray-500 flex items-center">
+                <List className="w-4 h-4 mr-1" />
+                List View
+              </div>
+            </div>
+
+            {/* Product Table */}
+            <div className="bg-white rounded-[8px] shadow-[0_2px_5px_rgba(0,0,0,0.1)] overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead className="bg-[#4D585A] text-white">
                     <tr>
-                      <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
-                        Loading products...
-                      </td>
+                      <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.5px]">SKU</th>
+                      <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.5px]">IMAGE</th>
+                      <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.5px]">PRODUCT</th>
+                      <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.5px]">PRICE</th>
+                      <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.5px]">REGION</th>
+                      <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.5px]">PLATFORM</th>
+                      <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.5px]">STOCK</th>
+                      <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.5px]">QUANTITY</th>
+                      <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.5px]">ACTION</th>
                     </tr>
-                  ) : products.length === 0 ? (
-                    <tr>
-                      <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
-                        No products found
-                      </td>
-                    </tr>
-                  ) : (
-                    products.map((product) => (
-                      <ProductRow
-                        key={product.id}
-                        product={product}
-                        onAddToCart={(quantity) => addToCartMutation.mutate({ productId: product.id, quantity })}
-                        isLoading={addToCartMutation.isPending}
-                      />
-                    ))
-                  )}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-[#e5e5e5]">
+                    {productsLoading ? (
+                      <tr>
+                        <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
+                          Loading products...
+                        </td>
+                      </tr>
+                    ) : products.length === 0 ? (
+                      <tr>
+                        <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
+                          No products found
+                        </td>
+                      </tr>
+                    ) : (
+                      products.map((product) => (
+                        <ProductRow
+                          key={product.id}
+                          product={product}
+                          onAddToCart={(quantity) => addToCartMutation.mutate({ productId: product.id, quantity })}
+                          isLoading={addToCartMutation.isPending}
+                        />
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
