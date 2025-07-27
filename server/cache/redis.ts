@@ -9,10 +9,12 @@ class RedisCache {
     const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
     
     this.client = new Redis(redisUrl, {
-      maxRetriesPerRequest: 3,
+      maxRetriesPerRequest: 2,
       lazyConnect: true,
       connectionName: 'b2b-portal',
-      retryDelayOnError: 100,
+      retryDelayOnFailover: 100,
+      connectTimeout: 5000,
+      commandTimeout: 3000,
     });
 
     this.client.on('connect', () => {
@@ -21,37 +23,47 @@ class RedisCache {
     });
 
     this.client.on('error', (error) => {
-      console.warn('⚠️ Redis connection error, falling back to in-memory cache:', error.message);
+      console.warn('⚠️ Redis connection error, using in-memory fallback:', error.message);
       this.isConnected = false;
     });
 
     this.client.on('close', () => {
-      console.log('📴 Redis connection closed');
+      console.log('📴 Redis connection closed, using in-memory fallback');
+      this.isConnected = false;
+    });
+    
+    // Try to connect immediately and fallback if it fails
+    this.client.connect().catch(() => {
+      console.log('🔄 Redis unavailable, enabling in-memory cache');
       this.isConnected = false;
     });
   }
 
   async get<T>(key: string): Promise<T | null> {
-    if (!this.isConnected) return null;
+    if (!this.isConnected) {
+      return inMemoryCache.get<T>(key);
+    }
     
     try {
       const value = await this.client.get(key);
       return value ? JSON.parse(value) : null;
     } catch (error) {
-      console.warn('Redis GET error:', error);
-      return null;
+      console.warn('Redis GET error, using in-memory:', error.message);
+      return inMemoryCache.get<T>(key);
     }
   }
 
   async set(key: string, value: any, ttlSeconds: number = 300): Promise<boolean> {
-    if (!this.isConnected) return false;
+    if (!this.isConnected) {
+      return inMemoryCache.set(key, value, ttlSeconds);
+    }
     
     try {
       await this.client.setex(key, ttlSeconds, JSON.stringify(value));
       return true;
     } catch (error) {
-      console.warn('Redis SET error:', error);
-      return false;
+      console.warn('Redis SET error, using in-memory:', error.message);
+      return inMemoryCache.set(key, value, ttlSeconds);
     }
   }
 
@@ -121,6 +133,70 @@ class RedisCache {
     }
   }
 }
+
+// In-memory cache fallback
+class InMemoryCache {
+  private cache = new Map<string, { value: any; expiry: number }>();
+  private cleanupInterval: NodeJS.Timeout;
+
+  constructor() {
+    console.log('🔄 In-memory cache initialized as Redis fallback');
+    // Clean up expired entries every 2 minutes
+    this.cleanupInterval = setInterval(() => {
+      const now = Date.now();
+      let cleaned = 0;
+      for (const [key, entry] of this.cache.entries()) {
+        if (entry.expiry < now) {
+          this.cache.delete(key);
+          cleaned++;
+        }
+      }
+      if (cleaned > 0) {
+        console.log(`🧹 Cleaned ${cleaned} expired cache entries`);
+      }
+    }, 2 * 60 * 1000);
+  }
+
+  get<T>(key: string): T | null {
+    const entry = this.cache.get(key);
+    if (!entry) return null;
+    
+    if (entry.expiry < Date.now()) {
+      this.cache.delete(key);
+      return null;
+    }
+    
+    return entry.value;
+  }
+
+  set(key: string, value: any, ttlSeconds: number = 300): boolean {
+    const expiry = Date.now() + (ttlSeconds * 1000);
+    this.cache.set(key, { value, expiry });
+    return true;
+  }
+
+  del(key: string): boolean {
+    return this.cache.delete(key);
+  }
+
+  clear(): void {
+    this.cache.clear();
+  }
+
+  size(): number {
+    return this.cache.size;
+  }
+
+  destroy(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+    }
+    this.cache.clear();
+  }
+}
+
+// Global in-memory cache instance
+const inMemoryCache = new InMemoryCache();
 
 // Singleton instance
 export const redisCache = new RedisCache();
