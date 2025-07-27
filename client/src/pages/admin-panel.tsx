@@ -984,6 +984,8 @@ function EditProductIntegratedSection({
         stock: editEurPricing.stock ? parseInt(editEurPricing.stock) : undefined
       };
 
+      console.log('Submitting product data:', submitData);
+
       const response = await fetch(`/api/admin/products/${editProductId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -991,12 +993,17 @@ function EditProductIntegratedSection({
         body: JSON.stringify(submitData)
       });
 
+      console.log('Response status:', response.status);
+
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('Error response:', errorData);
         throw new Error(errorData.message || 'Failed to save product');
       }
 
-      return response.json();
+      const result = await response.json();
+      console.log('Success response:', result);
+      return result;
     },
     onSuccess: () => {
       toast({
@@ -1057,6 +1064,10 @@ function EditProductIntegratedSection({
   });
 
   const handleSaveProduct = () => {
+    console.log('Save button clicked');
+    console.log('Form data:', editProductFormData);
+    console.log('EUR pricing:', editEurPricing);
+    console.log('KM pricing:', editKmPricing);
     saveProductMutation.mutate();
   };
 
