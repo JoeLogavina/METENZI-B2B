@@ -468,7 +468,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json({ ...updatedOrder, orderNumber });
     } catch (error) {
       console.error("Error creating order:", error);
-      res.status(500).json({ message: "Failed to create order" });
+      // Send more specific error message
+      const errorMessage = error instanceof Error ? error.message : "Failed to create order";
+      res.status(500).json({ message: errorMessage });
     }
   });
 

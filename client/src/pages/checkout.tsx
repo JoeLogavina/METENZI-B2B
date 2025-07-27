@@ -140,7 +140,9 @@ export default function CheckoutPage() {
   // Place order mutation
   const placeOrderMutation = useMutation({
     mutationFn: async (orderData: CheckoutFormData) => {
-      const response = await apiRequest("POST", "/api/orders", {
+      console.log("Placing order with data:", orderData);
+      
+      const orderPayload = {
         billingInfo: {
           companyName: orderData.companyName,
           firstName: orderData.firstName,
@@ -160,8 +162,22 @@ export default function CheckoutPage() {
           cardHolderName: orderData.cardHolderName,
           poNumber: orderData.poNumber,
         },
-      });
-      return response.json();
+      };
+      
+      console.log("Order payload:", orderPayload);
+      
+      const response = await apiRequest("POST", "/api/orders", orderPayload);
+      console.log("Order response status:", response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Order creation failed:", errorData);
+        throw new Error(errorData.message || "Failed to place order");
+      }
+      
+      const result = await response.json();
+      console.log("Order created successfully:", result);
+      return result;
     },
     onSuccess: (order) => {
       setOrderNumber(order.orderNumber);
@@ -173,6 +189,7 @@ export default function CheckoutPage() {
       });
     },
     onError: (error) => {
+      console.error("Order creation error:", error);
       if (isUnauthorizedError(error)) {
         toast({
           title: "Unauthorized",
@@ -184,9 +201,10 @@ export default function CheckoutPage() {
         }, 500);
         return;
       }
+      const errorMessage = error?.message || "Failed to place order. Please try again.";
       toast({
         title: "Order Failed",
-        description: "Failed to place order. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
       setStep('checkout');
