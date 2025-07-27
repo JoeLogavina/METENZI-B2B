@@ -148,10 +148,10 @@ export default function B2BShop() {
   return (
     <div className="min-h-screen bg-[#f5f6f5] flex font-['Inter',-apple-system,BlinkMacSystemFont,sans-serif]">
       {/* Sidebar */}
-      <div className="w-64 bg-[#4D585A] text-white flex-shrink-0">
-        <div className="p-4 border-b border-[#3a4446]">
+      <div className="w-64 bg-[#6E6F71] text-white flex-shrink-0">
+        <div className="p-4 border-b border-[#5a5b5d]">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-[#4D9DE0] rounded flex items-center justify-center">
+            <div className="w-8 h-8 bg-[#FFB20F] rounded flex items-center justify-center">
               <Package className="w-5 h-5" />
             </div>
             <div>
@@ -167,8 +167,8 @@ export default function B2BShop() {
               key={index}
               className={`flex items-center px-4 py-3 text-sm transition-colors duration-200 cursor-pointer ${
                 item.active 
-                  ? 'bg-[#4D9DE0] text-white border-r-2 border-[#3ba3e8]' 
-                  : 'text-gray-300 hover:bg-[#5a6668]'
+                  ? 'bg-[#FFB20F] text-white border-r-2 border-[#e6a00e]' 
+                  : 'text-gray-300 hover:bg-[#7a7b7d]'
               }`}
               onClick={() => {
                 console.log('Sidebar item clicked:', item.label, 'href:', item.href);
@@ -185,7 +185,7 @@ export default function B2BShop() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <header className="bg-[#4D585A] border-b border-[#3a4446] px-6 py-4 shadow-[0_2px_5px_rgba(0,0,0,0.1)]">
+        <header className="bg-[#6E6F71] border-b border-[#5a5b5d] px-6 py-4 shadow-[0_2px_5px_rgba(0,0,0,0.1)]">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <Package className="w-6 h-6 text-white" />
@@ -221,7 +221,7 @@ export default function B2BShop() {
                     size="sm"
                     onMouseEnter={() => setIsCartHovered(true)}
                     onMouseLeave={() => setIsCartHovered(false)}
-                    className="relative bg-[#4D9DE0] hover:bg-[#3ba3e8] text-white border-0 px-5 py-2 rounded-[5px] font-medium transition-colors duration-200"
+                    className="relative bg-[#FFB20F] hover:bg-[#e6a00e] text-white border-0 px-5 py-2 rounded-[5px] font-medium transition-colors duration-200"
                   >
                     <ShoppingCart className="h-4 w-4" />
                     {cartItemCount > 0 && (
@@ -240,7 +240,7 @@ export default function B2BShop() {
                     onMouseLeave={() => setIsCartHovered(false)}
                   >
                     <div className="p-4 border-b border-[#e5e5e5]">
-                      <h3 className="text-sm font-semibold uppercase tracking-[0.5px] text-[#4D585A]">Shopping Cart Preview</h3>
+                      <h3 className="text-sm font-semibold uppercase tracking-[0.5px] text-[#6E6F71]">Shopping Cart Preview</h3>
                     </div>
                     <div className="p-4 max-h-60 overflow-y-auto">
                       {cartItems.length === 0 ? (
@@ -250,10 +250,10 @@ export default function B2BShop() {
                           {cartItems.slice(0, 3).map((item: any) => (
                             <div key={item.id} className="flex items-center justify-between">
                               <div className="flex-1">
-                                <p className="text-sm font-semibold text-[#4D585A] truncate">{item.product?.name}</p>
+                                <p className="text-sm font-semibold text-[#6E6F71] truncate">{item.product?.name}</p>
                                 <p className="text-xs text-gray-500">€{item.product?.price} × {item.quantity}</p>
                               </div>
-                              <div className="text-sm font-mono font-semibold text-[#4D585A]">
+                              <div className="text-sm font-mono font-semibold text-[#FFB20F]">
                                 €{(item.product?.price * item.quantity).toFixed(2)}
                               </div>
                             </div>
@@ -269,8 +269,8 @@ export default function B2BShop() {
                     {cartItems.length > 0 && (
                       <div className="p-4 border-t border-[#e5e5e5]">
                         <div className="flex justify-between items-center mb-3">
-                          <span className="text-sm font-semibold text-[#4D585A]">Total:</span>
-                          <span className="font-mono font-semibold text-[#4D585A]">
+                          <span className="text-sm font-semibold text-[#6E6F71]">Total:</span>
+                          <span className="font-mono font-semibold text-[#FFB20F]">
                             €{cartItems.reduce((sum: number, item: any) => sum + (item.product?.price * item.quantity), 0).toFixed(2)}
                           </span>
                         </div>
@@ -296,11 +296,11 @@ export default function B2BShop() {
                   placeholder="Search products..."
                   value={filters.search}
                   onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                  className="pl-10 border-[#ddd] rounded-[5px] focus:border-[#4D9DE0] transition-colors duration-200"
+                  className="pl-10 border-[#ddd] rounded-[5px] focus:border-[#FFB20F] transition-colors duration-200"
                 />
               </div>
               <Select value={filters.region || 'all'} onValueChange={(value) => setFilters(prev => ({ ...prev, region: value === 'all' ? '' : value }))}>
-                <SelectTrigger className="w-32 border-[#ddd] rounded-[5px] focus:border-[#4D9DE0]">
+                <SelectTrigger className="w-32 border-[#ddd] rounded-[5px] focus:border-[#FFB20F]">
                   <SelectValue placeholder="Regions" />
                 </SelectTrigger>
                 <SelectContent>
@@ -311,7 +311,7 @@ export default function B2BShop() {
                 </SelectContent>
               </Select>
               <Select value={filters.platform || 'all'} onValueChange={(value) => setFilters(prev => ({ ...prev, platform: value === 'all' ? '' : value }))}>
-                <SelectTrigger className="w-32 border-[#ddd] rounded-[5px] focus:border-[#4D9DE0]">
+                <SelectTrigger className="w-32 border-[#ddd] rounded-[5px] focus:border-[#FFB20F]">
                   <SelectValue placeholder="Platform" />
                 </SelectTrigger>
                 <SelectContent>
@@ -325,7 +325,7 @@ export default function B2BShop() {
             </div>
             <div className="flex items-center space-x-2">
               <Select value={viewMode} onValueChange={(value: 'table' | 'grid') => setViewMode(value)}>
-                <SelectTrigger className="w-32 border-[#ddd] rounded-[5px] focus:border-[#4D9DE0]">
+                <SelectTrigger className="w-32 border-[#ddd] rounded-[5px] focus:border-[#FFB20F]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -344,7 +344,7 @@ export default function B2BShop() {
             <div className="mb-4">
               <div className="flex items-center mb-3">
                 <ChevronDown className="w-4 h-4 mr-2 text-gray-600" />
-                <h3 className="font-semibold text-sm uppercase tracking-[0.5px] text-[#4D585A]">Advanced Filters</h3>
+                <h3 className="font-semibold text-sm uppercase tracking-[0.5px] text-[#6E6F71]">Advanced Filters</h3>
               </div>
             </div>
 

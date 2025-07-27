@@ -10,6 +10,9 @@ This is a full-stack B2B software license management platform built with React, 
 - Created admin and B2B user test accounts (admin/Kalendar1, b2buser/Kalendar1)
 - Fixed authentication infinite loop and 401 request issues
 - Updated all user ID references to work with new authentication system
+- Updated color scheme from Coffee Mist to Corporate Gray (#6E6F71) and Spanish Yellow (#FFB20F)
+- Applied new color palette throughout admin portal and B2B shop interfaces
+- Enhanced visual hierarchy with Spanish Yellow accents for prices, buttons, and active states
 
 ## User Preferences
 

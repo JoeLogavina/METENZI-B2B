@@ -143,10 +143,10 @@ export default function AdminPanel() {
   return (
     <div className="min-h-screen bg-[#f5f6f5] font-['Inter',-apple-system,BlinkMacSystemFont,sans-serif]">
       {/* Admin Header */}
-      <header className="bg-[#4D585A] border-b border-[#3a4446] px-6 py-4 shadow-[0_2px_5px_rgba(0,0,0,0.1)]">
+      <header className="bg-[#6E6F71] border-b border-[#5a5b5d] px-6 py-4 shadow-[0_2px_5px_rgba(0,0,0,0.1)]">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <div className="w-8 h-8 bg-[#4D9DE0] rounded flex items-center justify-center">
+            <div className="w-8 h-8 bg-[#FFB20F] rounded flex items-center justify-center">
               <Settings className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -188,10 +188,10 @@ export default function AdminPanel() {
 
       <div className="flex h-[calc(100vh-80px)]">
         {/* Admin Sidebar */}
-        <div className="w-64 bg-[#4D585A] text-white flex-shrink-0">
-          <div className="p-4 border-b border-[#3a4446]">
+        <div className="w-64 bg-[#6E6F71] text-white flex-shrink-0">
+          <div className="p-4 border-b border-[#5a5b5d]">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-[#4D9DE0] rounded flex items-center justify-center">
+              <div className="w-8 h-8 bg-[#FFB20F] rounded flex items-center justify-center">
                 <Settings className="w-5 h-5" />
               </div>
               <div>
@@ -208,8 +208,8 @@ export default function AdminPanel() {
                 onClick={() => setActiveSection(item.id)}
                 className={`flex items-center px-4 py-3 text-sm transition-colors duration-200 cursor-pointer ${
                   activeSection === item.id
-                    ? 'bg-[#4D9DE0] text-white border-r-2 border-[#3ba3e8]' 
-                    : 'text-gray-300 hover:bg-[#5a6668]'
+                    ? 'bg-[#FFB20F] text-white border-r-2 border-[#e6a00e]' 
+                    : 'text-gray-300 hover:bg-[#7a7b7d]'
                 }`}
               >
                 <item.icon className="w-4 h-4 mr-3" />
@@ -222,7 +222,7 @@ export default function AdminPanel() {
         {/* Admin Content */}
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-            <h3 className="text-xl font-semibold text-[#4D585A] uppercase tracking-[0.5px]">
+            <h3 className="text-xl font-semibold text-[#6E6F71] uppercase tracking-[0.5px]">
               {activeSection === 'dashboard' ? 'DASHBOARD OVERVIEW' : activeSection.replace('_', ' ').toUpperCase()}
             </h3>
           </div>
@@ -239,8 +239,8 @@ export default function AdminPanel() {
                           <Users className="h-6 w-6 text-primary" />
                         </div>
                         <div className="ml-4">
-                          <p className="text-sm font-medium text-[#4D585A]">Total Users</p>
-                          <p className="text-2xl font-semibold text-[#4D585A]">
+                          <p className="text-sm font-medium text-[#6E6F71]">Total Users</p>
+                          <p className="text-2xl font-semibold text-[#6E6F71]">
                             {statsLoading ? '...' : stats?.totalUsers || 0}
                           </p>
                         </div>
@@ -255,8 +255,8 @@ export default function AdminPanel() {
                           <ShoppingCart className="h-6 w-6 text-green-600" />
                         </div>
                         <div className="ml-4">
-                          <p className="text-sm font-medium text-[#4D585A]">Total Sales</p>
-                          <p className="text-2xl font-semibold text-[#4D585A]">
+                          <p className="text-sm font-medium text-[#6E6F71]">Total Sales</p>
+                          <p className="text-2xl font-semibold text-[#FFB20F]">
                             {statsLoading ? '...' : stats?.totalSales || '€0'}
                           </p>
                         </div>
@@ -271,8 +271,8 @@ export default function AdminPanel() {
                           <Key className="h-6 w-6 text-purple-600" />
                         </div>
                         <div className="ml-4">
-                          <p className="text-sm font-medium text-[#4D585A]">Active Keys</p>
-                          <p className="text-2xl font-semibold text-[#4D585A]">
+                          <p className="text-sm font-medium text-[#6E6F71]">Active Keys</p>
+                          <p className="text-2xl font-semibold text-[#6E6F71]">
                             {statsLoading ? '...' : stats?.activeKeys || 0}
                           </p>
                         </div>
@@ -287,8 +287,8 @@ export default function AdminPanel() {
                           <Package className="h-6 w-6 text-orange-600" />
                         </div>
                         <div className="ml-4">
-                          <p className="text-sm font-medium text-[#4D585A]">Products</p>
-                          <p className="text-2xl font-semibold text-[#4D585A]">
+                          <p className="text-sm font-medium text-[#6E6F71]">Products</p>
+                          <p className="text-2xl font-semibold text-[#6E6F71]">
                             {statsLoading ? '...' : stats?.totalProducts || 0}
                           </p>
                         </div>
@@ -304,7 +304,7 @@ export default function AdminPanel() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-center py-8">
-                      <p className="text-[#4D585A]">
+                      <p className="text-[#6E6F71]">
                         Welcome to the admin dashboard. Use the sidebar to navigate between different management sections.
                       </p>
                     </div>
@@ -322,18 +322,18 @@ export default function AdminPanel() {
                   {usersLoading ? (
                     <div className="text-center py-8">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                      <p className="mt-2 text-[#4D585A]">Loading users...</p>
+                      <p className="mt-2 text-[#6E6F71]">Loading users...</p>
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full">
                         <thead className="table-header">
                           <tr>
-                            <th className="text-left py-3 px-4 text-xs font-medium text-[#4D585A] uppercase">User</th>
-                            <th className="text-left py-3 px-4 text-xs font-medium text-[#4D585A] uppercase">Email</th>
-                            <th className="text-left py-3 px-4 text-xs font-medium text-[#4D585A] uppercase">Role</th>
-                            <th className="text-left py-3 px-4 text-xs font-medium text-[#4D585A] uppercase">Status</th>
-                            <th className="text-left py-3 px-4 text-xs font-medium text-[#4D585A] uppercase">Actions</th>
+                            <th className="text-left py-3 px-4 text-xs font-medium text-[#6E6F71] uppercase">User</th>
+                            <th className="text-left py-3 px-4 text-xs font-medium text-[#6E6F71] uppercase">Email</th>
+                            <th className="text-left py-3 px-4 text-xs font-medium text-[#6E6F71] uppercase">Role</th>
+                            <th className="text-left py-3 px-4 text-xs font-medium text-[#6E6F71] uppercase">Status</th>
+                            <th className="text-left py-3 px-4 text-xs font-medium text-[#6E6F71] uppercase">Actions</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
@@ -389,12 +389,12 @@ export default function AdminPanel() {
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-lg font-semibold text-[#4D585A] uppercase tracking-[0.5px]">PRODUCT MANAGEMENT</h3>
-                    <p className="text-[#4D585A]">Manage software products visible to B2B users</p>
+                    <h3 className="text-lg font-semibold text-[#6E6F71] uppercase tracking-[0.5px]">PRODUCT MANAGEMENT</h3>
+                    <p className="text-[#6E6F71]">Manage software products visible to B2B users</p>
                   </div>
                   <Button
                     onClick={() => setShowProductForm(true)}
-                    className="bg-[#4D9DE0] hover:bg-[#4a94d1] text-white"
+                    className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white"
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     ADD PRODUCT
@@ -405,8 +405,8 @@ export default function AdminPanel() {
                 <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
                   <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-medium text-[#4D585A] uppercase tracking-[0.5px]">ALL PRODUCTS</h4>
-                      <div className="text-sm text-[#4D585A]">
+                      <h4 className="text-sm font-medium text-[#6E6F71] uppercase tracking-[0.5px]">ALL PRODUCTS</h4>
+                      <div className="text-sm text-[#6E6F71]">
                         {products?.length || 0} products
                       </div>
                     </div>
@@ -416,12 +416,12 @@ export default function AdminPanel() {
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-[#4D585A] uppercase tracking-wider">Product</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-[#4D585A] uppercase tracking-wider">Category</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-[#4D585A] uppercase tracking-wider">Price</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-[#4D585A] uppercase tracking-wider">Stock</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-[#4D585A] uppercase tracking-wider">Status</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-[#4D585A] uppercase tracking-wider">Actions</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-[#6E6F71] uppercase tracking-wider">Product</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-[#6E6F71] uppercase tracking-wider">Category</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-[#6E6F71] uppercase tracking-wider">Price</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-[#6E6F71] uppercase tracking-wider">Stock</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-[#6E6F71] uppercase tracking-wider">Status</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-[#6E6F71] uppercase tracking-wider">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
@@ -429,15 +429,15 @@ export default function AdminPanel() {
                           <tr>
                             <td colSpan={6} className="px-6 py-12 text-center">
                               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4D9DE0] mx-auto"></div>
-                              <p className="mt-2 text-[#4D585A]">Loading products...</p>
+                              <p className="mt-2 text-[#6E6F71]">Loading products...</p>
                             </td>
                           </tr>
                         ) : products?.length === 0 ? (
                           <tr>
                             <td colSpan={6} className="px-6 py-12 text-center">
                               <Package className="mx-auto h-12 w-12 text-gray-400" />
-                              <h3 className="mt-2 text-sm font-medium text-[#4D585A]">No products</h3>
-                              <p className="mt-1 text-sm text-[#4D585A]">Get started by creating a new product.</p>
+                              <h3 className="mt-2 text-sm font-medium text-[#6E6F71]">No products</h3>
+                              <p className="mt-1 text-sm text-[#6E6F71]">Get started by creating a new product.</p>
                             </td>
                           </tr>
                         ) : (
@@ -451,8 +451,8 @@ export default function AdminPanel() {
                                     </div>
                                   </div>
                                   <div className="ml-4">
-                                    <div className="text-sm font-medium text-[#4D585A]">{product.name}</div>
-                                    <div className="text-sm text-[#4D585A]">{product.platform}</div>
+                                    <div className="text-sm font-medium text-[#6E6F71]">{product.name}</div>
+                                    <div className="text-sm text-[#6E6F71]">{product.platform}</div>
                                   </div>
                                 </div>
                               </td>
@@ -461,10 +461,10 @@ export default function AdminPanel() {
                                   {product.category}
                                 </span>
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-[#4D585A] font-mono">
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-[#FFB20F] font-mono">
                                 €{product.price}
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4D585A] font-mono">
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-[#6E6F71] font-mono">
                                 {product.stock}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
@@ -482,7 +482,7 @@ export default function AdminPanel() {
                                     setEditingProduct(product);
                                     setShowProductForm(true);
                                   }}
-                                  className="text-[#4D9DE0] border-[#4D9DE0] hover:bg-[#4D9DE0] hover:text-white"
+                                  className="text-[#FFB20F] border-[#FFB20F] hover:bg-[#FFB20F] hover:text-white"
                                 >
                                   Edit
                                 </Button>
