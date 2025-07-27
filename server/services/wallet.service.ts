@@ -58,15 +58,18 @@ class WalletServiceImpl {
     try {
       const wallet = await this.getOrCreateUserWallet(userId);
       
-      // Get recent transactions
-      const recentTransactions = await db
+      // Get all transactions for this user to calculate real balance
+      const transactions = await db
         .select()
         .from(walletTransactions)
-        .where(eq(walletTransactions.walletId, wallet.id))
-        .orderBy(desc(walletTransactions.createdAt))
-        .limit(10);
+        .where(eq(walletTransactions.userId, userId))
+        .orderBy(desc(walletTransactions.createdAt));
 
-      const balance = this.calculateBalance(wallet);
+      // Calculate real balance from transactions
+      const balance = this.calculateBalanceFromTransactions(transactions);
+
+      // Get recent transactions (limit to 10 for display)
+      const recentTransactions = transactions.slice(0, 10);
 
       return {
         ...wallet,
@@ -292,6 +295,43 @@ class WalletServiceImpl {
     const creditLimit = parseFloat(wallet.creditLimit);
     const creditUsed = parseFloat(wallet.creditUsed);
     
+    const availableCredit = Math.max(0, creditLimit - creditUsed);
+    const totalAvailable = depositBalance + availableCredit;
+    const isOverlimit = creditUsed > creditLimit;
+
+    return {
+      depositBalance: depositBalance.toFixed(2),
+      creditLimit: creditLimit.toFixed(2),
+      creditUsed: creditUsed.toFixed(2),
+      availableCredit: availableCredit.toFixed(2),
+      totalAvailable: totalAvailable.toFixed(2),
+      isOverlimit,
+    };
+  }
+
+  private calculateBalanceFromTransactions(transactions: any[]): WalletBalance {
+    let depositBalance = 0;
+    let creditLimit = 0;
+    let creditUsed = 0;
+
+    transactions.forEach(tx => {
+      const amount = parseFloat(tx.amount);
+      switch (tx.type) {
+        case 'deposit':
+          depositBalance += amount;
+          break;
+        case 'credit_limit':
+          creditLimit = amount; // Set to latest credit limit
+          break;
+        case 'payment':
+          creditUsed += amount;
+          break;
+        case 'refund':
+          creditUsed = Math.max(0, creditUsed - amount);
+          break;
+      }
+    });
+
     const availableCredit = Math.max(0, creditLimit - creditUsed);
     const totalAvailable = depositBalance + availableCredit;
     const isOverlimit = creditUsed > creditLimit;
