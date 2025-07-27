@@ -86,9 +86,13 @@ export default function B2BShop() {
     enabled: isAuthenticated,
   });
 
+  // Track which product is currently being added to cart
+  const [addingProductId, setAddingProductId] = useState<string | null>(null);
+
   // Add to cart mutation with optimistic updates
   const addToCartMutation = useMutation({
     mutationFn: async ({ productId, quantity }: { productId, quantity: number }) => {
+      setAddingProductId(productId);
       const response = await apiRequest("POST", "/api/cart", { productId, quantity });
       return response.json();
     },
@@ -160,6 +164,8 @@ export default function B2BShop() {
       });
     },
     onSettled: () => {
+      // Clear the loading state
+      setAddingProductId(null);
       // Synchronize with server after mutation
       queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
     },
@@ -543,7 +549,7 @@ export default function B2BShop() {
                           key={product.id}
                           product={product}
                           onAddToCart={(quantity) => addToCartMutation.mutate({ productId: product.id, quantity })}
-                          isLoading={addToCartMutation.isPending}
+                          isLoading={addingProductId === product.id}
                         />
                       ))
                     )}
@@ -637,10 +643,15 @@ function ProductRow({ product, onAddToCart, isLoading }: {
         <Button
           size="sm"
           onClick={() => onAddToCart(quantity)}
-          disabled={isLoading}
-          className="bg-[#FFB20F] hover:bg-[#E69B00] text-white border-0 px-4 py-2 rounded-[5px] font-semibold uppercase tracking-[0.5px] transition-colors duration-200"
+          disabled={isLoading || product.stockCount === 0}
+          className="bg-[#FFB20F] hover:bg-[#E69B00] text-white border-0 px-4 py-2 rounded-[5px] font-semibold uppercase tracking-[0.5px] transition-colors duration-200 disabled:opacity-50"
         >
-          {isLoading ? "..." : "ADD"}
+          {isLoading ? (
+            <div className="flex items-center">
+              <Loader2 className="w-3 h-3 animate-spin mr-1" />
+              Adding...
+            </div>
+          ) : product.stockCount === 0 ? "OUT OF STOCK" : "ADD"}
         </Button>
       </td>
     </tr>
