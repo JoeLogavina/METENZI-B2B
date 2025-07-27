@@ -153,7 +153,11 @@ export class DatabaseStorage implements IStorage {
   }): Promise<ProductWithStock[]> {
     console.log('Storage.getProducts - called with filters:', filters);
 
-    let whereConditions = [eq(products.isActive, true)];
+    let whereConditions = [];
+    
+    // Handle isActive filter - default to true if not specified
+    const isActiveFilter = filters?.isActive !== undefined ? filters.isActive : true;
+    whereConditions.push(eq(products.isActive, isActiveFilter));
 
     // Apply filters if provided
     if (filters?.region && filters.region !== 'all') {
@@ -179,29 +183,35 @@ export class DatabaseStorage implements IStorage {
         whereConditions.push(lte(products.price, filters.priceMax));
       }
 
-    const result = await db
-      .select({
-        id: products.id,
-        sku: products.sku,
-        name: products.name,
-        description: products.description,
-        price: products.price,
-        categoryId: products.categoryId,
-        region: products.region,
-        platform: products.platform,
-        imageUrl: products.imageUrl,
-        isActive: products.isActive,
-        createdAt: products.createdAt,
-        updatedAt: products.updatedAt,
-        stockCount: sql<number>`COUNT(CASE WHEN ${licenseKeys.isUsed} = false THEN 1 END)`,
-      })
-      .from(products)
-      .leftJoin(licenseKeys, eq(products.id, licenseKeys.productId))
-      .where(and(...whereConditions))
-      .groupBy(products.id)
-      .orderBy(desc(products.createdAt));
-
-    return result as ProductWithStock[];
+    try {
+      const result = await db
+        .select({
+          id: products.id,
+          sku: products.sku,
+          name: products.name,
+          description: products.description,
+          price: products.price,
+          categoryId: products.categoryId,
+          region: products.region,
+          platform: products.platform,
+          imageUrl: products.imageUrl,
+          isActive: products.isActive,
+          createdAt: products.createdAt,
+          updatedAt: products.updatedAt,
+          stockCount: sql<number>`COUNT(CASE WHEN ${licenseKeys.isUsed} = false THEN 1 END)`,
+        })
+        .from(products)
+        .leftJoin(licenseKeys, eq(products.id, licenseKeys.productId))
+        .where(and(...whereConditions))
+        .groupBy(products.id)
+        .orderBy(desc(products.createdAt));
+        
+      console.log('Storage.getProducts - query result:', result.length, 'products found');
+      return result as ProductWithStock[];
+    } catch (error) {
+      console.error('Storage.getProducts - Database error:', error);
+      throw error;
+    }
   }
 
   async getAllProducts(): Promise<ProductWithStock[]> {
