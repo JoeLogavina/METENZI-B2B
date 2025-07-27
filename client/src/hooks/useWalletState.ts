@@ -101,8 +101,8 @@ export function useWalletState() {
     staleTime: 60000, // 1 minute
   });
 
-  // Cache invalidation helper
-  const invalidateWalletCache = () => {
+  // Cache invalidation helper with throttling to prevent infinite loops
+  const invalidateWalletCache = React.useCallback(() => {
     console.log('Invalidating wallet cache for user:', user?.id);
     queryClient.invalidateQueries({ queryKey: WALLET_QUERY_KEYS.all() });
     
@@ -110,7 +110,7 @@ export function useWalletState() {
     if (user?.id) {
       queryClient.invalidateQueries({ queryKey: ["/api/wallet-balance", user.id] });
     }
-  };
+  }, [user?.id, queryClient]);
 
   // Optimistic update helper
   const updateWalletOptimistically = (newBalance: Partial<WalletBalance>) => {
@@ -182,7 +182,7 @@ export function useWalletState() {
       // Emit payment success event
       walletEventBus.emit('payment:completed', data);
       
-      // Invalidate cache to get fresh data from server
+      // Invalidate cache to get fresh data from server (only on successful payment)
       setTimeout(() => {
         invalidateWalletCache();
       }, 1000); // Small delay to ensure backend processing is complete

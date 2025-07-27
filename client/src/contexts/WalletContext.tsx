@@ -70,12 +70,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     };
   }, [user, toast, wallet.refreshWallet]);
 
-  // Auto-refresh wallet data on user change
-  useEffect(() => {
-    if (user?.id) {
-      wallet.invalidateCache();
-    }
-  }, [user?.id, wallet.invalidateCache]);
+  // Auto-refresh wallet data on user change (removed to prevent infinite loop)
+  // The wallet hook already handles user changes internally
 
   const contextValue: WalletContextType = {
     walletData: wallet.walletData,
