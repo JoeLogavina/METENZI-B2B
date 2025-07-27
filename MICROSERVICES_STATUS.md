@@ -7,10 +7,10 @@
 - ✅ **Admin Portal** - Port 5001  
 - ✅ **B2B Portal** - Port 5002
 
-## 🌐 Pristupne tačke:
+## 🌐 Pristupne tačke na Replit:
 
 ### 1. Admin Portal
-- **URL**: http://localhost:5001
+- **URL**: https://workspace-5001.dinoharbinja.repl.co
 - **Prijava**: admin/Kalendar1
 - **Funkcionalnosti**: 
   - Upravljanje proizvodima
@@ -19,7 +19,7 @@
   - Dashboard sa statistikama
 
 ### 2. B2B Portal  
-- **URL**: http://localhost:5002
+- **URL**: https://workspace-5002.dinoharbinja.repl.co
 - **Prijava**: b2buser/Kalendar1
 - **Funkcionalnosti**:
   - Pregled kataloga proizvoda
@@ -28,7 +28,7 @@
   - Upravljanje profilom
 
 ### 3. Core API
-- **URL**: http://localhost:5003
+- **URL**: https://workspace-5003.dinoharbinja.repl.co
 - **Napomena**: Interni servis - nije dostupan direktno
 
 ## 📋 Kako pokrenuti servise:

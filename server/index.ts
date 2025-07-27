@@ -68,21 +68,21 @@ app.get('/', (req, res) => {
     
     <div class="service">
       <h3>Admin Portal</h3>
-      <p>URL: <a href="http://localhost:5001" target="_blank">http://localhost:5001</a></p>
+      <p>URL: <a href="https://workspace-5001.dinoharbinja.repl.co" target="_blank">https://workspace-5001.dinoharbinja.repl.co</a></p>
       <p>Prijava: admin/Kalendar1</p>
       <p>Funkcionalnosti: Upravljanje proizvodima, korisnicima, licencnim ključevima</p>
     </div>
 
     <div class="service">
       <h3>B2B Portal</h3>
-      <p>URL: <a href="http://localhost:5002" target="_blank">http://localhost:5002</a></p>
+      <p>URL: <a href="https://workspace-5002.dinoharbinja.repl.co" target="_blank">https://workspace-5002.dinoharbinja.repl.co</a></p>
       <p>Prijava: b2buser/Kalendar1</p>
       <p>Funkcionalnosti: Pregled kataloga, kupovina licenci, upravljanje narudžbama</p>
     </div>
 
     <div class="service">
       <h3>Core API Service</h3>
-      <p>URL: http://localhost:5003 (interni servis)</p>
+      <p>URL: https://workspace-5003.dinoharbinja.repl.co (interni servis)</p>
       <p>Napomena: Dostupan samo drugim servisima</p>
     </div>
   </div>
