@@ -34,7 +34,7 @@ export interface ProductService {
   getLowStockProducts(threshold: number): Promise<ProductWithStock[]>;
 }
 
-class ProductServiceImpl implements ProductService {
+export class ProductServiceImpl implements ProductService {
   async getActiveProducts(filters?: ProductFilters): Promise<ProductWithStock[]> {
     try {
       const activeFilters = { 

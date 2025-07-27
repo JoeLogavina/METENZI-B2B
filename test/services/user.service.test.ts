@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { UserServiceImpl } from '@server/services/user.service'
-import { DatabaseStorage } from '@server/storage'
+import { UserServiceImpl } from '../../server/services/user.service'
+import { DatabaseStorage } from '../../server/storage'
 import { setupTestDatabase, cleanupTestDatabase, createTestUser, testDb } from '../helpers/test-db'
-import { ConflictError, NotFoundError, ValidationError, ForbiddenError } from '@server/services/errors'
+import { ConflictError, NotFoundError, ValidationError, ForbiddenError } from '../../server/services/errors'
 
 describe('UserService', () => {
   let userService: UserServiceImpl

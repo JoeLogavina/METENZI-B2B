@@ -28,7 +28,7 @@ export interface UserService {
   getUserAnalytics(): Promise<any>;
 }
 
-class UserServiceImpl implements UserService {
+export class UserServiceImpl implements UserService {
   async authenticateUser(username: string, password: string): Promise<User | null> {
     if (!username || !password) {
       throw new ValidationError('Username and password are required');

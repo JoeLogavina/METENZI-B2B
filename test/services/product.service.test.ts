@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { ProductServiceImpl } from '@server/services/product.service'
-import { DatabaseStorage } from '@server/storage'
+import { ProductServiceImpl } from '../../server/services/product.service'
+import { DatabaseStorage } from '../../server/storage'
 import { setupTestDatabase, cleanupTestDatabase, createTestProduct, createTestCategory, testDb } from '../helpers/test-db'
-import { ValidationError, NotFoundError, ConflictError } from '@server/services/errors'
+import { ValidationError, NotFoundError, ConflictError } from '../../server/services/errors'
 
 describe('ProductService', () => {
   let productService: ProductServiceImpl
