@@ -8,6 +8,14 @@ import { db } from "./db";
 import { sql } from "drizzle-orm";
 import { adminRouter } from "./routes/admin";
 import { errorHandler, rateLimit } from "./middleware/auth.middleware";
+import { 
+  productsCacheMiddleware, 
+  walletCacheMiddleware, 
+  ordersCacheMiddleware,
+  invalidateCacheMiddleware 
+} from "./middleware/cache.middleware";
+import { performanceMiddleware, timeQuery } from "./services/performance.service";
+import { cacheHelpers } from "./cache/redis";
 
 // Authentication middleware
 const isAuthenticated = (req: any, res: any, next: any) => {
@@ -65,8 +73,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/metrics', (req, res) => {
+  app.get('/metrics', async (req, res) => {
     const memUsage = process.memoryUsage();
+    const performanceStats = performanceService.getStats();
+    
+    // Import DB optimization service
+    const { dbOptimizationService } = await import('./services/database-optimization.service');
+    const connectionStats = await dbOptimizationService.getConnectionStats();
+    
     res.json({
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
@@ -77,6 +91,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         external: Math.round(memUsage.external / 1024 / 1024) + ' MB'
       },
       cpu: process.cpuUsage(),
+      performance: {
+        totalOperations: performanceStats.count,
+        averageResponseTime: Math.round(performanceStats.averageDuration),
+        slowOperations: performanceStats.slowOperations,
+        operations: performanceService.getOperationTypes()
+      },
+      database: {
+        connections: connectionStats
+      },
       environment: process.env.NODE_ENV || 'development',
       version: process.env.npm_package_version || '1.0.0'
     });
@@ -96,6 +119,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Mount enterprise admin routes
   app.use('/api/admin', adminRouter);
+
+  // Mount performance monitoring routes for admins
+  const performanceRouter = await import('./routes/performance.routes');
+  app.use('/api/performance', performanceRouter.default);
 
   // Direct wallet balance endpoint (bypass auth issues) using raw SQL
   app.get('/api/wallet-balance/:userId', async (req, res) => {
@@ -205,26 +232,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Auth routes
 
-  // Product routes
-  app.get('/api/products', async (req, res) => {
-    try {
-      const { region, platform, category, search, priceMin, priceMax } = req.query;
-      const filters = {
-        region: region as string,
-        platform: platform as string,
-        category: category as string,
-        search: search as string,
-        priceMin: priceMin ? parseFloat(priceMin as string) : undefined,
-        priceMax: priceMax ? parseFloat(priceMax as string) : undefined,
-      };
-      
-      const products = await storage.getProducts(filters);
-      res.json(products);
-    } catch (error) {
-      console.error("Error fetching products:", error);
-      res.status(500).json({ message: "Failed to fetch products" });
-    }
-  });
+  // Product routes with caching and performance monitoring
+  app.get('/api/products', 
+    performanceMiddleware('products-fetch'),
+    productsCacheMiddleware,
+    async (req, res) => {
+      try {
+        const { region, platform, category, search, priceMin, priceMax } = req.query;
+        const filters = {
+          region: region as string,
+          platform: platform as string,
+          category: category as string,
+          search: search as string,
+          priceMin: priceMin ? parseFloat(priceMin as string) : undefined,
+          priceMax: priceMax ? parseFloat(priceMax as string) : undefined,
+        };
+        
+        // Try cache first
+        const cachedProducts = await cacheHelpers.getProducts(filters);
+        if (cachedProducts) {
+          console.log('📦 Products from cache');
+          return res.json(cachedProducts);
+        }
+        
+        // Fetch from database with timing
+        const products = await timeQuery('products', () => storage.getProducts(filters), (req as any).user?.id);
+        
+        // Cache the results
+        await cacheHelpers.setProducts(filters, products);
+        
+        res.json(products);
+      } catch (error) {
+        console.error("Error fetching products:", error);
+        res.status(500).json({ message: "Failed to fetch products" });
+      }
+    });
 
   app.get('/api/products/:id', async (req, res) => {
     try {
@@ -239,21 +281,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/products', isAuthenticated, async (req: any, res) => {
-    try {
-      const user = await storage.getUser(req.user.id);
-      if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
-        return res.status(403).json({ message: "Insufficient permissions" });
-      }
+  app.post('/api/products', 
+    isAuthenticated, 
+    performanceMiddleware('products-create'),
+    invalidateCacheMiddleware('api:products:*'),
+    async (req: any, res) => {
+      try {
+        const user = await storage.getUser(req.user.id);
+        if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
+          return res.status(403).json({ message: "Insufficient permissions" });
+        }
 
-      const productData = insertProductSchema.parse(req.body);
-      const product = await storage.createProduct(productData);
-      res.status(201).json(product);
-    } catch (error) {
-      console.error("Error creating product:", error);
-      res.status(500).json({ message: "Failed to create product" });
-    }
-  });
+        const productData = insertProductSchema.parse(req.body);
+        const product = await timeQuery('create-product', () => storage.createProduct(productData), req.user.id);
+        
+        // Clear products cache
+        await cacheHelpers.invalidateProducts();
+        
+        res.status(201).json(product);
+      } catch (error) {
+        console.error("Error creating product:", error);
+        res.status(500).json({ message: "Failed to create product" });
+      }
+    });
 
   // Category routes
   app.get('/api/categories', async (req, res) => {
