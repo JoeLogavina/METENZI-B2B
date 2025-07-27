@@ -115,12 +115,11 @@ export default function OrdersPage() {
   } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
     enabled: isAuthenticated,
-    staleTime: 0, // Always consider data stale to force fresh fetches
+    staleTime: 1000 * 30, // 30 seconds - balanced freshness for orders
     gcTime: 1000 * 60 * 5, // 5 minutes in memory
     refetchOnWindowFocus: true, // Refetch when user returns to tab
     refetchOnMount: true, // Always refetch on component mount
     retry: 3, // Retry failed requests
-    refetchInterval: 5000, // Refetch every 5 seconds for debugging
   });
 
   useEffect(() => {
@@ -242,7 +241,7 @@ export default function OrdersPage() {
           warranty: getWarrantyPeriod(item.licenseKey.createdAt),
           platform: item.product.platform,
           region: item.product.region,
-          orderDate: formatDate(order.createdAt)
+          orderDate: formatDateTime(order.createdAt)
         });
       }
     });
@@ -289,6 +288,19 @@ export default function OrdersPage() {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
+    });
+  };
+
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false // 24-hour format
     });
   };
 
@@ -415,7 +427,7 @@ export default function OrdersPage() {
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <Calendar className="h-4 w-4" />
-                          {formatDate(order.createdAt)}
+                          {formatDateTime(order.createdAt)}
                         </div>
                         <div className="flex items-center gap-1">
                           <CreditCard className="h-4 w-4" />
@@ -536,7 +548,7 @@ export default function OrdersPage() {
                                   {order.orderNumber}
                                 </td>
                                 <td className="p-2 border-r">
-                                  {getWarrantyPeriod(item.licenseKey!.createdAt)}
+                                  {formatDate(new Date(new Date(item.licenseKey!.createdAt).getTime() + 365 * 24 * 60 * 60 * 1000).toISOString())}
                                 </td>
                                 <td className="p-2 border-r">
                                   <Badge variant="secondary">{item.product.platform}</Badge>

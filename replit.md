@@ -44,6 +44,12 @@ This is a full-stack B2B software license management platform built with React, 
   - **BACKEND VERIFICATION**: WalletService.processPayment() fully functional when called correctly
   - **FRONTEND INTEGRATION**: Checkout page properly configured for wallet payment selection
   - Added sufficient license keys for product testing to prevent "insufficient stock" errors
+- **CACHE INVALIDATION ISSUE RESOLVED** (January 27, 2025): 
+  - Successfully implemented Option 5 (Hybrid Enterprise Solution) with server-side + client-side cache invalidation
+  - Orders now appear immediately after purchase completion through enterprise-grade cache invalidation middleware
+  - Enhanced date/time display: Orders now show full timestamp (date + time) instead of just date
+  - Server timestamps are correctly stored and displayed using server time zone
+  - Added optimistic updates and comprehensive cache debug panel for development monitoring
 - **ORDERS PAGE ENHANCEMENT**: Moved "Copy All Keys" and "Export to Excel" buttons from global header to individual order sections
   - Each order now has dedicated copy/export buttons for that order's license keys only
   - Improved user experience with contextual actions per order

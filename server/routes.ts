@@ -590,8 +590,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/orders', 
     isAuthenticated,
-    // Temporarily disable caching to debug the issue
-    // ordersCacheMiddleware,
+    ordersCacheMiddleware,
     async (req: any, res) => {
     try {
       console.log('Orders API called, user:', req.user?.username, 'ID:', req.user?.id);
