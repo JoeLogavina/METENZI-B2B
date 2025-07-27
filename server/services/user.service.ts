@@ -149,9 +149,7 @@ class UserServiceImpl implements UserService {
 
   async getAllUsers(): Promise<User[]> {
     try {
-      // This would need to be implemented in storage
-      // For now, we'll throw an error indicating it's not implemented
-      throw new ServiceError('Get all users not implemented in storage layer');
+      return await storage.getAllUsers();
     } catch (error) {
       throw new ServiceError('Failed to fetch all users', error);
     }
@@ -169,9 +167,7 @@ class UserServiceImpl implements UserService {
         throw new ValidationError('User is already deactivated');
       }
 
-      // This would need to be implemented in storage
-      // await storage.updateUser(id, { isActive: false });
-      throw new ServiceError('User deactivation not implemented in storage layer');
+      await storage.updateUser(id, { isActive: false });
     } catch (error) {
       if (error instanceof ValidationError || error instanceof NotFoundError) {
         throw error;
@@ -192,9 +188,7 @@ class UserServiceImpl implements UserService {
         throw new ValidationError('User is already active');
       }
 
-      // This would need to be implemented in storage
-      // await storage.updateUser(id, { isActive: true });
-      throw new ServiceError('User reactivation not implemented in storage layer');
+      await storage.updateUser(id, { isActive: true });
     } catch (error) {
       if (error instanceof ValidationError || error instanceof NotFoundError) {
         throw error;
@@ -205,19 +199,40 @@ class UserServiceImpl implements UserService {
 
   async getUserAnalytics(): Promise<any> {
     try {
-      // This would require implementing user counting in storage
+      const allUsers = await storage.getAllUsers();
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
       const analytics = {
-        totalUsers: 0,
-        activeUsers: 0,
+        totalUsers: allUsers.length,
+        activeUsers: allUsers.filter(u => u.isActive).length,
         usersByRole: {
-          b2b_user: 0,
-          admin: 0,
-          super_admin: 0,
+          b2b_user: allUsers.filter(u => u.role === 'b2b_user').length,
+          admin: allUsers.filter(u => u.role === 'admin').length,
+          super_admin: allUsers.filter(u => u.role === 'super_admin').length,
         },
-        recentRegistrations: 0, // Last 30 days
+        recentRegistrations: allUsers.filter(u => 
+          u.createdAt && new Date(u.createdAt) >= thirtyDaysAgo
+        ).length,
+        userGrowth: {
+          thisMonth: allUsers.filter(u => {
+            if (!u.createdAt) return false;
+            const createdDate = new Date(u.createdAt);
+            const now = new Date();
+            return createdDate.getMonth() === now.getMonth() && 
+                   createdDate.getFullYear() === now.getFullYear();
+          }).length,
+          lastMonth: allUsers.filter(u => {
+            if (!u.createdAt) return false;
+            const createdDate = new Date(u.createdAt);
+            const lastMonth = new Date();
+            lastMonth.setMonth(lastMonth.getMonth() - 1);
+            return createdDate.getMonth() === lastMonth.getMonth() && 
+                   createdDate.getFullYear() === lastMonth.getFullYear();
+          }).length,
+        }
       };
 
-      // Implementation would go here when storage methods are available
       return analytics;
     } catch (error) {
       throw new ServiceError('Failed to get user analytics', error);

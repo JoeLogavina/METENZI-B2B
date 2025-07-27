@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { adminProductsRouter } from './products.routes';
+import { adminUsersRouter } from './users.routes';
 import { authenticate, requireRole, rateLimit } from '../../middleware/auth.middleware';
 
 const router = Router();
@@ -15,5 +16,6 @@ router.use(requireRole('admin', 'super_admin'));
 
 // Mount sub-routers
 router.use('/products', adminProductsRouter);
+router.use('/users', adminUsersRouter);
 
 export { router as adminRouter };
