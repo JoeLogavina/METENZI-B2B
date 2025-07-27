@@ -22,7 +22,8 @@ import {
   X,
   Plus,
   Edit,
-  Trash2
+  Trash2,
+  Wallet
 } from "lucide-react";
 
 interface DashboardStats {
@@ -136,6 +137,7 @@ export default function AdminPanel() {
     { id: 'users', icon: Users, label: 'User Management', allowed: (user as any)?.role === 'super_admin' },
     { id: 'products', icon: Package, label: 'Product Management', allowed: true },
     { id: 'keys', icon: Key, label: 'Key Management', allowed: true },
+    { id: 'wallets', icon: Wallet, label: 'Wallet Management', allowed: true },
     { id: 'permissions', icon: Shield, label: 'Permissions', allowed: (user as any)?.role === 'super_admin' },
     { id: 'reports', icon: FileText, label: 'Reports', allowed: true },
   ].filter(item => item.allowed);
@@ -562,6 +564,34 @@ export default function AdminPanel() {
                   />
                 </DialogContent>
               </Dialog>
+            )}
+
+            {activeSection === 'wallets' && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-[#6E6F71] uppercase tracking-[0.5px]">WALLET MANAGEMENT</h3>
+                    <p className="text-[#6E6F71]">Manage B2B user wallets, deposits, and credit limits</p>
+                  </div>
+                </div>
+
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center py-8">
+                      <Wallet className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-gray-800 mb-2">Wallet Management</h3>
+                      <p className="text-gray-600">Wallet management features are being developed. This will include:</p>
+                      <ul className="text-sm text-gray-500 mt-4 space-y-1">
+                        <li>• View all user wallets and balances</li>
+                        <li>• Add deposits to user accounts</li>
+                        <li>• Set and modify credit limits</li>
+                        <li>• Record credit payments</li>
+                        <li>• View transaction history</li>
+                      </ul>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             )}
 
             {(activeSection === 'keys' || activeSection === 'permissions' || activeSection === 'reports') && (

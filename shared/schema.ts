@@ -182,6 +182,42 @@ export const licenseKeysRelations = relations(licenseKeys, ({ one }) => ({
   }),
 }));
 
+// Wallet transaction types enum
+export const transactionTypeEnum = pgEnum("transaction_type", [
+  "deposit",      // Admin adds money to wallet
+  "payment",      // B2B user makes purchase
+  "credit_limit", // Admin sets credit limit
+  "credit_payment", // Admin records payment towards credit debt
+  "refund",       // Admin issues refund
+  "adjustment"    // Admin manual adjustment
+]);
+
+// User wallets table
+export const wallets = pgTable("wallets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  depositBalance: decimal("deposit_balance", { precision: 10, scale: 2 }).default("0.00").notNull(),
+  creditLimit: decimal("credit_limit", { precision: 10, scale: 2 }).default("0.00").notNull(),
+  creditUsed: decimal("credit_used", { precision: 10, scale: 2 }).default("0.00").notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Wallet transactions table
+export const walletTransactions = pgTable("wallet_transactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  walletId: varchar("wallet_id").references(() => wallets.id).notNull(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  type: transactionTypeEnum("type").notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  balanceAfter: decimal("balance_after", { precision: 10, scale: 2 }).notNull(),
+  description: text("description"),
+  orderId: varchar("order_id").references(() => orders.id), // For payment transactions
+  adminId: varchar("admin_id").references(() => users.id), // Who performed admin action
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const ordersRelations = relations(orders, ({ one, many }) => ({
   user: one(users, {
     fields: [orders.userId],
@@ -213,6 +249,33 @@ export const cartItemsRelations = relations(cartItems, ({ one }) => ({
   product: one(products, {
     fields: [cartItems.productId],
     references: [products.id],
+  }),
+}));
+
+export const walletsRelations = relations(wallets, ({ one, many }) => ({
+  user: one(users, {
+    fields: [wallets.userId],
+    references: [users.id],
+  }),
+  transactions: many(walletTransactions),
+}));
+
+export const walletTransactionsRelations = relations(walletTransactions, ({ one }) => ({
+  wallet: one(wallets, {
+    fields: [walletTransactions.walletId],
+    references: [wallets.id],
+  }),
+  user: one(users, {
+    fields: [walletTransactions.userId],
+    references: [users.id],
+  }),
+  order: one(orders, {
+    fields: [walletTransactions.orderId],
+    references: [orders.id],
+  }),
+  admin: one(users, {
+    fields: [walletTransactions.adminId],
+    references: [users.id],
   }),
 }));
 
@@ -270,9 +333,38 @@ export const insertAdminPermissionsSchema = createInsertSchema(adminPermissions)
   updatedAt: true,
 });
 
+export const insertWalletSchema = createInsertSchema(wallets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertWalletTransactionSchema = createInsertSchema(walletTransactions).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
+export type Product = typeof products.$inferSelect;
+export type InsertProduct = typeof products.$inferInsert;
+export type Category = typeof categories.$inferSelect;
+export type InsertCategory = typeof categories.$inferInsert;
+export type Order = typeof orders.$inferSelect;
+export type InsertOrder = typeof orders.$inferInsert;
+export type OrderItem = typeof orderItems.$inferSelect;
+export type InsertOrderItem = typeof orderItems.$inferInsert;
+export type CartItem = typeof cartItems.$inferSelect;
+export type InsertCartItem = typeof cartItems.$inferInsert;
+export type LicenseKey = typeof licenseKeys.$inferSelect;
+export type InsertLicenseKey = typeof licenseKeys.$inferInsert;
+export type Wallet = typeof wallets.$inferSelect;
+export type InsertWallet = typeof wallets.$inferInsert;
+export type WalletTransaction = typeof walletTransactions.$inferSelect;
+export type InsertWalletTransaction = typeof walletTransactions.$inferInsert;
+export type AdminPermissions = typeof adminPermissions.$inferSelect;
+export type InsertAdminPermissions = typeof adminPermissions.$inferInsert;
 export type InsertUser = typeof users.$inferInsert;
 export type Product = typeof products.$inferSelect;
 export type InsertProduct = z.infer<typeof insertProductSchema>;

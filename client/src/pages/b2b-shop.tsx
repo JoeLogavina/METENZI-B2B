@@ -138,6 +138,7 @@ export default function B2BShop() {
     { icon: Grid, label: "CATALOG", active: false, href: "/catalog", allowed: true },
     { icon: Users, label: "CLIENTS", active: false, href: "/clients", allowed: user?.role === 'admin' || user?.role === 'super_admin' },
     { icon: FileText, label: "ORDERS", active: false, href: "/orders", allowed: true },
+    { icon: CreditCard, label: "MY WALLET", active: false, href: "/wallet", allowed: true },
     { icon: BarChart3, label: "REPORTS", active: false, href: "/reports", allowed: user?.role === 'admin' || user?.role === 'super_admin' },
     { icon: CreditCard, label: "INVOICES", active: false, href: "/invoices", allowed: user?.role === 'admin' || user?.role === 'super_admin' },
 

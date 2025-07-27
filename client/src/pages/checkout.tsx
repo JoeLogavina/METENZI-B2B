@@ -25,7 +25,8 @@ import {
   Phone,
   Building,
   Banknote,
-  FileText
+  FileText,
+  Wallet
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
@@ -61,7 +62,7 @@ const checkoutSchema = z.object({
   country: z.string().min(1, "Country is required"),
   
   // Payment Information
-  paymentMethod: z.enum(["credit_card", "bank_transfer", "purchase_order"]),
+  paymentMethod: z.enum(["credit_card", "bank_transfer", "purchase_order", "wallet"]),
   
   // Optional fields for different payment methods
   cardNumber: z.string().optional(),
@@ -119,6 +120,12 @@ export default function CheckoutPage() {
   // Fetch cart items
   const { data: cartItems = [], isLoading: cartLoading } = useQuery<CartItem[]>({
     queryKey: ["/api/cart"],
+    enabled: isAuthenticated,
+  });
+
+  // Fetch wallet information
+  const { data: walletData } = useQuery<{ data: any }>({
+    queryKey: ["/api/wallet"],
     enabled: isAuthenticated,
   });
 
@@ -186,6 +193,19 @@ export default function CheckoutPage() {
         variant: "destructive",
       });
       return;
+    }
+
+    // Check wallet balance if wallet payment is selected
+    if (data.paymentMethod === 'wallet' && walletData?.data?.balance) {
+      const availableBalance = parseFloat(walletData.data.balance.totalAvailable);
+      if (availableBalance < finalAmount) {
+        toast({
+          title: "Insufficient Balance",
+          description: `Your wallet balance (€${availableBalance.toFixed(2)}) is insufficient for this order (€${finalAmount.toFixed(2)}). Please add funds or use another payment method.`,
+          variant: "destructive",
+        });
+        return;
+      }
     }
     
     setStep('processing');
@@ -509,7 +529,30 @@ export default function CheckoutPage() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-sm font-semibold text-gray-700 mb-3 block">Select Payment Method</FormLabel>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            {/* Wallet Payment */}
+                            <div 
+                              className={`border-2 rounded-[8px] p-4 cursor-pointer transition-all duration-200 ${
+                                field.value === 'wallet' 
+                                  ? 'border-[#FFB20F] bg-[#FFB20F]/5' 
+                                  : 'border-[#ddd] hover:border-[#FFB20F]/50'
+                              }`}
+                              onClick={() => field.onChange('wallet')}
+                            >
+                              <div className="text-center">
+                                <Wallet className={`w-8 h-8 mx-auto mb-2 ${
+                                  field.value === 'wallet' ? 'text-[#FFB20F]' : 'text-gray-600'
+                                }`} />
+                                <h3 className="font-semibold text-sm text-gray-800">Wallet</h3>
+                                <p className="text-xs text-gray-600 mt-1">
+                                  {walletData?.data?.balance ? 
+                                    `€${parseFloat(walletData.data.balance.totalAvailable).toFixed(2)} available` :
+                                    'Loading...'
+                                  }
+                                </p>
+                              </div>
+                            </div>
+
                             {/* Credit Card */}
                             <div 
                               className={`border-2 rounded-[8px] p-4 cursor-pointer transition-all duration-200 ${
@@ -667,6 +710,45 @@ export default function CheckoutPage() {
                           </FormItem>
                         )}
                       />
+                    )}
+
+                    {/* Wallet Payment Info */}
+                    {form.watch("paymentMethod") === "wallet" && (
+                      <div className="bg-[#fff8e1] p-4 rounded-[5px] border border-[#FFB20F]">
+                        <div className="flex items-center mb-2">
+                          <Wallet className="w-5 h-5 text-[#FFB20F] mr-2" />
+                          <strong className="text-sm text-gray-800">Wallet Payment Details:</strong>
+                        </div>
+                        {walletData?.data?.balance ? (
+                          <div className="space-y-2">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Deposit Balance:</span>
+                              <span className="font-semibold text-green-600">€{parseFloat(walletData.data.balance.depositBalance).toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Available Credit:</span>
+                              <span className="font-semibold text-blue-600">€{parseFloat(walletData.data.balance.availableCredit).toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between text-sm border-t pt-2">
+                              <span className="text-gray-600">Total Available:</span>
+                              <span className="font-semibold text-[#FFB20F]">€{parseFloat(walletData.data.balance.totalAvailable).toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Order Total:</span>
+                              <span className="font-semibold text-gray-800">€{finalAmount.toFixed(2)}</span>
+                            </div>
+                            {parseFloat(walletData.data.balance.totalAvailable) < finalAmount && (
+                              <div className="bg-red-50 border border-red-200 rounded p-2 mt-2">
+                                <p className="text-xs text-red-700">
+                                  Insufficient wallet balance. Please add funds or use another payment method.
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-gray-600">Loading wallet information...</p>
+                        )}
+                      </div>
                     )}
 
                     {/* Bank Transfer Info */}

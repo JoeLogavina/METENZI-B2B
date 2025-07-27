@@ -15,7 +15,7 @@ const isAuthenticated = (req: any, res: any, next: any) => {
   res.status(401).json({ message: "Unauthorized" });
 };
 
-export function registerRoutes(app: Express): Server {
+export async function registerRoutes(app: Express): Promise<Server> {
   // Health check endpoints (before auth middleware)
   app.get('/health', async (req, res) => {
     try {
@@ -496,6 +496,10 @@ export function registerRoutes(app: Express): Server {
       res.status(500).json({ message: "Failed to update product status" });
     }
   });
+
+  // Import wallet routes
+  const walletRoutes = await import("./routes/wallet.routes");
+  app.use("/api/wallet", walletRoutes.default);
 
   // Global error handler (must be last middleware)
   app.use(errorHandler);
