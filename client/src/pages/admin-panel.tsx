@@ -239,8 +239,8 @@ export default function AdminPanel() {
                           <Users className="h-6 w-6 text-primary" />
                         </div>
                         <div className="ml-4">
-                          <p className="text-sm font-medium text-gray-600">Total Users</p>
-                          <p className="text-2xl font-semibold text-gray-900">
+                          <p className="text-sm font-medium text-[#4D585A]">Total Users</p>
+                          <p className="text-2xl font-semibold text-[#4D585A]">
                             {statsLoading ? '...' : stats?.totalUsers || 0}
                           </p>
                         </div>
@@ -255,8 +255,8 @@ export default function AdminPanel() {
                           <ShoppingCart className="h-6 w-6 text-green-600" />
                         </div>
                         <div className="ml-4">
-                          <p className="text-sm font-medium text-gray-600">Total Sales</p>
-                          <p className="text-2xl font-semibold text-gray-900">
+                          <p className="text-sm font-medium text-[#4D585A]">Total Sales</p>
+                          <p className="text-2xl font-semibold text-[#4D585A]">
                             {statsLoading ? '...' : stats?.totalSales || '€0'}
                           </p>
                         </div>
@@ -271,8 +271,8 @@ export default function AdminPanel() {
                           <Key className="h-6 w-6 text-purple-600" />
                         </div>
                         <div className="ml-4">
-                          <p className="text-sm font-medium text-gray-600">Active Keys</p>
-                          <p className="text-2xl font-semibold text-gray-900">
+                          <p className="text-sm font-medium text-[#4D585A]">Active Keys</p>
+                          <p className="text-2xl font-semibold text-[#4D585A]">
                             {statsLoading ? '...' : stats?.activeKeys || 0}
                           </p>
                         </div>
@@ -287,8 +287,8 @@ export default function AdminPanel() {
                           <Package className="h-6 w-6 text-orange-600" />
                         </div>
                         <div className="ml-4">
-                          <p className="text-sm font-medium text-gray-600">Products</p>
-                          <p className="text-2xl font-semibold text-gray-900">
+                          <p className="text-sm font-medium text-[#4D585A]">Products</p>
+                          <p className="text-2xl font-semibold text-[#4D585A]">
                             {statsLoading ? '...' : stats?.totalProducts || 0}
                           </p>
                         </div>
@@ -304,7 +304,7 @@ export default function AdminPanel() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-center py-8">
-                      <p className="text-gray-500">
+                      <p className="text-[#4D585A]">
                         Welcome to the admin dashboard. Use the sidebar to navigate between different management sections.
                       </p>
                     </div>
@@ -322,18 +322,18 @@ export default function AdminPanel() {
                   {usersLoading ? (
                     <div className="text-center py-8">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                      <p className="mt-2 text-gray-600">Loading users...</p>
+                      <p className="mt-2 text-[#4D585A]">Loading users...</p>
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full">
                         <thead className="table-header">
                           <tr>
-                            <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">User</th>
-                            <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">Email</th>
-                            <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">Role</th>
-                            <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">Status</th>
-                            <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">Actions</th>
+                            <th className="text-left py-3 px-4 text-xs font-medium text-[#4D585A] uppercase">User</th>
+                            <th className="text-left py-3 px-4 text-xs font-medium text-[#4D585A] uppercase">Email</th>
+                            <th className="text-left py-3 px-4 text-xs font-medium text-[#4D585A] uppercase">Role</th>
+                            <th className="text-left py-3 px-4 text-xs font-medium text-[#4D585A] uppercase">Status</th>
+                            <th className="text-left py-3 px-4 text-xs font-medium text-[#4D585A] uppercase">Actions</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
@@ -389,8 +389,8 @@ export default function AdminPanel() {
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 uppercase tracking-[0.5px]">PRODUCT MANAGEMENT</h3>
-                    <p className="text-gray-600">Manage software products visible to B2B users</p>
+                    <h3 className="text-lg font-semibold text-[#4D585A] uppercase tracking-[0.5px]">PRODUCT MANAGEMENT</h3>
+                    <p className="text-[#4D585A]">Manage software products visible to B2B users</p>
                   </div>
                   <Button
                     onClick={() => setShowProductForm(true)}
@@ -405,8 +405,8 @@ export default function AdminPanel() {
                 <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
                   <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-medium text-gray-900 uppercase tracking-[0.5px]">ALL PRODUCTS</h4>
-                      <div className="text-sm text-gray-500">
+                      <h4 className="text-sm font-medium text-[#4D585A] uppercase tracking-[0.5px]">ALL PRODUCTS</h4>
+                      <div className="text-sm text-[#4D585A]">
                         {products?.length || 0} products
                       </div>
                     </div>
@@ -416,12 +416,12 @@ export default function AdminPanel() {
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-[#4D585A] uppercase tracking-wider">Product</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-[#4D585A] uppercase tracking-wider">Category</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-[#4D585A] uppercase tracking-wider">Price</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-[#4D585A] uppercase tracking-wider">Stock</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-[#4D585A] uppercase tracking-wider">Status</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-[#4D585A] uppercase tracking-wider">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
@@ -429,15 +429,15 @@ export default function AdminPanel() {
                           <tr>
                             <td colSpan={6} className="px-6 py-12 text-center">
                               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4D9DE0] mx-auto"></div>
-                              <p className="mt-2 text-gray-500">Loading products...</p>
+                              <p className="mt-2 text-[#4D585A]">Loading products...</p>
                             </td>
                           </tr>
                         ) : products?.length === 0 ? (
                           <tr>
                             <td colSpan={6} className="px-6 py-12 text-center">
                               <Package className="mx-auto h-12 w-12 text-gray-400" />
-                              <h3 className="mt-2 text-sm font-medium text-gray-900">No products</h3>
-                              <p className="mt-1 text-sm text-gray-500">Get started by creating a new product.</p>
+                              <h3 className="mt-2 text-sm font-medium text-[#4D585A]">No products</h3>
+                              <p className="mt-1 text-sm text-[#4D585A]">Get started by creating a new product.</p>
                             </td>
                           </tr>
                         ) : (
@@ -451,8 +451,8 @@ export default function AdminPanel() {
                                     </div>
                                   </div>
                                   <div className="ml-4">
-                                    <div className="text-sm font-medium text-gray-900">{product.name}</div>
-                                    <div className="text-sm text-gray-500">{product.platform}</div>
+                                    <div className="text-sm font-medium text-[#4D585A]">{product.name}</div>
+                                    <div className="text-sm text-[#4D585A]">{product.platform}</div>
                                   </div>
                                 </div>
                               </td>
@@ -461,10 +461,10 @@ export default function AdminPanel() {
                                   {product.category}
                                 </span>
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 font-mono">
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-[#4D585A] font-mono">
                                 €{product.price}
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4D585A] font-mono">
                                 {product.stock}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
