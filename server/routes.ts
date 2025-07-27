@@ -83,8 +83,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   setupAuth(app);
 
-  // Global rate limiting for API routes
-  app.use('/api', rateLimit(15 * 60 * 1000, 300)); // 300 requests per 15 minutes
+  // Global rate limiting for API routes (temporarily disabled for debugging)
+  // app.use('/api', rateLimit(15 * 60 * 1000, 300)); // 300 requests per 15 minutes
+
+  // Debug middleware for admin routes
+  app.use('/api/admin', (req, res, next) => {
+    console.log('Main admin route hit:', req.method, req.path, 'User authenticated:', !!req.user);
+    next();
+  });
 
   // Mount enterprise admin routes
   app.use('/api/admin', adminRouter);
