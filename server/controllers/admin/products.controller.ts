@@ -108,7 +108,11 @@ export class AdminProductsController {
   async updateProduct(req: Request, res: Response) {
     try {
       const { id } = productParamsSchema.parse(req.params);
+      console.log('Update product request - ID:', id);
+      console.log('Update product request - Body:', req.body);
+      
       const updateData = updateProductSchema.parse(req.body);
+      console.log('Parsed update data:', updateData);
       
       const product = await productService.updateProduct(id, updateData);
       
@@ -117,6 +121,7 @@ export class AdminProductsController {
         message: 'Product updated successfully'
       });
     } catch (error) {
+      console.error('Product update error:', error);
       if (isServiceError(error)) {
         return res.status(error.statusCode).json(formatErrorResponse(error));
       }
