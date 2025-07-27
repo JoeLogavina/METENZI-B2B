@@ -883,7 +883,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(req.user.id);
       if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
         return res.status(403).json({ message: "Admin access required" });
-      ```text
+      }
       const productData = req.body;
 
       console.log("Creating product with data:", productData);
