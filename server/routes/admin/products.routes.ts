@@ -7,6 +7,7 @@ import {
   auditLog,
   Permissions 
 } from '../../middleware/auth.middleware';
+import { uploadMiddleware } from '../../middleware/upload.middleware';
 import { insertProductSchema } from '@shared/schema';
 import { z } from 'zod';
 
@@ -99,6 +100,14 @@ router.patch('/:id/toggle-status',
   validateRequest({ params: productParamsSchema }),
   auditLog('admin:products:toggle-status'),
   adminProductsController.toggleProductStatus.bind(adminProductsController)
+);
+
+// POST /api/admin/products/:id/upload-image - Upload product image
+router.post('/:id/upload-image',
+  authorize(Permissions.PRODUCT_UPDATE),
+  uploadMiddleware.single('image'),
+  auditLog('admin:products:upload-image'),
+  adminProductsController.uploadProductImage.bind(adminProductsController)
 );
 
 export { router as adminProductsRouter };

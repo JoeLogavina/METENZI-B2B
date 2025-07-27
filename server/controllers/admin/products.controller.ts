@@ -210,6 +210,47 @@ export class AdminProductsController {
       });
     }
   }
+
+  // POST /api/admin/products/:id/upload-image
+  async uploadProductImage(req: Request, res: Response) {
+    try {
+      const { id } = productParamsSchema.parse(req.params);
+      
+      if (!req.file) {
+        return res.status(400).json({
+          error: 'VALIDATION_ERROR',
+          message: 'No image file provided'
+        });
+      }
+
+      // Generate the URL path for the uploaded image
+      const imageUrl = `/uploads/products/${req.file.filename}`;
+      
+      // Update the product with the new image URL
+      const updatedProduct = await productService.updateProduct(id, { 
+        imageUrl 
+      });
+
+      res.json({
+        data: {
+          imageUrl,
+          filename: req.file.filename,
+          originalName: req.file.originalname,
+          size: req.file.size,
+          product: updatedProduct
+        },
+        message: 'Image uploaded successfully'
+      });
+    } catch (error) {
+      if (isServiceError(error)) {
+        return res.status(error.statusCode).json(formatErrorResponse(error));
+      }
+      res.status(500).json({
+        error: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to upload image'
+      });
+    }
+  }
 }
 
 export const adminProductsController = new AdminProductsController();

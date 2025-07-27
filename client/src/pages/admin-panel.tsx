@@ -867,6 +867,7 @@ function EditProductIntegratedSection({
 }: any) {
   const [duplicateWarning, setDuplicateWarning] = useState<string[]>([]);
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   // Update form data when product loads
   useEffect(() => {
@@ -901,6 +902,76 @@ function EditProductIntegratedSection({
       });
     }
   }, [editProductData]);
+
+  // Handle image upload
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        title: "Error",
+        description: "Please select a valid image file (JPG, PNG, GIF, or WebP)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "Error", 
+        description: "Image file size must be less than 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadingImage(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const response = await fetch(`/api/admin/products/${editProductId}/upload-image`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to upload image');
+      }
+
+      const result = await response.json();
+      
+      // Update the form with the new image URL
+      setEditProductFormData({ 
+        ...editProductFormData, 
+        imageUrl: result.data.imageUrl 
+      });
+      setEditUnsavedChanges(true);
+
+      toast({
+        title: "Success",
+        description: "Image uploaded successfully",
+      });
+
+      // Clear the file input
+      event.target.value = '';
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to upload image",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   // Save product mutation
   const saveProductMutation = useMutation({
@@ -1203,21 +1274,53 @@ function EditProductIntegratedSection({
                 </div>
 
                 <div className="md:col-span-2">
-                  <Label htmlFor="imageUrl" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-                    PRODUCT IMAGE URL
+                  <Label htmlFor="imageUpload" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                    PRODUCT IMAGE
                   </Label>
-                  <Input
-                    id="imageUrl"
-                    value={editProductFormData.imageUrl}
-                    onChange={(e) => {
-                      setEditProductFormData({ ...editProductFormData, imageUrl: e.target.value });
-                      setEditUnsavedChanges(true);
-                    }}
-                    className="mt-1"
-                    placeholder="https://example.com/image.jpg"
-                  />
-                  <div className="mt-2 text-xs text-gray-500">
-                    Upload image to external hosting service and paste URL here
+                  <div className="mt-1 flex flex-col space-y-3">
+                    {editProductFormData.imageUrl && (
+                      <div className="relative">
+                        <img 
+                          src={editProductFormData.imageUrl} 
+                          alt="Current product image" 
+                          className="h-32 w-32 object-cover rounded-lg border border-gray-300"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => {
+                            setEditProductFormData({ ...editProductFormData, imageUrl: '' });
+                            setEditUnsavedChanges(true);
+                          }}
+                          className="absolute top-1 right-1 h-6 w-6 p-0"
+                        >
+                          ×
+                        </Button>
+                      </div>
+                    )}
+                    <div className="relative">
+                      <input
+                        id="imageUpload"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        disabled={uploadingImage}
+                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-[#FFB20F] file:text-white hover:file:bg-[#e6a00e] file:cursor-pointer cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      />
+                      {uploadingImage && (
+                        <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center rounded-lg">
+                          <div className="flex items-center space-x-2">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#FFB20F]"></div>
+                            <span className="text-sm text-gray-600">Uploading...</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      <p>• Supported formats: JPG, PNG, GIF, WebP</p>
+                      <p>• Maximum file size: 5MB</p>
+                    </div>
                   </div>
                 </div>
 
