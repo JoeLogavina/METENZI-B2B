@@ -1,71 +1,108 @@
-import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
+import express from 'express';
 
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+const PORT = 5000;
 
-app.use((req, res, next) => {
-  const start = Date.now();
-  const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
-
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
-
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
-      log(logLine);
+app.get('/', (req, res) => {
+  res.send(`
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Mikroservisi - B2B Portal</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f5f5f5;
+      padding: 40px;
+      max-width: 800px;
+      margin: 0 auto;
     }
-  });
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 { color: #6E6F71; }
+    .service {
+      background: #f9f9f9;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 5px;
+      border-left: 4px solid #FFB20F;
+    }
+    .service a {
+      color: #FFB20F;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    .service a:hover {
+      text-decoration: underline;
+    }
+    .instructions {
+      background: #e8f4f8;
+      padding: 15px;
+      border-radius: 5px;
+      margin: 20px 0;
+    }
+    code {
+      background: #f0f0f0;
+      padding: 2px 5px;
+      border-radius: 3px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🚀 Mikroservisi - B2B Software License Management</h1>
+    
+    <div class="instructions">
+      <h3>📋 Instrukcije za pokretanje:</h3>
+      <p>Monolitna arhitektura je obrisana. Sada koristimo mikroservise!</p>
+      <p>Za pokretanje svih servisa:</p>
+      <code>cd services && ./start-all-microservices.sh</code>
+    </div>
 
-  next();
+    <h2>📍 Dostupni servisi:</h2>
+    
+    <div class="service">
+      <h3>Admin Portal</h3>
+      <p>URL: <a href="http://localhost:5001" target="_blank">http://localhost:5001</a></p>
+      <p>Prijava: admin/Kalendar1</p>
+      <p>Funkcionalnosti: Upravljanje proizvodima, korisnicima, licencnim ključevima</p>
+    </div>
+
+    <div class="service">
+      <h3>B2B Portal</h3>
+      <p>URL: <a href="http://localhost:5002" target="_blank">http://localhost:5002</a></p>
+      <p>Prijava: b2buser/Kalendar1</p>
+      <p>Funkcionalnosti: Pregled kataloga, kupovina licenci, upravljanje narudžbama</p>
+    </div>
+
+    <div class="service">
+      <h3>Core API Service</h3>
+      <p>URL: http://localhost:5003 (interni servis)</p>
+      <p>Napomena: Dostupan samo drugim servisima</p>
+    </div>
+  </div>
+</body>
+</html>
+  `);
 });
 
-(async () => {
-  const server = await registerRoutes(app);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`
+=================================================================
+🚀 MIKROSERVISI - B2B SOFTWARE LICENSE MANAGEMENT
+=================================================================
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+Info stranica dostupna na: http://localhost:${PORT}
 
-    res.status(status).json({ message });
-    throw err;
-  });
+Za pokretanje mikroservisa:
+   cd services
+   ./start-all-microservices.sh
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
-  }
-
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || '5000', 10);
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
-})();
+=================================================================
+  `);
+});

@@ -2,10 +2,13 @@
 
 ## Overview
 
-This is a full-stack B2B software license management platform that has been refactored into a microservices architecture with three separate services: Admin Service (port 5001), B2B Service (port 5002), and Core API Service (port 5003). The application provides enterprise customers with a streamlined interface to browse, purchase, and manage software licenses, while offering administrators comprehensive tools for inventory and user management through a completely isolated admin portal. The system uses custom username/password authentication and displays all prices in EUR currency.
+This is a full-stack B2B software license management platform using a microservices architecture with three separate services: Admin Service (port 5001), B2B Service (port 5002), and Core API Service (port 5003). The application provides enterprise customers with a streamlined interface to browse, purchase, and manage software licenses, while offering administrators comprehensive tools for inventory and user management through a completely isolated admin portal. The system uses custom username/password authentication and displays all prices in EUR currency.
+
+**IMPORTANT**: The monolithic architecture has been completely removed. Only the microservices architecture exists now.
 
 ## Recent Changes (January 2025)
-- **MAJOR: Implemented Microservices Architecture** - Split monolithic application into three independent services
+- **MAJOR: Completely removed monolithic architecture** - Now only microservices exist
+- **Running Instructions**: Use `cd services && ./setup-and-run.sh` to start all services
 - Separated Admin Portal (5001) and B2B Portal (5002) with independent authentication
 - Created Core API Service (5003) for shared business logic and database operations
 - Implemented inter-service authentication with secure API keys

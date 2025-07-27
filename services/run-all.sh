@@ -9,7 +9,7 @@ export INTERNAL_SERVICE_KEY=dev-service-key
 
 # Start Core API Service
 echo "Starting Core API Service on port 5003..."
-cd core-api-service && npm run dev &
+(cd core-api-service && npm run dev) &
 CORE_PID=$!
 
 # Wait for Core API to start
@@ -17,12 +17,12 @@ sleep 5
 
 # Start Admin Service
 echo "Starting Admin Service on port 5001..."
-cd ../admin-service && npm run dev &
+(cd admin-service && npm run dev) &
 ADMIN_PID=$!
 
 # Start B2B Service
 echo "Starting B2B Service on port 5002..."
-cd ../b2b-service && npm run dev &
+(cd b2b-service && npm run dev) &
 B2B_PID=$!
 
 echo "✅ All services started!"
