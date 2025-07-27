@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import { CacheDebugPanel } from "@/components/cache-debug-panel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -114,6 +115,10 @@ export default function OrdersPage() {
   } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
     enabled: isAuthenticated,
+    staleTime: 1000 * 30, // 30 seconds - fresher data for orders
+    gcTime: 1000 * 60 * 5, // 5 minutes in memory
+    refetchOnWindowFocus: true, // Refetch when user returns to tab
+    refetchOnMount: true, // Always refetch on component mount
   });
 
   useEffect(() => {
@@ -590,6 +595,9 @@ export default function OrdersPage() {
           </div>
         </div>
       </div>
+      
+      {/* Cache Debug Panel (Development Only) */}
+      <CacheDebugPanel />
     </div>
   );
 }

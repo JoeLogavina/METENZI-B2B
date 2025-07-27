@@ -113,11 +113,6 @@ export const walletCacheMiddleware = cacheMiddleware({
   keyPrefix: 'wallet'
 });
 
-export const ordersCacheMiddleware = cacheMiddleware({
-  ttl: 180, // 3 minutes
-  keyPrefix: 'orders'
-});
-
 export const userCacheMiddleware = cacheMiddleware({
   ttl: 600, // 10 minutes
   keyPrefix: 'user'
@@ -126,4 +121,13 @@ export const userCacheMiddleware = cacheMiddleware({
 export const categoriesCacheMiddleware = cacheMiddleware({
   ttl: 900, // 15 minutes (categories change rarely)
   keyPrefix: 'categories'
+});
+
+export const ordersCacheMiddleware = cacheMiddleware({
+  ttl: 300, // 5 minutes for orders (frequently updated)
+  keyPrefix: 'orders',
+  skipCacheCondition: (req) => {
+    // Skip cache for admin users (they might see different data)
+    return (req.user as any)?.role === 'admin' || (req.user as any)?.role === 'super_admin';
+  }
 });

@@ -5,6 +5,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { useWallet, emitWalletEvent } from "@/contexts/WalletContext";
+import { useOptimisticOrders } from "@/hooks/use-orders-optimistic";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -78,6 +79,7 @@ type CheckoutFormData = z.infer<typeof checkoutSchema>;
 export default function CheckoutPage() {
   const { user, isLoading, isAuthenticated } = useAuth();
   const { toast } = useToast();
+  const { updateOrderOptimistically } = useOptimisticOrders();
   const [, setLocation] = useLocation();
   const [step, setStep] = useState<'checkout' | 'processing' | 'success'>('checkout');
   const [orderNumber, setOrderNumber] = useState<string>('');
@@ -173,8 +175,23 @@ export default function CheckoutPage() {
       setOrderNumber(order.orderNumber);
       setStep('success');
       
-      // Invalidate cart and emit wallet events for real-time updates
+      // Optimistic UI update: immediately show order completion
+      if (order.items) {
+        updateOrderOptimistically({
+          orderId: order.id,
+          licenseKeys: order.items.map((item: any) => ({
+            id: item.licenseKeyId || `temp-${Date.now()}-${Math.random()}`,
+            licenseKey: item.licenseKey?.licenseKey || `KEY-${Date.now()}`,
+            productName: item.product?.name || 'Unknown Product'
+          }))
+        });
+      }
+      
+      // Invalidate all related caches for real-time updates
       queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/wallet"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/wallet/transactions"] });
       
       // Emit order completion event to trigger wallet refresh
       emitWalletEvent('order:completed', { 

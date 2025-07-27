@@ -254,10 +254,27 @@ export const cacheHelpers = {
   
   async setOrdersData(userId: string, filters: any, ordersData: any) {
     const key = `orders:${userId}:${JSON.stringify(filters)}`;
-    await redisCache.set(key, ordersData, 180); // 3 minutes
+    await redisCache.set(key, ordersData, 300); // 5 minutes
   },
   
-  async invalidateOrdersData(userId: string) {
-    await redisCache.invalidatePattern(`orders:${userId}:*`);
+  async invalidateOrdersData(userId?: string) {
+    if (userId) {
+      await redisCache.invalidatePattern(`orders:${userId}:*`);
+    } else {
+      await redisCache.invalidatePattern(`orders:*`);
+    }
+  },
+
+  // Categories cache
+  async getCategoriesData() {
+    return await redisCache.get('categories:all');
+  },
+  
+  async setCategoriesData(categoriesData: any) {
+    await redisCache.set('categories:all', categoriesData, 900); // 15 minutes
+  },
+  
+  async invalidateCategoriesData() {
+    await redisCache.invalidatePattern('categories:*');
   }
 };

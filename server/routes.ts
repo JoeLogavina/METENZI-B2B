@@ -15,6 +15,7 @@ import {
   categoriesCacheMiddleware,
   invalidateCacheMiddleware 
 } from "./middleware/cache.middleware";
+import { invalidateOrdersCache } from "./middleware/cache-invalidation.middleware";
 import { cacheHelpers } from "./cache/redis";
 
 // Authentication middleware
@@ -469,8 +470,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Order routes
-  app.post('/api/orders', isAuthenticated, async (req: any, res) => {
+  // Order routes with enterprise cache invalidation
+  app.post('/api/orders', 
+    isAuthenticated,
+    invalidateOrdersCache,
+    async (req: any, res) => {
     try {
       const userId = req.user.id;
       const { billingInfo, paymentMethod, paymentDetails } = req.body;
@@ -584,7 +588,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/orders', isAuthenticated, async (req: any, res) => {
+  app.get('/api/orders', 
+    isAuthenticated,
+    ordersCacheMiddleware,
+    async (req: any, res) => {
     try {
       console.log('Orders API called, user:', req.user?.username, 'ID:', req.user?.id);
       const userId = req.user.id;
