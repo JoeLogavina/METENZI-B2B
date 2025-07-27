@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "@/hooks/useAuth";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -33,7 +33,7 @@ interface DashboardStats {
 }
 
 export default function AdminPanel() {
-  const { user, isLoading, isAuthenticated, logout, isLoggingOut } = useAuth();
+  const { user, isLoading, isAuthenticated, logout, isLoggingOut } = useAdminAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeSection, setActiveSection] = useState("dashboard");

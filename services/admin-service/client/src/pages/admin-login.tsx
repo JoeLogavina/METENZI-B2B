@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useAuth } from "@/hooks/useAuth";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Building2, Shield, ArrowLeft } from "lucide-react";
 
 export default function AdminLogin() {
-  const { user, isAuthenticated, logout, isLoggingOut } = useAuth();
+  const { user, isAuthenticated, login, isLoggingIn: isAuthLoading } = useAdminAuth();
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     username: '',
@@ -35,11 +35,12 @@ export default function AdminLogin() {
     setIsLoggingIn(true);
     
     try {
-      const response = await fetch('/api/login', {
+      const response = await fetch('/api/admin/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify(formData),
       });
 
