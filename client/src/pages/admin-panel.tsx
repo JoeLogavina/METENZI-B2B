@@ -337,7 +337,7 @@ export default function AdminPanel() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
-                          {users.map((userItem: any) => (
+                          {(users?.data || []).map((userItem: any) => (
                             <tr key={userItem.id} className="hover:bg-gray-50">
                               <td className="py-3 px-4">
                                 <div className="flex items-center">
@@ -407,7 +407,7 @@ export default function AdminPanel() {
                     <div className="flex items-center justify-between">
                       <h4 className="text-sm font-medium text-[#6E6F71] uppercase tracking-[0.5px]">ALL PRODUCTS</h4>
                       <div className="text-sm text-[#6E6F71]">
-                        {products?.length || 0} products
+                        {(products?.data || []).length} products
                       </div>
                     </div>
                   </div>
@@ -432,7 +432,7 @@ export default function AdminPanel() {
                               <p className="mt-2 text-[#6E6F71]">Loading products...</p>
                             </td>
                           </tr>
-                        ) : products?.length === 0 ? (
+                        ) : (products?.data || []).length === 0 ? (
                           <tr>
                             <td colSpan={6} className="px-6 py-12 text-center">
                               <Package className="mx-auto h-12 w-12 text-gray-400" />
@@ -441,7 +441,7 @@ export default function AdminPanel() {
                             </td>
                           </tr>
                         ) : (
-                          products?.map((product: any) => (
+                          (products?.data || []).map((product: any) => (
                             <tr key={product.id} className="hover:bg-gray-50">
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="flex items-center">
