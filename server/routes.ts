@@ -736,9 +736,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Import wallet routes
-  const walletRoutes = await import("./routes/wallet.routes");
-  app.use("/api/wallet", walletRoutes.default);
+
 
   // Global error handler (must be last middleware)
   app.use(errorHandler);
