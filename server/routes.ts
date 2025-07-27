@@ -113,11 +113,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const transactions = result.rows;
       console.log('Transactions found:', transactions.length);
 
-      // Calculate balances from transactions
+      // Calculate balances from transactions - CORRECT LOGIC: deposits first, then credit
       let depositBalance = 0;
       let creditLimit = 0;
       let creditUsed = 0;
 
+      // First pass: calculate total deposits and credit limit
       transactions.forEach(tx => {
         const amount = parseFloat(tx.amount);
         switch (tx.type) {
@@ -127,11 +128,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
           case 'credit_limit':
             creditLimit = amount; // Set to latest credit limit
             break;
+        }
+      });
+
+      // Second pass: process payments - deduct from deposits first, then use credit
+      transactions.forEach(tx => {
+        const amount = parseFloat(tx.amount);
+        switch (tx.type) {
           case 'payment':
-            creditUsed += amount;
+            if (depositBalance >= amount) {
+              // Pay from deposits
+              depositBalance -= amount;
+            } else {
+              // Pay from deposits + credit
+              const remainingAmount = amount - depositBalance;
+              depositBalance = 0;
+              creditUsed += remainingAmount;
+            }
             break;
           case 'refund':
-            creditUsed = Math.max(0, creditUsed - amount);
+            // First restore credit, then deposits
+            if (creditUsed >= amount) {
+              creditUsed -= amount;
+            } else {
+              const remainingRefund = amount - creditUsed;
+              creditUsed = 0;
+              depositBalance += remainingRefund;
+            }
             break;
         }
       });
