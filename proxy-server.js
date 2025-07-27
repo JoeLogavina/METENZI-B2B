@@ -6,6 +6,31 @@ import path from 'path';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Proxy routes za pristup servisima unutar Replit-a
+app.use('/admin', createProxyMiddleware({
+  target: 'http://localhost:5001',
+  changeOrigin: true,
+  pathRewrite: {
+    '^/admin': '/'
+  }
+}));
+
+app.use('/shop', createProxyMiddleware({
+  target: 'http://localhost:5002',
+  changeOrigin: true,
+  pathRewrite: {
+    '^/shop': '/'
+  }
+}));
+
+app.use('/api', createProxyMiddleware({
+  target: 'http://localhost:5003',
+  changeOrigin: true,
+  pathRewrite: {
+    '^/api': '/'
+  }
+}));
+
 // Info stranica sa linkovima na mikroservise
 app.get('/', (req, res) => {
   const replName = process.env.REPL_SLUG || 'workspace';
@@ -94,21 +119,24 @@ app.get('/', (req, res) => {
         <div class="service">
           <h3>🔧 Admin Portal</h3>
           <p>Upravljanje proizvodima, korisnicima i licencnim ključevima</p>
-          <a href="https://${replName}-5001.${replOwner}.repl.co" class="button">Otvori Admin Portal</a>
+          <a href="/admin" class="button">Unutar Replit-a</a>
+          <a href="https://${replName}-5001.${replOwner}.repl.co" class="button">Eksterni Link</a>
           <p><strong>Status:</strong> <span class="status">✅ Aktivan</span></p>
         </div>
 
         <div class="service">
           <h3>🛒 B2B Portal</h3>
           <p>Katalog proizvoda i kupovina licenci za B2B klijente</p>
-          <a href="https://${replName}-5002.${replOwner}.repl.co" class="button">Otvori B2B Portal</a>
+          <a href="/shop" class="button">Unutar Replit-a</a>
+          <a href="https://${replName}-5002.${replOwner}.repl.co" class="button">Eksterni Link</a>
           <p><strong>Status:</strong> <span class="status">✅ Aktivan</span></p>
         </div>
 
         <div class="service">
           <h3>⚙️ Core API</h3>
           <p>Centralna API za komunikaciju između servisa</p>
-          <a href="https://${replName}-5003.${replOwner}.repl.co/health" class="button">Health Check</a>
+          <a href="/api/health" class="button">Health Check</a>
+          <a href="https://${replName}-5003.${replOwner}.repl.co/health" class="button">Eksterni Link</a>
           <p><strong>Status:</strong> <span id="core-status">Proverava se...</span></p>
         </div>
 
@@ -121,7 +149,7 @@ app.get('/', (req, res) => {
 
       <script>
         // Proveri status Core API servisa
-        fetch('https://${replName}-5003.${replOwner}.repl.co/health')
+        fetch('/api/health')
           .then(response => response.json())
           .then(data => {
             document.getElementById('core-status').innerHTML = '<span class="status">✅ Aktivan</span>';
