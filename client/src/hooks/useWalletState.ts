@@ -59,8 +59,8 @@ export const walletEventBus = new WalletEventBus();
 
 // Unified wallet query keys
 export const WALLET_QUERY_KEYS = {
-  wallet: (userId?: string) => userId ? ['/api/wallet', userId] : ['/api/wallet'],
-  transactions: (userId?: string) => userId ? ['/api/wallet', userId, 'transactions'] : ['/api/wallet', 'transactions'],
+  wallet: (userId?: string) => ['/api/wallet'],
+  transactions: (userId?: string) => ['/api/wallet', 'transactions'],
   all: () => ['/api/wallet'],
 } as const;
 
@@ -81,6 +81,10 @@ export function useWalletState() {
     refetch
   } = useQuery<{ data: WalletData }>({
     queryKey: WALLET_QUERY_KEYS.wallet(user?.id),
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/wallet");
+      return await response.json();
+    },
     enabled: !!user?.id,
     staleTime: 30000, // 30 seconds
     gcTime: 5 * 60 * 1000, // 5 minutes

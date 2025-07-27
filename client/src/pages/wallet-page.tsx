@@ -62,6 +62,17 @@ export default function WalletPage() {
   // Use unified wallet system
   const { walletData, balance, isLoading, error, formatCurrency } = useWallet();
 
+  // Debug logging to see what's happening
+  console.log('Wallet Debug Full:', { 
+    walletData, 
+    balance, 
+    isLoading, 
+    error, 
+    errorKeys: error ? Object.keys(error) : [],
+    hasWalletData: !!walletData,
+    hasBalance: !!balance
+  });
+
   const sidebarItems = [
     { icon: Package, label: "B2B SHOP", active: false, href: "/", allowed: true },
     { icon: Grid, label: "CATALOG", active: false, href: "/catalog", allowed: true },
@@ -191,11 +202,12 @@ export default function WalletPage() {
             <div className="flex items-center justify-center h-64">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB20F]"></div>
             </div>
-          ) : error ? (
+          ) : error && Object.keys(error).length > 0 ? (
             <div className="text-center py-8">
               <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
               <h2 className="text-xl font-semibold text-gray-800 mb-2">Error Loading Wallet</h2>
               <p className="text-gray-600">Unable to load wallet information. Please try again later.</p>
+              <p className="text-xs text-gray-500 mt-2">Debug: {error?.message || 'Unknown error'}</p>
             </div>
           ) : !walletData ? (
             <div className="text-center py-8">
