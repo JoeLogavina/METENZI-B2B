@@ -70,7 +70,7 @@ export default function AdminPanel() {
   const { data: users = [], isLoading: usersLoading } = useQuery<any[]>({
     queryKey: ["/api/admin/users"],
     enabled: isAuthenticated && (user as any)?.role === 'super_admin' && activeSection === 'users',
-    select: (data) => Array.isArray(data) ? data : [],
+    select: (data) => Array.isArray(data) ? data : (data?.data || []),
   });
 
   const { data: products = [], isLoading: productsLoading, refetch: refetchProducts } = useQuery({
