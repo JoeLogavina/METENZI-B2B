@@ -37,16 +37,25 @@ export interface ProductService {
 export class ProductServiceImpl implements ProductService {
   async getActiveProducts(filters?: ProductFilters): Promise<ProductWithStock[]> {
     try {
+      console.log('ProductService.getActiveProducts - filters:', filters);
+      
       const activeFilters = { 
         region: filters?.region,
         platform: filters?.platform,
         category: filters?.category,
         search: filters?.search,
         priceMin: filters?.priceMin,
-        priceMax: filters?.priceMax
+        priceMax: filters?.priceMax,
+        isActive: true // Only return active products for B2B users
       };
-      return await storage.getProducts(activeFilters);
+      
+      console.log('ProductService.getActiveProducts - calling storage.getProducts with filters:', activeFilters);
+      const products = await storage.getProducts(activeFilters);
+      console.log('ProductService.getActiveProducts - returned products count:', products.length);
+      
+      return products;
     } catch (error) {
+      console.error('ProductService.getActiveProducts - error:', error);
       throw new ServiceError('Failed to fetch active products', error);
     }
   }

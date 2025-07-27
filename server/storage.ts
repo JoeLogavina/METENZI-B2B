@@ -26,7 +26,7 @@ import {
   type InsertAdminPermissions,
 } from "@shared/schema";
 import { db, pool } from "./db";
-import { eq, and, desc, sql, count } from "drizzle-orm";
+import { eq, and, desc, sql, count, or, ilike, gte, lte } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -37,7 +37,7 @@ export interface IStorage {
   updateUser(id: string, updateData: Partial<User>): Promise<User>;
   updateUserRole(id: string, role: "b2b_user" | "admin" | "super_admin"): Promise<void>;
   getAllUsers(): Promise<User[]>;
-  
+
   // Product operations
   getProducts(filters?: {
     region?: string;
@@ -52,25 +52,25 @@ export interface IStorage {
   createProduct(product: InsertProduct): Promise<Product>;
   updateProduct(id: string, product: Partial<InsertProduct>): Promise<Product>;
   deleteProduct(id: string): Promise<void>;
-  
+
   // Category operations
   getCategories(): Promise<Category[]>;
   createCategory(category: InsertCategory): Promise<Category>;
-  
+
   // License key operations
   getLicenseKeys(productId?: string): Promise<LicenseKey[]>;
   createLicenseKey(key: InsertLicenseKey): Promise<LicenseKey>;
   getAvailableKey(productId: string): Promise<LicenseKey | undefined>;
   markKeyAsUsed(keyId: string, userId: string): Promise<void>;
   getProductStock(productId: string): Promise<number>;
-  
+
   // Cart operations
   getCartItems(userId: string): Promise<(CartItem & { product: Product })[]>;
   addToCart(item: InsertCartItem): Promise<CartItem>;
   updateCartItem(id: string, quantity: number): Promise<void>;
   removeFromCart(id: string): Promise<void>;
   clearCart(userId: string): Promise<void>;
-  
+
   // Order operations
   createOrder(order: InsertOrder): Promise<Order>;
   getOrdersWithDetails(userId?: string): Promise<any[]>;
@@ -78,12 +78,12 @@ export interface IStorage {
   getOrders(userId?: string): Promise<(Order & { items: (OrderItem & { product: Product })[] })[]>;
   updateOrderStatus(orderId: string, status: string): Promise<void>;
   updatePaymentStatus(orderId: string, paymentStatus: string): Promise<void>;
-  
+
   // Admin operations
   getAllUsers(): Promise<User[]>;
   getUserPermissions(userId: string): Promise<AdminPermissions | undefined>;
   updateUserPermissions(userId: string, permissions: InsertAdminPermissions): Promise<AdminPermissions>;
-  
+
   // Dashboard stats
   getDashboardStats(): Promise<{
     totalUsers: number;
@@ -149,9 +149,12 @@ export class DatabaseStorage implements IStorage {
     search?: string;
     priceMin?: number;
     priceMax?: number;
+    isActive?: boolean;
   }): Promise<ProductWithStock[]> {
+    console.log('Storage.getProducts - called with filters:', filters);
+
     let whereConditions = [eq(products.isActive, true)];
-    
+
     // Apply filters if provided
     if (filters?.region && filters.region !== 'all') {
       whereConditions.push(eq(products.region, filters.region));
@@ -159,6 +162,22 @@ export class DatabaseStorage implements IStorage {
     if (filters?.platform && filters.platform !== 'all') {
       whereConditions.push(eq(products.platform, filters.platform));
     }
+
+    if (filters?.search) {
+        whereConditions.push(
+          or(
+            ilike(products.name, `%${filters.search}%`),
+            ilike(products.description, `%${filters.search}%`),
+            ilike(products.sku, `%${filters.search}%`)
+          )
+        );
+      }
+      if (filters?.priceMin !== undefined) {
+        whereConditions.push(gte(products.price, filters.priceMin));
+      }
+      if (filters?.priceMax !== undefined) {
+        whereConditions.push(lte(products.price, filters.priceMax));
+      }
 
     const result = await db
       .select({
@@ -181,7 +200,7 @@ export class DatabaseStorage implements IStorage {
       .where(and(...whereConditions))
       .groupBy(products.id)
       .orderBy(desc(products.createdAt));
-      
+
     return result as ProductWithStock[];
   }
 
@@ -207,7 +226,7 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(licenseKeys, eq(products.id, licenseKeys.productId))
       .groupBy(products.id)
       .orderBy(desc(products.createdAt));
-      
+
     return result as ProductWithStock[];
   }
 
@@ -224,14 +243,14 @@ export class DatabaseStorage implements IStorage {
   async updateProduct(id: string, product: Partial<InsertProduct>): Promise<Product> {
     console.log('Storage.updateProduct - ID:', id);
     console.log('Storage.updateProduct - Data:', product);
-    
+
     try {
       const [updatedProduct] = await db
         .update(products)
         .set({ ...product, updatedAt: new Date() })
         .where(eq(products.id, id))
         .returning();
-      
+
       console.log('Storage.updateProduct - Success:', updatedProduct);
       return updatedProduct;
     } catch (error) {
@@ -366,7 +385,7 @@ export class DatabaseStorage implements IStorage {
     const ordersList = userId 
       ? await db.select().from(orders).where(eq(orders.userId, userId)).orderBy(desc(orders.createdAt))
       : await db.select().from(orders).orderBy(desc(orders.createdAt));
-    
+
     const ordersWithItems = await Promise.all(
       ordersList.map(async (order) => {
         const items = await db
@@ -383,11 +402,11 @@ export class DatabaseStorage implements IStorage {
           .from(orderItems)
           .innerJoin(products, eq(orderItems.productId, products.id))
           .where(eq(orderItems.orderId, order.id));
-        
+
         return { ...order, items };
       })
     );
-    
+
     return ordersWithItems;
   }
 
@@ -402,23 +421,23 @@ export class DatabaseStorage implements IStorage {
   async getOrdersWithDetails(userId?: string): Promise<any[]> {
     try {
       console.log('Getting orders with raw SQL for user:', userId);
-      
+
       // Use direct pool connection to bypass Drizzle completely
       const orderQuery = userId 
         ? `SELECT * FROM orders WHERE user_id = $1 ORDER BY created_at DESC`
         : `SELECT * FROM orders ORDER BY created_at DESC`;
-      
+
       const orderParams = userId ? [userId] : [];
       const orderResult = await pool.query(orderQuery, orderParams);
       const orderRows = orderResult.rows;
-      
+
       console.log('Found orders:', orderRows.length);
 
       // Get order items with products and license keys for each order
       const ordersWithDetails = await Promise.all(
         orderRows.map(async (order: any) => {
           console.log('Processing order:', order.id);
-          
+
           // Get order items for this order
           const itemsQuery = `
             SELECT 
@@ -437,10 +456,10 @@ export class DatabaseStorage implements IStorage {
             LEFT JOIN license_keys lk ON oi.license_key_id = lk.id
             WHERE oi.order_id = $1
           `;
-          
+
           const itemsResult = await pool.query(itemsQuery, [order.id]);
           const itemRows = itemsResult.rows;
-          
+
           console.log('Found items for order', order.id, ':', itemRows.length);
 
           const items = itemRows.map((item: any) => ({
@@ -543,7 +562,7 @@ export class DatabaseStorage implements IStorage {
     const [userCount] = await db.select({ count: count() }).from(users);
     const [productCount] = await db.select({ count: count() }).from(products).where(eq(products.isActive, true));
     const [keyCount] = await db.select({ count: count() }).from(licenseKeys).where(eq(licenseKeys.isUsed, false));
-    
+
     const [salesResult] = await db
       .select({ total: sql<string>`COALESCE(SUM(${orders.totalAmount}), 0)` })
       .from(orders)

@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { productService } from './services/product.service';
 import { setupAuth } from "./auth";
 import { insertProductSchema, insertCategorySchema, insertLicenseKeySchema, insertCartItemSchema } from "@shared/schema";
 import { z } from "zod";
@@ -35,7 +36,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Check database connection
       await storage.getProducts({ search: 'health-check' });
-      
+
       res.status(200).json({
         status: 'healthy',
         timestamp: new Date().toISOString(),
@@ -56,7 +57,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // More comprehensive readiness check
       await storage.getProducts({ search: 'readiness-check' });
-      
+
       res.status(200).json({
         status: 'ready',
         timestamp: new Date().toISOString(),
@@ -80,14 +81,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/metrics', async (req, res) => {
     try {
       const memUsage = process.memoryUsage();
-      
+
       // Import services dynamically to avoid circular dependencies
       const { performanceService } = await import('./services/performance.service');
       const { dbOptimizationService } = await import('./services/database-optimization.service');
-      
+
       const performanceStats = performanceService.getStats();
       const connectionStats = await dbOptimizationService.getConnectionStats();
-      
+
       res.json({
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
@@ -126,7 +127,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/admin/products/:id/upload', isAuthenticated, upload.single('image'), async (req: any, res) => {
     try {
       const productId = req.params.id;
-      
+
       if (!req.file) {
         return res.status(400).json({ message: 'No image file provided' });
       }
@@ -161,14 +162,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/wallet-balance/:userId', async (req, res) => {
     try {
       const { userId } = req.params;
-      
+
       // Use raw SQL to avoid schema import issues
       const result = await db.execute(sql`
         SELECT type, amount FROM wallet_transactions 
         WHERE user_id = ${userId} 
         ORDER BY created_at DESC
       `);
-      
+
       const transactions = result.rows;
 
       // Calculate balances from transactions - CORRECT LOGIC: deposits first, then credit
@@ -274,20 +275,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           priceMin: priceMin ? parseFloat(priceMin as string) : undefined,
           priceMax: priceMax ? parseFloat(priceMax as string) : undefined,
         };
-        
+
         // Try cache first for performance
         const cachedProducts = await cacheHelpers.getProducts(filters);
         if (cachedProducts) {
           res.setHeader('X-Cache', 'HIT');
           return res.json(cachedProducts);
         }
-        
+
         // Fetch from database
         const products = await storage.getProducts(filters);
-        
+
         // Cache the results for future requests
         await cacheHelpers.setProducts(filters, products);
-        
+
         res.setHeader('X-Cache', 'MISS');
         res.json(products);
       } catch (error) {
@@ -320,14 +321,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         const productData = insertProductSchema.parse(req.body);
-        
+
         const startTime = Date.now();
         const product = await storage.createProduct(productData);
         const duration = Date.now() - startTime;
-        
+
         // Clear products cache
         await cacheHelpers.invalidateProducts();
-        
+
         res.status(201).json(product);
       } catch (error) {
         console.error("Error creating product:", error);
@@ -341,11 +342,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const startTime = Date.now();
       const categories = await storage.getCategories();
       const duration = Date.now() - startTime;
-      
+
       if (duration > 50) {
         console.warn(`🐌 Slow categories query: ${duration}ms`);
       }
-      
+
       res.json(categories);
     } catch (error) {
       console.error("Error fetching categories:", error);
@@ -364,15 +365,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         const categoryData = insertCategorySchema.parse(req.body);
-        
+
         const startTime = Date.now();
         const category = await storage.createCategory(categoryData);
         const duration = Date.now() - startTime;
-        
+
         if (duration > 100) {
           console.warn(`🐌 Slow category creation: ${duration}ms`);
         }
-        
+
         res.status(201).json(category);
       } catch (error) {
         console.error("Error creating category:", error);
@@ -418,23 +419,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     isAuthenticated, 
     async (req: any, res) => {
       const userId = req.user.id;
-      
+
       try {
         // Try cache first for better performance
         const cacheKey = `cart:${userId}`;
         const cachedCart = await redisCache.get(cacheKey);
-        
+
         if (cachedCart) {
           res.setHeader('X-Cache', 'HIT');
           return res.json(cachedCart);
         }
-        
+
         // Fetch from database
         const cartItems = await storage.getCartItems(userId);
-        
+
         // Cache cart items for 5 minutes
         await redisCache.set(cacheKey, cartItems, 300);
-        
+
         res.setHeader('X-Cache', 'MISS');
         res.json(cartItems);
       } catch (error) {
@@ -447,18 +448,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     isAuthenticated, 
     async (req: any, res) => {
       const userId = req.user.id;
-      
+
       try {
         // Validate and parse cart data
         const cartData = insertCartItemSchema.parse({ ...req.body, userId });
-        
+
         // Add to cart
         const cartItem = await storage.addToCart(cartData);
-        
+
         // Invalidate cart cache for this user
         const cacheKey = `cart:${userId}`;
         await redisCache.del(cacheKey);
-        
+
         res.status(201).json(cartItem);
       } catch (error) {
         console.error("Error adding to cart:", error);
@@ -470,14 +471,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     isAuthenticated, 
     async (req: any, res) => {
       const userId = req.user.id;
-      
+
       try {
         const { quantity } = req.body;
         await storage.updateCartItem(req.params.id, quantity);
-        
+
         // Invalidate user's cart cache
         await redisCache.del(`cart:${userId}`);
-        
+
         res.json({ success: true });
       } catch (error) {
         console.error("Error updating cart item:", error);
@@ -489,14 +490,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     isAuthenticated, 
     async (req: any, res) => {
       const userId = req.user.id;
-      
+
       try {
         const { quantity } = req.body;
         await storage.updateCartItem(req.params.id, quantity);
-        
+
         // Invalidate user's cart cache
         await redisCache.del(`cart:${userId}`);
-        
+
         res.json({ success: true });
       } catch (error) {
         console.error("Error updating cart item:", error);
@@ -508,13 +509,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     isAuthenticated, 
     async (req: any, res) => {
       const userId = req.user.id;
-      
+
       try {
         await storage.removeFromCart(req.params.id);
-        
+
         // Invalidate user's cart cache
         await redisCache.del(`cart:${userId}`);
-        
+
         res.json({ success: true });
       } catch (error) {
         console.error("Error removing from cart:", error);
@@ -526,13 +527,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     isAuthenticated, 
     async (req: any, res) => {
       const userId = req.user.id;
-      
+
       try {
         await storage.clearCart(userId);
-        
+
         // Invalidate user's cart cache
         await redisCache.del(`cart:${userId}`);
-        
+
         res.json({ success: true });
       } catch (error) {
         console.error("Error clearing cart:", error);
@@ -548,9 +549,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const { billingInfo, paymentMethod, paymentDetails } = req.body;
-      
+
       const cartItems = await storage.getCartItems(userId);
-      
+
       if (cartItems.length === 0) {
         return res.status(400).json({ message: "Cart is empty" });
       }
@@ -605,15 +606,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Clear cart
       await storage.clearCart(userId);
-      
+
       // Process payment based on payment method
       let updatedOrder = order;
       if (paymentMethod === 'wallet') {
         console.log(`Processing wallet payment for user ${userId}, amount: €${finalAmount}`);
-        
+
         // Import wallet service
         const { walletService } = await import('./services/wallet.service');
-        
+
         // Process wallet payment
         const paymentResult = await walletService.processPayment(
           userId, 
@@ -621,9 +622,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           order.id, 
           `Payment for order ${orderNumber}`
         );
-        
+
         console.log('Wallet payment result:', paymentResult);
-        
+
         if (paymentResult.success) {
           console.log(`Wallet payment successful, updating order ${order.id} to completed`);
           await storage.updateOrderStatus(order.id, 'completed');
@@ -664,32 +665,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     async (req: any, res) => {
     try {
       console.log('Orders API called, user:', req.user?.username, 'ID:', req.user?.id);
-      
+
       if (!req.user?.id) {
         console.error('No user ID found in request');
         return res.status(401).json({ message: 'User not authenticated' });
       }
-      
+
       const userId = req.user.id;
-      
+
       // Use direct pool connection to bypass Drizzle completely
       const { pool } = await import('./db');
-      
+
       // Get user role directly with SQL to avoid Drizzle issues
       const userQuery = `SELECT role FROM users WHERE id = $1`;
       const userResult = await pool.query(userQuery, [userId]);
       const userRole = userResult.rows[0]?.role || 'b2b_user';
-      
+
       const orderQuery = userRole === 'super_admin' || userRole === 'admin'
         ? `SELECT * FROM orders ORDER BY created_at DESC`
         : `SELECT * FROM orders WHERE user_id = $1 ORDER BY created_at DESC`;
-      
+
       const orderParams = userRole === 'super_admin' || userRole === 'admin' ? [] : [userId];
       const orderResult = await pool.query(orderQuery, orderParams);
       const orderRows = orderResult.rows;
-      
+
       console.log('Found orders:', orderRows.length);
-      
+
       if (orderRows.length > 0) {
         console.log('Recent orders:', orderRows.slice(0, 2).map(o => ({
           id: o.id,
@@ -721,7 +722,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             LEFT JOIN license_keys lk ON oi.license_key_id = lk.id
             WHERE oi.order_id = $1
           `;
-          
+
           const itemsResult = await pool.query(itemsQuery, [order.id]);
           const itemRows = itemsResult.rows;
 
@@ -864,12 +865,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { id } = req.params;
       const productData = req.body;
-      
+
       console.log("Updating product with data:", productData);
-      
+
       const updatedProduct = await storage.updateProduct(id, productData);
       console.log("Product updated successfully:", updatedProduct);
-      
+
       res.json(updatedProduct);
     } catch (error) {
       console.error("Error updating product:", error);
@@ -882,15 +883,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(req.user.id);
       if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
         return res.status(403).json({ message: "Admin access required" });
-      }
-
+      ```text
       const productData = req.body;
-      
+
       console.log("Creating product with data:", productData);
-      
+
       const newProduct = await storage.createProduct(productData);
       console.log("Product created successfully:", newProduct);
-      
+
       res.status(201).json(newProduct);
     } catch (error) {
       console.error("Error creating product:", error);
@@ -907,7 +907,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { id } = req.params;
       const { isActive } = req.body;
-      
+
       const updatedProduct = await storage.updateProduct(id, { isActive });
       res.json(updatedProduct);
     } catch (error) {
@@ -916,7 +916,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Products routes
+  app.get('/api/products', 
+    productsCacheMiddleware,
+    async (req, res) => {
+    try {
+      console.log('GET /api/products - query params:', req.query);
 
+      const { region, platform, category, search, priceMin, priceMax } = req.query;
+
+      const filters = {
+        region: region as string,
+        platform: platform as string,
+        category: category as string,
+        search: search as string,
+        priceMin: priceMin ? parseFloat(priceMin as string) : undefined,
+        priceMax: priceMax ? parseFloat(priceMax as string) : undefined,
+      };
+
+      console.log('GET /api/products - using filters:', filters);
+
+      // Use productService.getActiveProducts for B2B users (only active products)
+      const products = await productService.getActiveProducts(filters);
+
+      console.log('GET /api/products - returning', products.length, 'products');
+      res.json(products);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      res.status(500).json({ error: 'Failed to fetch products' });
+    }
+  });
 
   // Global error handler (must be last middleware)
   app.use(errorHandler);
