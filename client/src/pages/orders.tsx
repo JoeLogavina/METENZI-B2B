@@ -19,7 +19,13 @@ import {
   XCircle,
   Key,
   Download,
-  Files
+  Files,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Home,
+  ShoppingCart,
+  Users,
+  Menu
 } from "lucide-react";
 import { useEffect } from "react";
 import * as XLSX from 'xlsx';
@@ -97,6 +103,7 @@ export default function OrdersPage() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
+  const [sidebarMinimized, setSidebarMinimized] = useState(false);
 
   const {
     data: orders,
@@ -335,79 +342,160 @@ export default function OrdersPage() {
     total + order.items.filter(item => item.licenseKey).length, 0
   );
 
+  const sidebarItems = [
+    { name: 'Dashboard', icon: Home, href: '/', active: false },
+    { name: 'Products', icon: Package, href: '/products', active: false },
+    { name: 'Cart', icon: ShoppingCart, href: '/cart', active: false },
+    { name: 'Orders', icon: Package, href: '/orders', active: true },
+    ...(user?.role === 'admin' || user?.role === 'super_admin' ? [
+      { name: 'Admin Panel', icon: Users, href: '/admin', active: false }
+    ] : [])
+  ];
+
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">My Orders</h1>
-          <p className="text-muted-foreground">
-            View your order history and access your digital license keys
-          </p>
+    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Sidebar */}
+      <div className={`bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 ${
+        sidebarMinimized ? 'w-16' : 'w-64'
+      }`}>
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+          {!sidebarMinimized && (
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              B2B Portal
+            </h2>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSidebarMinimized(!sidebarMinimized)}
+            className="p-2"
+          >
+            {sidebarMinimized ? (
+              <PanelLeftOpen className="h-4 w-4" />
+            ) : (
+              <PanelLeftClose className="h-4 w-4" />
+            )}
+          </Button>
         </div>
-        
-        {totalKeys > 0 && (
-          <div className="flex gap-2">
-            <Button onClick={copyAllKeys} className="gap-2 bg-[#FFB20F] hover:bg-[#e09d0d] text-black">
-              <Files className="h-4 w-4" />
-              Copy All Keys ({totalKeys})
-            </Button>
-            <Button onClick={exportToExcel} className="gap-2 bg-blue-600 hover:bg-blue-700 text-white">
-              <Download className="h-4 w-4" />
-              Export to Excel
-            </Button>
+
+        <nav className="p-4">
+          <ul className="space-y-2">
+            {sidebarItems.map((item) => (
+              <li key={item.name}>
+                <a
+                  href={item.href}
+                  className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    item.active
+                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200'
+                      : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <item.icon className="h-5 w-5 mr-3" />
+                  {!sidebarMinimized && <span>{item.name}</span>}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        {!sidebarMinimized && (
+          <div className="absolute bottom-4 left-4 right-4">
+            <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3">
+              <div className="flex items-center">
+                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-sm font-medium">
+                    {user?.firstName?.charAt(0) || 'U'}
+                  </span>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">
+                    {user?.firstName} {user?.lastName}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {user?.role?.replace('_', ' ')}
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
 
-      <div className="space-y-6">
-        {orders.map((order) => (
-          <Card key={order.id} className="w-full">
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div className="space-y-1">
-                  <CardTitle className="text-xl font-semibold">
-                    Order {order.orderNumber}
-                  </CardTitle>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
-                      {formatDate(order.createdAt)}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <CreditCard className="h-4 w-4" />
-                      {order.paymentMethod === 'wallet' ? 'Wallet' : 'Credit Card'}
-                    </div>
-                    <Badge className={getStatusColor(order.status)}>
-                      {order.status === 'pending' && <Clock className="h-3 w-3 mr-1" />}
-                      {order.status === 'completed' && <CheckCircle className="h-3 w-3 mr-1" />}
-                      {order.status === 'cancelled' && <XCircle className="h-3 w-3 mr-1" />}
-                      {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                    </Badge>
-                    <Badge className={getPaymentStatusColor(order.paymentStatus)}>
-                      {order.paymentStatus.charAt(0).toUpperCase() + order.paymentStatus.slice(1)}
-                    </Badge>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-[#FFB20F]">
-                    €{parseFloat(order.totalAmount).toFixed(2)}
-                  </div>
-                </div>
+      {/* Main Content */}
+      <div className="flex-1 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">My Orders</h1>
+              <p className="text-muted-foreground">
+                View your order history and access your digital license keys
+              </p>
+            </div>
+            
+            {totalKeys > 0 && (
+              <div className="flex gap-2">
+                <Button onClick={copyAllKeys} className="gap-2 bg-[#FFB20F] hover:bg-[#e09d0d] text-black">
+                  <Files className="h-4 w-4" />
+                  Copy All Keys ({totalKeys})
+                </Button>
+                <Button onClick={exportToExcel} className="gap-2 bg-blue-500 hover:bg-blue-600 text-white">
+                  <Download className="h-4 w-4" />
+                  Export to Excel
+                </Button>
               </div>
-            </CardHeader>
+            )}
+          </div>
 
-            <CardContent>
-              <Collapsible open={expandedOrders.has(order.id)} onOpenChange={() => toggleOrderExpansion(order.id)}>
-                <CollapsibleTrigger asChild>
-                  <Button className="w-full justify-between bg-blue-600 hover:bg-blue-700 text-white">
-                    <span className="text-sm font-medium">View Order Details</span>
-                    {expandedOrders.has(order.id) ? (
-                      <ChevronDown className="h-4 w-4" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4" />
-                    )}
-                  </Button>
-                </CollapsibleTrigger>
+          <div className="space-y-6">
+            {orders.map((order) => (
+              <Card key={order.id} className="w-full">
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-1">
+                      <CardTitle className="text-xl font-semibold">
+                        Order {order.orderNumber}
+                      </CardTitle>
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-4 w-4" />
+                          {formatDate(order.createdAt)}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <CreditCard className="h-4 w-4" />
+                          {order.paymentMethod === 'wallet' ? 'Wallet' : 'Credit Card'}
+                        </div>
+                        <Badge className={getStatusColor(order.status)}>
+                          {order.status === 'pending' && <Clock className="h-3 w-3 mr-1" />}
+                          {order.status === 'completed' && <CheckCircle className="h-3 w-3 mr-1" />}
+                          {order.status === 'cancelled' && <XCircle className="h-3 w-3 mr-1" />}
+                          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                        </Badge>
+                        <Badge className={getPaymentStatusColor(order.paymentStatus)}>
+                          {order.paymentStatus.charAt(0).toUpperCase() + order.paymentStatus.slice(1)}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-[#FFB20F]">
+                        €{parseFloat(order.totalAmount).toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+                </CardHeader>
+
+                <CardContent>
+                  <div className="mb-4">
+                    <Collapsible open={expandedOrders.has(order.id)} onOpenChange={() => toggleOrderExpansion(order.id)}>
+                      <CollapsibleTrigger asChild>
+                        <Button className="justify-between gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2">
+                          <span className="text-sm font-medium">View Order Details</span>
+                          {expandedOrders.has(order.id) ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </CollapsibleTrigger>
 
                 <CollapsibleContent className="mt-4">
                   {/* Billing Information */}
@@ -524,11 +612,14 @@ export default function OrdersPage() {
                       </div>
                     </div>
                   </div>
-                </CollapsibleContent>
-              </Collapsible>
-            </CardContent>
-          </Card>
-        ))}
+                    </CollapsibleContent>
+                  </Collapsible>
+                </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
