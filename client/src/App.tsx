@@ -31,9 +31,9 @@ const B2BShop = lazy(() => import("@/pages/b2b-shop"));
 const CartPage = lazy(() => import("@/pages/cart"));
 const CheckoutPage = lazy(() => import("@/pages/checkout"));
 const AdminPanel = lazy(() => import("@/pages/admin-panel"));
+const EditProduct = lazy(() => import("@/pages/edit-product"));
 const WalletPage = lazy(() => import("@/pages/wallet-page"));
 const OrdersPage = lazy(() => import("@/pages/orders"));
-const EditProduct = lazy(() => import("@/pages/edit-product"));
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -96,11 +96,12 @@ function Router() {
               <AdminPanel />
             </Suspense>
           )} />
-          <Route path="/admin/products/edit/:id" component={({ params }: any) => (
+          <Route path="/admin/products/edit" component={() => (
             <Suspense fallback={<AdminLoadingFallback />}>
-              <EditProduct productId={params.id} />
+              <EditProduct />
             </Suspense>
           )} />
+
           <Route path="/admin" component={() => <Redirect to="/admin-panel" />} />
           <Route path="/auth" component={() => <Redirect to="/" />} />
           <Route path="/admin-login" component={() => <Redirect to="/admin-panel" />} />
