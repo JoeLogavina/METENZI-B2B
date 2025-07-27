@@ -96,11 +96,7 @@ function Router() {
               <AdminPanel />
             </Suspense>
           )} />
-          <Route path="/admin/products/edit" component={() => (
-            <Suspense fallback={<AdminLoadingFallback />}>
-              <EditProduct />
-            </Suspense>
-          )} />
+
           <Route path="/admin" component={() => <Redirect to="/admin-panel" />} />
           <Route path="/auth" component={() => <Redirect to="/" />} />
           <Route path="/admin-login" component={() => <Redirect to="/admin-panel" />} />

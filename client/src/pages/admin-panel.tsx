@@ -627,7 +627,8 @@ export default function AdminPanel() {
                                   size="sm"
                                   variant="outline"
                                   onClick={() => {
-                                    window.location.href = `/admin/products/edit?id=${product.id}`;
+                                    setEditingProduct(product);
+                                    setShowProductForm(true);
                                   }}
                                   className="text-[#FFB20F] border-[#FFB20F] hover:bg-[#FFB20F] hover:text-white"
                                 >
@@ -782,8 +783,11 @@ function ProductForm({
     price: product?.price || '',
     priceKm: product?.priceKm || '',
     purchasePrice: product?.purchasePrice || '',
+    purchasePriceKm: product?.purchasePriceKm || '',
     b2bPrice: product?.b2bPrice || '',
+    b2bPriceKm: product?.b2bPriceKm || '',
     retailPrice: product?.retailPrice || '',
+    retailPriceKm: product?.retailPriceKm || '',
     imageUrl: product?.imageUrl || '',
     category: product?.categoryId || '',
     platform: product?.platform || '',
@@ -802,8 +806,11 @@ function ProductForm({
       price: formData.price,
       priceKm: formData.priceKm || null,
       purchasePrice: formData.purchasePrice || null,
+      purchasePriceKm: formData.purchasePriceKm || null,
       b2bPrice: formData.b2bPrice || null,
+      b2bPriceKm: formData.b2bPriceKm || null,
       retailPrice: formData.retailPrice || null,
+      retailPriceKm: formData.retailPriceKm || null,
       imageUrl: formData.imageUrl || null,
       platform: formData.platform,
       region: formData.region,
@@ -940,8 +947,32 @@ function ProductForm({
                 : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
             }`}
           >
-            Product Details
+            EUR Details
           </button>
+          <button
+            type="button"
+            onClick={() => setCurrentTab("km-pricing")}
+            className={`py-2 px-1 border-b-2 font-medium text-sm uppercase tracking-[0.5px] ${
+              currentTab === "km-pricing"
+                ? "border-[#FFB20F] text-[#FFB20F]"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            }`}
+          >
+            KM Pricing
+          </button>
+          {product?.id && (
+            <button
+              type="button"
+              onClick={() => setCurrentTab("keys")}
+              className={`py-2 px-1 border-b-2 font-medium text-sm uppercase tracking-[0.5px] ${
+                currentTab === "keys"
+                  ? "border-[#FFB20F] text-[#FFB20F]"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              License Keys
+            </button>
+          )}
           {product?.id && (
             <button
               type="button"
@@ -1187,6 +1218,93 @@ function ProductForm({
                 {product ? 'UPDATE' : 'CREATE'} PRODUCT
               </Button>
             </div>
+          </div>
+        </form>
+      )}
+
+      {/* KM Pricing Tab */}
+      {currentTab === "km-pricing" && (
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="priceKm" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                DISPLAY PRICE (KM)
+              </Label>
+              <Input
+                id="priceKm"
+                type="number"
+                step="0.01"
+                value={formData.priceKm}
+                onChange={(e) => setFormData({ ...formData, priceKm: e.target.value })}
+                className="mt-1"
+                placeholder="Bosnian Mark price"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                For future Bosnian market tenant (1 EUR ≈ 1.96 KM)
+              </p>
+            </div>
+
+            <div>
+              <Label htmlFor="purchasePriceKm" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                PURCHASE PRICE (KM)
+              </Label>
+              <Input
+                id="purchasePriceKm"
+                type="number"
+                step="0.01"
+                value={formData.purchasePriceKm}
+                onChange={(e) => setFormData({ ...formData, purchasePriceKm: e.target.value })}
+                className="mt-1"
+                placeholder="Optional"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="b2bPriceKm" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                B2B PRICE (KM)
+              </Label>
+              <Input
+                id="b2bPriceKm"
+                type="number"
+                step="0.01"
+                value={formData.b2bPriceKm}
+                onChange={(e) => setFormData({ ...formData, b2bPriceKm: e.target.value })}
+                className="mt-1"
+                placeholder="Optional"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="retailPriceKm" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                RETAIL PRICE (KM)
+              </Label>
+              <Input
+                id="retailPriceKm"
+                type="number"
+                step="0.01"
+                value={formData.retailPriceKm}
+                onChange={(e) => setFormData({ ...formData, retailPriceKm: e.target.value })}
+                className="mt-1"
+                placeholder="Optional"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end pt-4 border-t space-x-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onCancel}
+              className="px-6"
+            >
+              CANCEL
+            </Button>
+            <Button
+              type="submit"
+              className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white px-6"
+            >
+              {product ? 'UPDATE' : 'CREATE'} PRODUCT
+            </Button>
           </div>
         </form>
       )}
