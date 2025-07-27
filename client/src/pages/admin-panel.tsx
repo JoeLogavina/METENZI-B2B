@@ -732,6 +732,27 @@ export default function AdminPanel() {
           </div>
         </div>
       </div>
+
+      {/* User Form Modal */}
+      {showUserForm && (
+        <Dialog open={showUserForm} onOpenChange={setShowUserForm}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="uppercase tracking-[0.5px]">
+                {editingUser ? 'EDIT USER' : 'ADD NEW USER'}
+              </DialogTitle>
+            </DialogHeader>
+            <UserForm 
+              user={editingUser}
+              onSubmit={handleUserSubmit}
+              onCancel={() => {
+                setShowUserForm(false);
+                setEditingUser(null);
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
@@ -1259,27 +1280,6 @@ XYZ12-ABC34-DEF56-GHI78-JKL90
                 </Button>
               </div>
             </div>
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {/* User Form Modal */}
-      {showUserForm && (
-        <Dialog open={showUserForm} onOpenChange={setShowUserForm}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle className="uppercase tracking-[0.5px]">
-                {editingUser ? 'EDIT USER' : 'ADD NEW USER'}
-              </DialogTitle>
-            </DialogHeader>
-            <UserForm 
-              user={editingUser}
-              onSubmit={handleUserSubmit}
-              onCancel={() => {
-                setShowUserForm(false);
-                setEditingUser(null);
-              }}
-            />
           </DialogContent>
         </Dialog>
       )}
