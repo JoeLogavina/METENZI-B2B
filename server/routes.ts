@@ -14,7 +14,6 @@ import {
   ordersCacheMiddleware,
   invalidateCacheMiddleware 
 } from "./middleware/cache.middleware";
-import { performanceMiddleware, timeQuery } from "./services/performance.service";
 import { cacheHelpers } from "./cache/redis";
 
 // Authentication middleware
@@ -74,35 +73,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get('/metrics', async (req, res) => {
-    const memUsage = process.memoryUsage();
-    const performanceStats = performanceService.getStats();
-    
-    // Import DB optimization service
-    const { dbOptimizationService } = await import('./services/database-optimization.service');
-    const connectionStats = await dbOptimizationService.getConnectionStats();
-    
-    res.json({
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      memory: {
-        rss: Math.round(memUsage.rss / 1024 / 1024) + ' MB',
-        heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024) + ' MB',
-        heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024) + ' MB',
-        external: Math.round(memUsage.external / 1024 / 1024) + ' MB'
-      },
-      cpu: process.cpuUsage(),
-      performance: {
-        totalOperations: performanceStats.count,
-        averageResponseTime: Math.round(performanceStats.averageDuration),
-        slowOperations: performanceStats.slowOperations,
-        operations: performanceService.getOperationTypes()
-      },
-      database: {
-        connections: connectionStats
-      },
-      environment: process.env.NODE_ENV || 'development',
-      version: process.env.npm_package_version || '1.0.0'
-    });
+    try {
+      const memUsage = process.memoryUsage();
+      
+      // Import services dynamically to avoid circular dependencies
+      const { performanceService } = await import('./services/performance.service');
+      const { dbOptimizationService } = await import('./services/database-optimization.service');
+      
+      const performanceStats = performanceService.getStats();
+      const connectionStats = await dbOptimizationService.getConnectionStats();
+      
+      res.json({
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        memory: {
+          rss: Math.round(memUsage.rss / 1024 / 1024) + ' MB',
+          heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024) + ' MB',
+          heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024) + ' MB',
+          external: Math.round(memUsage.external / 1024 / 1024) + ' MB'
+        },
+        cpu: process.cpuUsage(),
+        performance: {
+          totalOperations: performanceStats.count,
+          averageResponseTime: Math.round(performanceStats.averageDuration),
+          slowOperations: performanceStats.slowOperations,
+          operations: performanceService.getOperationTypes()
+        },
+        database: {
+          connections: connectionStats
+        },
+        environment: process.env.NODE_ENV || 'development',
+        version: process.env.npm_package_version || '1.0.0'
+      });
+    } catch (error) {
+      console.error('Error in metrics endpoint:', error);
+      res.status(500).json({ error: 'Failed to collect metrics' });
+    }
   });
 
   // Auth middleware
@@ -234,7 +240,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Product routes with caching and performance monitoring
   app.get('/api/products', 
-    performanceMiddleware('products-fetch'),
     productsCacheMiddleware,
     async (req, res) => {
       try {
@@ -256,7 +261,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // Fetch from database with timing
-        const products = await timeQuery('products', () => storage.getProducts(filters), (req as any).user?.id);
+        const startTime = Date.now();
+        const products = await storage.getProducts(filters);
+        const duration = Date.now() - startTime;
+        
+        if (duration > 100) {
+          console.warn(`🐌 Slow products query: ${duration}ms`);
+        }
         
         // Cache the results
         await cacheHelpers.setProducts(filters, products);
@@ -283,7 +294,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/products', 
     isAuthenticated, 
-    performanceMiddleware('products-create'),
     invalidateCacheMiddleware('api:products:*'),
     async (req: any, res) => {
       try {
@@ -293,7 +303,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         const productData = insertProductSchema.parse(req.body);
-        const product = await timeQuery('create-product', () => storage.createProduct(productData), req.user.id);
+        const startTime = Date.now();
+        const product = await storage.createProduct(productData);
+        const duration = Date.now() - startTime;
+        
+        if (duration > 100) {
+          console.warn(`🐌 Slow product creation: ${duration}ms`);
+        }
         
         // Clear products cache
         await cacheHelpers.invalidateProducts();
