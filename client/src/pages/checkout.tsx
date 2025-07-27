@@ -176,6 +176,7 @@ export default function CheckoutPage() {
       setStep('success');
       
       // Optimistic UI update: immediately show order completion
+      console.log('Order created successfully, triggering optimistic update:', order);
       if (order.items) {
         updateOrderOptimistically({
           orderId: order.id,
@@ -188,10 +189,14 @@ export default function CheckoutPage() {
       }
       
       // Invalidate all related caches for real-time updates
+      console.log('Invalidating caches after order completion');
       queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
       queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
       queryClient.invalidateQueries({ queryKey: ["/api/wallet"] });
       queryClient.invalidateQueries({ queryKey: ["/api/wallet/transactions"] });
+      
+      // Force refetch orders immediately
+      queryClient.refetchQueries({ queryKey: ["/api/orders"] });
       
       // Emit order completion event to trigger wallet refresh
       emitWalletEvent('order:completed', { 

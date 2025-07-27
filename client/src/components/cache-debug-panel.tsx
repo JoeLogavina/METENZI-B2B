@@ -91,7 +91,7 @@ export function CacheDebugPanel() {
               {cacheEntries.map((entry, index) => {
                 const key = JSON.stringify(entry.queryKey);
                 const isStale = entry.isStale();
-                const isFetching = entry.isFetching();
+                const isFetching = entry.isFetching;
                 const hasData = entry.state.data !== undefined;
                 
                 return (

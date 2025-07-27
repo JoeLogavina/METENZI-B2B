@@ -115,10 +115,12 @@ export default function OrdersPage() {
   } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
     enabled: isAuthenticated,
-    staleTime: 1000 * 30, // 30 seconds - fresher data for orders
+    staleTime: 0, // Always consider data stale to force fresh fetches
     gcTime: 1000 * 60 * 5, // 5 minutes in memory
     refetchOnWindowFocus: true, // Refetch when user returns to tab
     refetchOnMount: true, // Always refetch on component mount
+    retry: 3, // Retry failed requests
+    refetchInterval: 5000, // Refetch every 5 seconds for debugging
   });
 
   useEffect(() => {

@@ -590,10 +590,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/orders', 
     isAuthenticated,
-    ordersCacheMiddleware,
+    // Temporarily disable caching to debug the issue
+    // ordersCacheMiddleware,
     async (req: any, res) => {
     try {
       console.log('Orders API called, user:', req.user?.username, 'ID:', req.user?.id);
+      
+      if (!req.user?.id) {
+        console.error('No user ID found in request');
+        return res.status(401).json({ message: 'User not authenticated' });
+      }
+      
       const userId = req.user.id;
       
       // Use direct pool connection to bypass Drizzle completely
@@ -613,6 +620,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const orderRows = orderResult.rows;
       
       console.log('Found orders:', orderRows.length);
+      
+      if (orderRows.length > 0) {
+        console.log('Recent orders:', orderRows.slice(0, 2).map(o => ({
+          id: o.id,
+          orderNumber: o.order_number,
+          status: o.status,
+          paymentStatus: o.payment_status,
+          createdAt: o.created_at
+        })));
+      }
 
       // Get order items with products and license keys for each order
       const ordersWithDetails = await Promise.all(
