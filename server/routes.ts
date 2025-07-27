@@ -918,10 +918,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Products routes
   app.get('/api/products', 
+    isAuthenticated,
     productsCacheMiddleware,
     async (req, res) => {
     try {
-      console.log('GET /api/products - query params:', req.query);
+      console.log('GET /api/products - ROUTE HIT - query params:', req.query);
+      console.log('GET /api/products - User authenticated:', !!req.user);
+      console.log('GET /api/products - User details:', req.user ? { id: req.user.id, username: req.user.username, role: req.user.role } : 'No user');
 
       const { region, platform, category, search, priceMin, priceMax } = req.query;
 
