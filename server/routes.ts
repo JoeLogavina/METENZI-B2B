@@ -159,6 +159,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Debug endpoint to help with login issues
+  app.get('/api/debug-session', (req, res) => {
+    res.json({
+      isAuthenticated: req.isAuthenticated(),
+      user: req.user || null,
+      sessionID: req.sessionID || null,
+      session: req.session || null
+    });
+  });
+
   // Mount wallet routes for B2B users
   const walletRouter = await import('./routes/wallet.routes');
   app.use('/api/wallet', (req, res, next) => {

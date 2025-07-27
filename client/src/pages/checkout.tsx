@@ -128,8 +128,11 @@ export default function CheckoutPage() {
     queryKey: ["/api/wallet-balance", user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
+      console.log('Fetching wallet balance for user:', user.id, user.username);
       const response = await fetch(`/api/wallet-balance/${user.id}`);
-      return response.json();
+      const data = await response.json();
+      console.log('Wallet balance response:', data);
+      return data;
     },
     enabled: isAuthenticated && !!user?.id,
   });
