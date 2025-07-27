@@ -20,7 +20,9 @@ const productParamsSchema = z.object({
   id: z.string().min(1, 'Product ID is required'),
 });
 
-const updateProductSchema = insertProductSchema.partial();
+const updateProductSchema = insertProductSchema.partial().extend({
+  stock: z.union([z.string(), z.number()]).transform(val => val ? Number(val) : 0).optional(),
+});
 
 export class AdminProductsController {
   // GET /api/admin/products
