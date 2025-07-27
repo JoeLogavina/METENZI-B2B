@@ -395,4 +395,5 @@ class WalletServiceImpl {
   }
 }
 
+export const WalletService = WalletServiceImpl;
 export const walletService = new WalletServiceImpl();

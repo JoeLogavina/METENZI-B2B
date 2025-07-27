@@ -425,9 +425,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Process payment based on payment method
       let updatedOrder = order;
       if (paymentMethod === 'wallet') {
+        console.log(`Processing wallet payment for user ${userId}, amount: €${finalAmount}`);
+        
         // Import wallet service
-        const { WalletService } = await import('./services/wallet.service');
-        const walletService = new WalletService();
+        const { walletService } = await import('./services/wallet.service');
         
         // Process wallet payment
         const paymentResult = await walletService.processPayment(
@@ -437,11 +438,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           `Payment for order ${orderNumber}`
         );
         
+        console.log('Wallet payment result:', paymentResult);
+        
         if (paymentResult.success) {
+          console.log(`Wallet payment successful, updating order ${order.id} to completed`);
           await storage.updateOrderStatus(order.id, 'completed');
           await storage.updatePaymentStatus(order.id, 'paid');
           updatedOrder = { ...order, status: 'completed', paymentStatus: 'paid' };
         } else {
+          console.log('Wallet payment failed - insufficient funds');
           return res.status(400).json({ 
             message: "Insufficient wallet balance to complete the payment" 
           });

@@ -18,6 +18,17 @@ This is a full-stack B2B software license management platform built with React, 
   - End-to-end workflow tests for complete admin operations
   - Security boundary testing and business rule enforcement
   - Fast execution (~2-3 seconds) with proper test isolation
+- **WALLET PAYMENT SYSTEM FIXED** (January 27, 2025): 
+  - **CRITICAL FIX**: Resolved wallet balance deduction issue - payments now properly process
+  - Fixed WalletService import/export pattern causing "WalletService is not a constructor" error
+  - Added sufficient license keys for product testing to prevent "insufficient stock" errors
+  - Wallet balance now correctly deducts from €6522.00 to €6507.48 after €14.52 payment
+  - Transaction history properly records payment transactions with order linking
+  - Verified full payment flow: cart → checkout → wallet deduction → order completion
+- **ORDERS PAGE ENHANCEMENT**: Moved "Copy All Keys" and "Export to Excel" buttons from global header to individual order sections
+  - Each order now has dedicated copy/export buttons for that order's license keys only
+  - Improved user experience with contextual actions per order
+  - Better file naming with order numbers for exported Excel files
 - Migrated from Replit Auth to custom username/password authentication system
 - Implemented EUR currency display throughout the application (€790, €1,890, €250, etc.)
 - Created admin and B2B user test accounts (admin/Kalendar1, b2buser/Kalendar1)
