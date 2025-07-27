@@ -163,7 +163,6 @@ export default function CartPage() {
   const totalAmount = cartItems.reduce((sum, item) => {
     // Add safety check for product and price using utility function
     if (!item.product) {
-      console.warn('Cart item missing product:', item);
       return sum;
     }
     return sum + calculateTotal(item.product.price, item.quantity);
