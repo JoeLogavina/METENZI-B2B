@@ -69,12 +69,17 @@ router.post('/',
   adminProductsController.createProduct.bind(adminProductsController)
 );
 
+// Create update schema with flexible price handling
+const updateProductSchema = insertProductSchema.partial().extend({
+  price: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
+});
+
 // PUT /api/admin/products/:id - Update product
 router.put('/:id',
   authorize(Permissions.PRODUCT_UPDATE),
   validateRequest({ 
     params: productParamsSchema,
-    body: insertProductSchema.partial()
+    body: updateProductSchema
   }),
   auditLog('admin:products:update'),
   adminProductsController.updateProduct.bind(adminProductsController)
