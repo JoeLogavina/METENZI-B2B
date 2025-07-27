@@ -25,6 +25,7 @@ import {
   Trash2,
   Wallet
 } from "lucide-react";
+import WalletManagement from "@/components/wallet-management";
 
 interface DashboardStats {
   totalUsers: number;
@@ -65,6 +66,7 @@ export default function AdminPanel() {
   const { data: users = [], isLoading: usersLoading } = useQuery<any[]>({
     queryKey: ["/api/admin/users"],
     enabled: isAuthenticated && (user as any)?.role === 'super_admin' && activeSection === 'users',
+    select: (data) => Array.isArray(data) ? data : [],
   });
 
   const { data: products = [], isLoading: productsLoading, refetch: refetchProducts } = useQuery({
@@ -566,33 +568,7 @@ export default function AdminPanel() {
               </Dialog>
             )}
 
-            {activeSection === 'wallets' && (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold text-[#6E6F71] uppercase tracking-[0.5px]">WALLET MANAGEMENT</h3>
-                    <p className="text-[#6E6F71]">Manage B2B user wallets, deposits, and credit limits</p>
-                  </div>
-                </div>
-
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="text-center py-8">
-                      <Wallet className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-gray-800 mb-2">Wallet Management</h3>
-                      <p className="text-gray-600">Wallet management features are being developed. This will include:</p>
-                      <ul className="text-sm text-gray-500 mt-4 space-y-1">
-                        <li>• View all user wallets and balances</li>
-                        <li>• Add deposits to user accounts</li>
-                        <li>• Set and modify credit limits</li>
-                        <li>• Record credit payments</li>
-                        <li>• View transaction history</li>
-                      </ul>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
+            {activeSection === 'wallets' && <WalletManagement />}
 
             {(activeSection === 'keys' || activeSection === 'permissions' || activeSection === 'reports') && (
               <Card>

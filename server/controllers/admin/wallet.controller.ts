@@ -1,157 +1,199 @@
-import { Request, Response } from "express";
-import { walletService } from "../../services/wallet.service";
-import { z } from "zod";
+import { Request, Response } from 'express';
+import { walletService } from '../../services/wallet.service';
+import { storage } from '../../storage';
 
-// Validation schemas
-const addDepositSchema = z.object({
-  userId: z.string(),
-  amount: z.string().refine(val => parseFloat(val) > 0, "Amount must be greater than 0"),
-  description: z.string().optional().default("Admin deposit"),
-});
-
-const setCreditLimitSchema = z.object({
-  userId: z.string(),
-  creditLimit: z.string().refine(val => parseFloat(val) >= 0, "Credit limit cannot be negative"),
-});
-
-const recordCreditPaymentSchema = z.object({
-  userId: z.string(),
-  amount: z.string().refine(val => parseFloat(val) > 0, "Payment amount must be greater than 0"),
-  description: z.string().optional().default("Credit payment"),
-});
-
-export class WalletController {
-  async getAllWallets(req: Request, res: Response) {
+export class AdminWalletController {
+  /**
+   * Get all B2B users with their wallet information
+   */
+  static async getAllWallets(req: Request, res: Response): Promise<void> {
     try {
-      const wallets = await walletService.getAllWalletsSummary();
-      res.json({ data: wallets });
-    } catch (error) {
-      console.error("Error getting all wallets:", error);
-      res.status(500).json({ message: "Failed to get wallets" });
+      const userId = (req.user as any).id;
+      
+      // Get all B2B users
+      const allUsers = await storage.getAllUsers();
+      const b2bUsers = allUsers.filter(user => user.role === 'b2b_user');
+      
+      // Get wallet information for each user
+      const walletsData = await Promise.all(
+        b2bUsers.map(async (user: any) => {
+          const walletData = await walletService.getWalletSummary(user.id);
+          return {
+            id: user.id,
+            username: user.username,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            role: user.role,
+            balance: walletData?.balance || {
+              depositBalance: "0",
+              creditLimit: "0",
+              creditUsed: "0",
+              availableCredit: "0",
+              totalAvailable: "0",
+              isOverlimit: false
+            }
+          };
+        })
+      );
+      
+      res.json(walletsData);
+    } catch (error: any) {
+      console.error('Error fetching wallets:', error);
+      res.status(500).json({ message: 'Internal server error' });
     }
   }
 
-  async getUserWallet(req: Request, res: Response) {
+  /**
+   * Get transactions for a specific user
+   */
+  static async getUserTransactions(req: Request, res: Response): Promise<void> {
     try {
       const { userId } = req.params;
+      const adminUserId = (req.user as any).id;
+      
       if (!userId) {
-        return res.status(400).json({ message: "User ID is required" });
+        res.status(400).json({ message: 'User ID is required' });
+        return;
       }
 
-      const wallet = await walletService.getWalletSummary(userId);
-      res.json({ data: wallet });
-    } catch (error) {
-      console.error("Error getting user wallet:", error);
-      res.status(500).json({ message: "Failed to get user wallet" });
+      // Verify user exists and is B2B user
+      const user = await storage.getUser(userId);
+      if (!user) {
+        res.status(404).json({ message: 'User not found' });
+        return;
+      }
+
+      if (user.role !== 'b2b_user') {
+        res.status(403).json({ message: 'Can only view transactions for B2B users' });
+        return;
+      }
+
+      const walletData = await walletService.getWalletSummary(userId);
+      const transactions = walletData?.recentTransactions || [];
+      
+      res.json(transactions);
+    } catch (error: any) {
+      console.error('Error fetching user transactions:', error);
+      res.status(500).json({ message: 'Internal server error' });
     }
   }
 
-  async addDeposit(req: Request, res: Response) {
+  /**
+   * Add a transaction to a user's wallet
+   */
+  static async addTransaction(req: Request, res: Response): Promise<void> {
     try {
-      const validation = addDepositSchema.safeParse(req.body);
-      if (!validation.success) {
-        return res.status(400).json({ 
-          message: "Invalid data", 
-          errors: validation.error.errors 
-        });
+      const { userId, type, amount, description } = req.body;
+      const adminUserId = (req.user as any).id;
+      const adminUsername = (req.user as any).username;
+
+      if (!userId || !type || !amount) {
+        res.status(400).json({ message: 'User ID, transaction type, and amount are required' });
+        return;
       }
 
-      const { userId, amount, description } = validation.data;
-      const adminId = (req.user as any)?.id;
-
-      if (!adminId) {
-        return res.status(401).json({ message: "Admin authentication required" });
+      const amountNum = parseFloat(amount);
+      if (isNaN(amountNum) || amountNum <= 0) {
+        res.status(400).json({ message: 'Amount must be a positive number' });
+        return;
       }
 
-      const transaction = await walletService.addDeposit(userId, amount, description, adminId);
-      const updatedWallet = await walletService.getWalletSummary(userId);
+      // Verify user exists and is B2B user
+      const user = await storage.getUser(userId);
+      if (!user) {
+        res.status(404).json({ message: 'User not found' });
+        return;
+      }
 
-      res.status(201).json({ 
-        message: `Successfully added €${amount} deposit`,
-        data: { transaction, wallet: updatedWallet }
+      if (user.role !== 'b2b_user') {
+        res.status(403).json({ message: 'Can only manage wallets for B2B users' });
+        return;
+      }
+
+      // Validate transaction type
+      const validTypes = ['deposit', 'credit_limit', 'credit_payment', 'adjustment', 'refund'];
+      if (!validTypes.includes(type)) {
+        res.status(400).json({ message: 'Invalid transaction type' });
+        return;
+      }
+
+      let transaction;
+      const finalDescription = description || `${type.charAt(0).toUpperCase() + type.slice(1).replace('_', ' ')} by admin ${adminUsername}`;
+
+      switch (type) {
+        case 'deposit':
+          transaction = await walletService.addDeposit(userId, amountNum.toString(), finalDescription, adminUserId);
+          break;
+        case 'credit_limit':
+          transaction = await walletService.setCreditLimit(userId, amountNum.toString(), adminUserId);
+          break;
+        case 'credit_payment':
+          transaction = await walletService.recordCreditPayment(userId, amountNum.toString(), finalDescription, adminUserId);
+          break;
+        case 'adjustment':
+          // adjustBalance method doesn't exist yet, let's use addDeposit for now
+          transaction = await walletService.addDeposit(userId, amountNum.toString(), finalDescription, adminUserId);
+          break;
+        case 'refund':
+          transaction = await walletService.addDeposit(userId, amountNum.toString(), finalDescription, adminUserId);
+          break;
+        default:
+          res.status(400).json({ message: 'Unsupported transaction type' });
+          return;
+      }
+      
+      res.status(201).json({
+        message: 'Transaction added successfully',
+        transaction
       });
-    } catch (error) {
-      console.error("Error adding deposit:", error);
-      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to add deposit" });
+    } catch (error: any) {
+      console.error('Error adding transaction:', error);
+      res.status(500).json({ message: 'Internal server error' });
     }
   }
 
-  async setCreditLimit(req: Request, res: Response) {
+  /**
+   * Get wallet analytics and summary data
+   */
+  static async getWalletAnalytics(req: Request, res: Response): Promise<void> {
     try {
-      const validation = setCreditLimitSchema.safeParse(req.body);
-      if (!validation.success) {
-        return res.status(400).json({ 
-          message: "Invalid data", 
-          errors: validation.error.errors 
-        });
+      const adminUserId = (req.user as any).id;
+      
+      // Get all B2B users
+      const allUsers = await storage.getAllUsers();
+      const b2bUsers = allUsers.filter(user => user.role === 'b2b_user');
+      
+      let totalDeposits = 0;
+      let totalCreditLimit = 0;
+      let totalCreditUsed = 0;
+      let usersOverLimit = 0;
+      
+      for (const user of b2bUsers) {
+        const walletData = await walletService.getWalletSummary(user.id);
+        if (walletData?.balance) {
+          totalDeposits += parseFloat(walletData.balance.depositBalance);
+          totalCreditLimit += parseFloat(walletData.balance.creditLimit);
+          totalCreditUsed += parseFloat(walletData.balance.creditUsed);
+          if (walletData.balance.isOverlimit) {
+            usersOverLimit++;
+          }
+        }
       }
 
-      const { userId, creditLimit } = validation.data;
-      const adminId = (req.user as any)?.id;
-
-      if (!adminId) {
-        return res.status(401).json({ message: "Admin authentication required" });
-      }
-
-      const transaction = await walletService.setCreditLimit(userId, creditLimit, adminId);
-      const updatedWallet = await walletService.getWalletSummary(userId);
-
-      res.status(200).json({ 
-        message: `Successfully set credit limit to €${creditLimit}`,
-        data: { transaction, wallet: updatedWallet }
-      });
-    } catch (error) {
-      console.error("Error setting credit limit:", error);
-      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to set credit limit" });
-    }
-  }
-
-  async recordCreditPayment(req: Request, res: Response) {
-    try {
-      const validation = recordCreditPaymentSchema.safeParse(req.body);
-      if (!validation.success) {
-        return res.status(400).json({ 
-          message: "Invalid data", 
-          errors: validation.error.errors 
-        });
-      }
-
-      const { userId, amount, description } = validation.data;
-      const adminId = (req.user as any)?.id;
-
-      if (!adminId) {
-        return res.status(401).json({ message: "Admin authentication required" });
-      }
-
-      const transaction = await walletService.recordCreditPayment(userId, amount, description, adminId);
-      const updatedWallet = await walletService.getWalletSummary(userId);
-
-      res.status(200).json({ 
-        message: `Successfully recorded €${amount} credit payment`,
-        data: { transaction, wallet: updatedWallet }
-      });
-    } catch (error) {
-      console.error("Error recording credit payment:", error);
-      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to record credit payment" });
-    }
-  }
-
-  async getTransactionHistory(req: Request, res: Response) {
-    try {
-      const { userId } = req.params;
-      const limit = parseInt(req.query.limit as string) || 50;
-
-      if (!userId) {
-        return res.status(400).json({ message: "User ID is required" });
-      }
-
-      const transactions = await walletService.getTransactionHistory(userId, limit);
-      res.json({ data: transactions });
-    } catch (error) {
-      console.error("Error getting transaction history:", error);
-      res.status(500).json({ message: "Failed to get transaction history" });
+      const analytics = {
+        totalUsers: b2bUsers.length,
+        totalDeposits: totalDeposits.toFixed(2),
+        totalCreditLimit: totalCreditLimit.toFixed(2),
+        totalCreditUsed: totalCreditUsed.toFixed(2),
+        usersOverLimit,
+        averageBalance: b2bUsers.length > 0 ? (totalDeposits / b2bUsers.length).toFixed(2) : "0"
+      };
+      
+      res.json(analytics);
+    } catch (error: any) {
+      console.error('Error fetching wallet analytics:', error);
+      res.status(500).json({ message: 'Internal server error' });
     }
   }
 }
-
-export const walletController = new WalletController();

@@ -1,19 +1,18 @@
-import { Router } from "express";
-import { walletController } from "../../controllers/admin/wallet.controller";
-import { authenticate, requireRole } from "../../middleware/auth.middleware";
+import { Router } from 'express';
+import { AdminWalletController } from '../../controllers/admin/wallet.controller';
 
 const router = Router();
 
-// Apply authentication and admin permission to all wallet routes
-router.use(authenticate);
-router.use(requireRole("admin", "super_admin"));
+// Get all B2B user wallets
+router.get('/wallets', AdminWalletController.getAllWallets);
 
-// Admin wallet management routes
-router.get("/", walletController.getAllWallets);
-router.get("/:userId", walletController.getUserWallet);
-router.post("/:userId/deposit", walletController.addDeposit);
-router.post("/:userId/credit-limit", walletController.setCreditLimit);
-router.post("/:userId/credit-payment", walletController.recordCreditPayment);
-router.get("/:userId/transactions", walletController.getTransactionHistory);
+// Get transactions for a specific user
+router.get('/wallets/:userId/transactions', AdminWalletController.getUserTransactions);
+
+// Add transaction to user wallet
+router.post('/wallets/transaction', AdminWalletController.addTransaction);
+
+// Get wallet analytics
+router.get('/wallets/analytics', AdminWalletController.getWalletAnalytics);
 
 export default router;
