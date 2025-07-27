@@ -677,6 +677,7 @@ export default function AdminPanel() {
                                   size="sm"
                                   variant="outline"
                                   onClick={() => {
+                                    setEditProductId(product.id);
                                     window.history.pushState({}, '', `/admin/products/edit?id=${product.id}`);
                                     setActiveSection('edit-product');
                                   }}
@@ -867,7 +868,10 @@ function EditProductIntegratedSection({
   // Update form data when product loads
   useEffect(() => {
     if (editProductData && typeof editProductData === 'object') {
-      const prod = editProductData as any;
+      // Handle both direct product data and wrapped in { data: product }
+      const prod = editProductData.data || editProductData;
+      console.log('Loading product data for edit:', prod);
+      
       setEditProductFormData({
         name: prod.name || '',
         description: prod.description || '',
@@ -883,7 +887,7 @@ function EditProductIntegratedSection({
         purchasePrice: prod.purchasePrice || '',
         b2bPrice: prod.b2bPrice || '',
         retailPrice: prod.retailPrice || '',
-        stock: prod.stock?.toString() || ''
+        stock: (prod.stockCount || prod.stock)?.toString() || ''
       });
 
       setEditKmPricing({
@@ -1038,7 +1042,7 @@ function EditProductIntegratedSection({
             <h3 className="text-lg font-semibold text-[#6E6F71] uppercase tracking-[0.5px]">
               ADVANCED EDIT PRODUCT
             </h3>
-            <p className="text-[#6E6F71]">Editing: {editProductData?.name}</p>
+            <p className="text-[#6E6F71]">Editing: {editProductData?.data?.name || editProductData?.name}</p>
           </div>
         </div>
         
