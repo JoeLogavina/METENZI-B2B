@@ -1,313 +1,308 @@
-import { useEffect, useState } from "react";
-import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { useLocation, useRoute } from "wouter";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Upload, Trash2, Plus, Image as ImageIcon } from "lucide-react";
-import { formatAdminPrice, convertEurToKm } from "@/lib/currency-utils";
+import { useState, useEffect } from 'react';
+import { useLocation } from "wouter";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ArrowLeft, Upload, X, Plus, Trash2, Copy, Save, FileImage } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { formatPrice } from '@/lib/currency-utils';
+import { apiRequest } from '@/lib/queryClient';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 export default function EditProduct() {
-  const { user, isLoading, isAuthenticated } = useAuth();
+  const [location, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [, setLocation] = useLocation();
-  const [match, params] = useRoute("/admin/products/:id");
-  const productId = params?.id;
 
-  // Form states for different currencies
+  // Get product ID from URL params
+  const urlParams = new URLSearchParams(location.split('?')[1]);
+  const productId = urlParams.get('id');
+
+  // State for forms
   const [eurFormData, setEurFormData] = useState({
     name: '',
     description: '',
-    sku: '',
-    category: '',
-    region: '',
-    platform: '',
-    isActive: true,
+    price: '',
     purchasePrice: '',
-    resellerPrice: '',
-    retailerPrice: '',
+    b2bPrice: '',
+    retailPrice: '',
+    category: '',
+    region: 'Global',
+    platform: 'Both',
+    sku: '',
+    stockCount: 0,
     imageUrl: ''
   });
 
   const [kmFormData, setKmFormData] = useState({
+    priceKm: '',
     purchasePriceKm: '',
     resellerPriceKm: '',
     retailerPriceKm: ''
   });
 
-  const [activeTab, setActiveTab] = useState("product-details");
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string>("");
-
-  // Redirect if not authenticated or not admin
-  useEffect(() => {
-    if (!isLoading && (!isAuthenticated || ((user as any)?.role !== 'admin' && (user as any)?.role !== 'super_admin'))) {
-      toast({
-        title: "Unauthorized", 
-        description: "Admin access required. Redirecting...",
-        variant: "destructive",
-      });
-      setTimeout(() => {
-        setLocation("/");
-      }, 500);
-      return;
-    }
-  }, [isAuthenticated, isLoading, (user as any)?.role, toast, setLocation]);
+  const [unsavedChanges, setUnsavedChanges] = useState(false);
+  const [showLicenseKeyDialog, setShowLicenseKeyDialog] = useState(false);
+  const [newLicenseKey, setNewLicenseKey] = useState('');
 
   // Fetch product data
   const { data: product, isLoading: productLoading } = useQuery({
-    queryKey: ["/api/admin/products", productId],
-    queryFn: async () => {
-      const res = await apiRequest("GET", `/api/admin/products/${productId}`);
-      return await res.json();
-    },
-    enabled: !!productId && isAuthenticated && ((user as any)?.role === 'admin' || (user as any)?.role === 'super_admin'),
+    queryKey: [`/api/admin/products/${productId}`],
+    enabled: !!productId
   });
 
   // Fetch categories
-  const { data: categories } = useQuery({
-    queryKey: ["/api/categories"],
-    enabled: isAuthenticated,
+  const { data: categories = [] } = useQuery({
+    queryKey: ['/api/categories']
   });
 
-  // Fetch license keys for this product
-  const { data: licenseKeys, isLoading: licenseKeysLoading } = useQuery({
-    queryKey: ["/api/admin/license-keys", productId],
-    queryFn: async () => {
-      const res = await apiRequest("GET", `/api/admin/license-keys?productId=${productId}`);
-      return await res.json();
-    },
-    enabled: !!productId && isAuthenticated,
+  // Fetch license keys
+  const { data: licenseKeys = [], refetch: refetchLicenseKeys } = useQuery({
+    queryKey: [`/api/admin/products/${productId}/license-keys`],
+    enabled: !!productId
   });
 
-  // Initialize form data when product loads
+  // Populate form data when product loads
   useEffect(() => {
-    if (product) {
+    if (product && typeof product === 'object') {
       setEurFormData({
-        name: product.name || '',
-        description: product.description || '',
-        sku: product.sku || '',
-        category: product.categoryId || '',
-        region: product.region || '',
-        platform: product.platform || '',
-        isActive: product.isActive !== false,
-        purchasePrice: product.purchasePrice || '',
-        resellerPrice: product.resellerPrice || '',
-        retailerPrice: product.retailerPrice || '',
-        imageUrl: product.imageUrl || ''
+        name: (product as any).name || '',
+        description: (product as any).description || '',
+        price: (product as any).price || '',
+        purchasePrice: (product as any).purchasePrice || '',
+        b2bPrice: (product as any).b2bPrice || '',
+        retailPrice: (product as any).retailPrice || '',
+        category: (product as any).categoryId || '',
+        region: (product as any).region || 'Global',
+        platform: (product as any).platform || 'Both',
+        sku: (product as any).sku || '',
+        stockCount: (product as any).stockCount || 0,
+        imageUrl: (product as any).imageUrl || ''
       });
 
       setKmFormData({
-        purchasePriceKm: product.purchasePriceKm || '',
-        resellerPriceKm: product.resellerPriceKm || '',
-        retailerPriceKm: product.retailerPriceKm || ''
+        priceKm: (product as any).priceKm || '',
+        purchasePriceKm: (product as any).purchasePriceKm || '',
+        resellerPriceKm: (product as any).resellerPriceKm || '',
+        retailerPriceKm: (product as any).retailerPriceKm || ''
       });
-
-      if (product.imageUrl) {
-        setImagePreview(product.imageUrl);
-      }
     }
   }, [product]);
 
-  // Handle image file selection
-  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  // Update product mutation
-  const updateProductMutation = useMutation({
-    mutationFn: async (formData: FormData) => {
-      const res = await fetch(`/api/admin/products/${productId}`, {
-        method: 'PUT',
-        body: formData,
-      });
-      if (!res.ok) throw new Error('Failed to update product');
-      return await res.json();
+  // Auto-save mutation
+  const saveProductMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await apiRequest('PUT', `/api/admin/products/${productId}`, data);
+      return response.json();
     },
     onSuccess: () => {
+      setUnsavedChanges(false);
       toast({
         title: "Success",
         description: "Product updated successfully",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/products"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/products", productId] });
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/products/${productId}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/products'] });
     },
-    onError: (error: Error) => {
+    onError: (error) => {
       toast({
         title: "Error",
-        description: error.message,
+        description: "Failed to update product",
         variant: "destructive",
       });
-    },
+    }
   });
 
   // Add license key mutation
   const addLicenseKeyMutation = useMutation({
-    mutationFn: async (licenseKey: string) => {
-      const res = await apiRequest("POST", "/api/admin/license-keys", {
+    mutationFn: async (keyValue: string) => {
+      const response = await apiRequest('POST', '/api/admin/license-keys', {
         productId,
-        licenseKey,
+        keyValue
       });
-      return await res.json();
+      return response.json();
     },
     onSuccess: () => {
+      setNewLicenseKey('');
+      setShowLicenseKeyDialog(false);
       toast({
         title: "Success",
         description: "License key added successfully",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/license-keys", productId] });
+      refetchLicenseKeys();
     },
-    onError: (error: Error) => {
+    onError: (error) => {
       toast({
         title: "Error",
-        description: error.message,
+        description: "Failed to add license key",
         variant: "destructive",
       });
-    },
+    }
   });
 
   // Delete license key mutation
   const deleteLicenseKeyMutation = useMutation({
     mutationFn: async (keyId: string) => {
-      const res = await apiRequest("DELETE", `/api/admin/license-keys/${keyId}`);
-      return await res.json();
+      const response = await apiRequest('DELETE', `/api/admin/license-keys/${keyId}`);
+      return response.json();
     },
     onSuccess: () => {
       toast({
         title: "Success",
         description: "License key deleted successfully",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/license-keys", productId] });
+      refetchLicenseKeys();
     },
-    onError: (error: Error) => {
+    onError: (error) => {
       toast({
         title: "Error",
-        description: error.message,
+        description: "Failed to delete license key",
         variant: "destructive",
       });
-    },
+    }
   });
 
-  const handleSubmit = () => {
-    const formData = new FormData();
-    
-    // Add product data
-    Object.entries(eurFormData).forEach(([key, value]) => {
-      if (value !== null && value !== undefined) {
-        formData.append(key, String(value));
-      }
-    });
-
-    // Add KM pricing data
-    Object.entries(kmFormData).forEach(([key, value]) => {
-      if (value !== null && value !== undefined && value !== '') {
-        formData.append(key, String(value));
-      }
-    });
-
-    // Add image file if selected
-    if (imageFile) {
-      formData.append('image', imageFile);
-    }
-
-    updateProductMutation.mutate(formData);
+  // Handle save
+  const handleSave = () => {
+    const combinedData = {
+      ...eurFormData,
+      ...kmFormData,
+      stockCount: Number(eurFormData.stockCount)
+    };
+    saveProductMutation.mutate(combinedData);
   };
 
-  const [newLicenseKey, setNewLicenseKey] = useState("");
+  // Handle field changes and mark as unsaved
+  const updateEurForm = (updates: any) => {
+    setEurFormData(prev => ({ ...prev, ...updates }));
+    setUnsavedChanges(true);
+  };
 
-  if (!match) {
-    return <div>Product not found</div>;
+  const updateKmForm = (updates: any) => {
+    setKmFormData(prev => ({ ...prev, ...updates }));
+    setUnsavedChanges(true);
+  };
+
+  if (!productId) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-8">
+        <div className="max-w-2xl mx-auto text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Product ID Required</h1>
+          <p className="text-gray-600 mb-8">Please provide a product ID to edit.</p>
+          <Button onClick={() => navigate('/admin-panel')} className="bg-[#FFB20F] hover:bg-[#FFB20F]/90 text-white">
+            Back to Admin Panel
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   if (productLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FFB20F]"></div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB20F] mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading product...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f6f5]">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
+      <div className="bg-white border-b border-gray-200 px-8 py-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <Button
-              variant="outline"
-              onClick={() => setLocation("/admin")}
-              className="flex items-center space-x-2"
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/admin-panel')}
+              className="text-[#6E6F71] hover:text-[#FFB20F] hover:bg-[#FFB20F]/10"
             >
-              <ArrowLeft className="w-4 h-4" />
-              <span>Back to Admin</span>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Products
             </Button>
             <div>
-              <h1 className="text-2xl font-semibold text-[#6E6F71] uppercase tracking-[0.5px]">
-                EDIT PRODUCT
+              <h1 className="text-2xl font-bold text-gray-900 uppercase tracking-[0.5px]">
+                Edit Product
               </h1>
-              {product && (
-                <p className="text-sm text-gray-600">{product.name}</p>
-              )}
+              <p className="text-sm text-[#6E6F71]">SKU: {eurFormData.sku}</p>
             </div>
           </div>
-          <Button
-            onClick={handleSubmit}
-            disabled={updateProductMutation.isPending}
-            className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white"
-          >
-            {updateProductMutation.isPending ? "Saving..." : "Save Changes"}
-          </Button>
+          <div className="flex items-center space-x-3">
+            {unsavedChanges && (
+              <span className="text-sm text-amber-600 bg-amber-50 px-3 py-1 rounded-full">
+                Unsaved changes
+              </span>
+            )}
+            <Button
+              onClick={handleSave}
+              disabled={saveProductMutation.isPending}
+              className="bg-[#FFB20F] hover:bg-[#FFB20F]/90 text-white px-6"
+            >
+              <Save className="w-4 h-4 mr-2" />
+              {saveProductMutation.isPending ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </div>
         </div>
-      </header>
+      </div>
 
       {/* Content */}
-      <div className="container mx-auto px-6 py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="product-details">Product Details</TabsTrigger>
-            <TabsTrigger value="eur-pricing">EUR Pricing</TabsTrigger>
-            <TabsTrigger value="km-pricing">KM Pricing</TabsTrigger>
-            <TabsTrigger value="license-keys">License Keys</TabsTrigger>
+      <div className="max-w-6xl mx-auto p-8">
+        <Tabs defaultValue="eur" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3 bg-white border border-gray-200 rounded-lg p-1">
+            <TabsTrigger 
+              value="eur" 
+              className="data-[state=active]:bg-[#FFB20F] data-[state=active]:text-white font-medium"
+            >
+              EUR Product Details
+            </TabsTrigger>
+            <TabsTrigger 
+              value="km" 
+              className="data-[state=active]:bg-[#FFB20F] data-[state=active]:text-white font-medium"
+            >
+              KM Pricing
+            </TabsTrigger>
+            <TabsTrigger 
+              value="keys" 
+              className="data-[state=active]:bg-[#FFB20F] data-[state=active]:text-white font-medium"
+            >
+              License Keys ({Array.isArray(licenseKeys) ? licenseKeys.length : 0})
+            </TabsTrigger>
           </TabsList>
 
-          {/* Product Details Tab */}
-          <TabsContent value="product-details" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-[#6E6F71]">Basic Information</CardTitle>
+          {/* EUR Tab */}
+          <TabsContent value="eur">
+            <Card className="border-gray-200">
+              <CardHeader className="bg-gray-50 border-b border-gray-200">
+                <CardTitle className="text-lg text-gray-900 uppercase tracking-[0.5px]">
+                  Product Information (EUR)
+                </CardTitle>
+                <CardDescription>
+                  Primary product details and EUR pricing
+                </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <CardContent className="p-6 space-y-6">
+                {/* Basic Info */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <Label htmlFor="name" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-                      PRODUCT NAME
+                      Product Name
                     </Label>
                     <Input
                       id="name"
                       value={eurFormData.name}
-                      onChange={(e) => setEurFormData({ ...eurFormData, name: e.target.value })}
+                      onChange={(e) => updateEurForm({ name: e.target.value })}
                       className="mt-1"
                       required
                     />
                   </div>
-
                   <div>
                     <Label htmlFor="sku" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
                       SKU
@@ -315,7 +310,7 @@ export default function EditProduct() {
                     <Input
                       id="sku"
                       value={eurFormData.sku}
-                      onChange={(e) => setEurFormData({ ...eurFormData, sku: e.target.value })}
+                      onChange={(e) => updateEurForm({ sku: e.target.value })}
                       className="mt-1"
                       required
                     />
@@ -324,28 +319,81 @@ export default function EditProduct() {
 
                 <div>
                   <Label htmlFor="description" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-                    DESCRIPTION
+                    Description
                   </Label>
                   <Textarea
                     id="description"
                     value={eurFormData.description}
-                    onChange={(e) => setEurFormData({ ...eurFormData, description: e.target.value })}
+                    onChange={(e) => updateEurForm({ description: e.target.value })}
                     className="mt-1"
                     rows={3}
                   />
                 </div>
 
+                {/* Pricing */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                      B2B Price (EUR)
+                    </Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={eurFormData.price}
+                      onChange={(e) => updateEurForm({ price: e.target.value })}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                      Purchase Price (EUR)
+                    </Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={eurFormData.purchasePrice}
+                      onChange={(e) => updateEurForm({ purchasePrice: e.target.value })}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                      Reseller Price (EUR)
+                    </Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={eurFormData.b2bPrice}
+                      onChange={(e) => updateEurForm({ b2bPrice: e.target.value })}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                      Retail Price (EUR)
+                    </Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={eurFormData.retailPrice}
+                      onChange={(e) => updateEurForm({ retailPrice: e.target.value })}
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+
+                {/* Categories and Settings */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <Label htmlFor="category" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-                      CATEGORY
+                    <Label className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                      Category
                     </Label>
-                    <Select value={eurFormData.category} onValueChange={(value) => setEurFormData({ ...eurFormData, category: value })}>
+                    <Select value={eurFormData.category} onValueChange={(value) => updateEurForm({ category: value })}>
                       <SelectTrigger className="mt-1">
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
                       <SelectContent>
-                        {(categories || []).map((category: any) => (
+                        {Array.isArray(categories) && categories.map((category: any) => (
                           <SelectItem key={category.id} value={category.id}>
                             {category.name}
                           </SelectItem>
@@ -355,12 +403,12 @@ export default function EditProduct() {
                   </div>
 
                   <div>
-                    <Label htmlFor="region" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-                      REGION
+                    <Label className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                      Region
                     </Label>
-                    <Select value={eurFormData.region} onValueChange={(value) => setEurFormData({ ...eurFormData, region: value })}>
+                    <Select value={eurFormData.region} onValueChange={(value) => updateEurForm({ region: value })}>
                       <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="Select region" />
+                        <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Global">Global</SelectItem>
@@ -372,326 +420,201 @@ export default function EditProduct() {
                   </div>
 
                   <div>
-                    <Label htmlFor="platform" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-                      PLATFORM
+                    <Label className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                      Platform
                     </Label>
-                    <Select value={eurFormData.platform} onValueChange={(value) => setEurFormData({ ...eurFormData, platform: value })}>
+                    <Select value={eurFormData.platform} onValueChange={(value) => updateEurForm({ platform: value })}>
                       <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="Select platform" />
+                        <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Windows">Windows</SelectItem>
                         <SelectItem value="Mac">Mac</SelectItem>
                         <SelectItem value="Both">Both</SelectItem>
-                        <SelectItem value="Linux">Linux</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
 
-            {/* Image Upload Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-[#6E6F71]">Product Image</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center space-x-4">
-                  <div className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
-                    {imagePreview ? (
-                      <img src={imagePreview} alt="Preview" className="w-full h-full object-cover rounded-lg" />
-                    ) : (
-                      <ImageIcon className="w-8 h-8 text-gray-400" />
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <div>
-                      <Label htmlFor="image" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-                        UPLOAD IMAGE
-                      </Label>
-                      <Input
-                        id="image"
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageChange}
-                        className="mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="imageUrl" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-                        OR IMAGE URL
-                      </Label>
-                      <Input
-                        id="imageUrl"
-                        value={eurFormData.imageUrl}
-                        onChange={(e) => {
-                          setEurFormData({ ...eurFormData, imageUrl: e.target.value });
-                          setImagePreview(e.target.value);
-                        }}
-                        className="mt-1"
-                        placeholder="https://example.com/image.jpg"
-                      />
-                    </div>
-                  </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                    Stock Count
+                  </Label>
+                  <Input
+                    type="number"
+                    value={eurFormData.stockCount}
+                    onChange={(e) => updateEurForm({ stockCount: parseInt(e.target.value) || 0 })}
+                    className="mt-1 max-w-xs"
+                  />
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* EUR Pricing Tab */}
-          <TabsContent value="eur-pricing" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-[#6E6F71]">EUR Pricing Structure</CardTitle>
-                <p className="text-sm text-gray-600">Set pricing tiers for European market</p>
+          {/* KM Tab */}
+          <TabsContent value="km">
+            <Card className="border-gray-200">
+              <CardHeader className="bg-gray-50 border-b border-gray-200">
+                <CardTitle className="text-lg text-gray-900 uppercase tracking-[0.5px]">
+                  KM Pricing (Bosnian Mark)
+                </CardTitle>
+                <CardDescription>
+                  Pricing in KM currency for Bosnia market
+                </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <CardContent className="p-6 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div>
-                    <Label htmlFor="purchasePrice" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-                      PURCHASE PRICE (€)
+                    <Label className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                      B2B Price (KM)
                     </Label>
                     <Input
-                      id="purchasePrice"
                       type="number"
                       step="0.01"
-                      value={eurFormData.purchasePrice}
-                      onChange={(e) => setEurFormData({ ...eurFormData, purchasePrice: e.target.value })}
+                      value={kmFormData.priceKm}
+                      onChange={(e) => updateKmForm({ priceKm: e.target.value })}
                       className="mt-1"
                     />
-                    <p className="text-xs text-gray-500 mt-1">Cost to acquire this product</p>
                   </div>
-
                   <div>
-                    <Label htmlFor="resellerPrice" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-                      RESELLER PRICE (€)
+                    <Label className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                      Purchase Price (KM)
                     </Label>
                     <Input
-                      id="resellerPrice"
-                      type="number"
-                      step="0.01"
-                      value={eurFormData.resellerPrice}
-                      onChange={(e) => setEurFormData({ ...eurFormData, resellerPrice: e.target.value })}
-                      className="mt-1"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Price for B2B resellers</p>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="retailerPrice" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-                      RETAILER PRICE (€)
-                    </Label>
-                    <Input
-                      id="retailerPrice"
-                      type="number"
-                      step="0.01"
-                      value={eurFormData.retailerPrice}
-                      onChange={(e) => setEurFormData({ ...eurFormData, retailerPrice: e.target.value })}
-                      className="mt-1"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">End customer price</p>
-                  </div>
-                </div>
-
-                {eurFormData.purchasePrice && eurFormData.resellerPrice && eurFormData.retailerPrice && (
-                  <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                    <h4 className="text-sm font-medium text-gray-700 mb-2">MARGIN ANALYSIS</h4>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-gray-600">Reseller Margin:</span>
-                        <span className="ml-2 font-medium text-[#FFB20F]">
-                          €{(parseFloat(eurFormData.resellerPrice) - parseFloat(eurFormData.purchasePrice)).toFixed(2)}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Retail Margin:</span>
-                        <span className="ml-2 font-medium text-[#FFB20F]">
-                          €{(parseFloat(eurFormData.retailerPrice) - parseFloat(eurFormData.resellerPrice)).toFixed(2)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* KM Pricing Tab */}
-          <TabsContent value="km-pricing" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-[#6E6F71]">KM Pricing Structure</CardTitle>
-                <p className="text-sm text-gray-600">Set pricing tiers for Bosnian market (1 EUR ≈ 1.96 KM)</p>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="purchasePriceKm" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-                      PURCHASE PRICE (KM)
-                    </Label>
-                    <Input
-                      id="purchasePriceKm"
                       type="number"
                       step="0.01"
                       value={kmFormData.purchasePriceKm}
-                      onChange={(e) => setKmFormData({ ...kmFormData, purchasePriceKm: e.target.value })}
+                      onChange={(e) => updateKmForm({ purchasePriceKm: e.target.value })}
                       className="mt-1"
                     />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Suggested: {eurFormData.purchasePrice ? convertEurToKm(parseFloat(eurFormData.purchasePrice)).toFixed(2) + ' KM' : 'Enter EUR price first'}
-                    </p>
                   </div>
-
                   <div>
-                    <Label htmlFor="resellerPriceKm" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-                      RESELLER PRICE (KM)
+                    <Label className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                      Reseller Price (KM)
                     </Label>
                     <Input
-                      id="resellerPriceKm"
                       type="number"
                       step="0.01"
                       value={kmFormData.resellerPriceKm}
-                      onChange={(e) => setKmFormData({ ...kmFormData, resellerPriceKm: e.target.value })}
+                      onChange={(e) => updateKmForm({ resellerPriceKm: e.target.value })}
                       className="mt-1"
                     />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Suggested: {eurFormData.resellerPrice ? convertEurToKm(parseFloat(eurFormData.resellerPrice)).toFixed(2) + ' KM' : 'Enter EUR price first'}
-                    </p>
                   </div>
-
                   <div>
-                    <Label htmlFor="retailerPriceKm" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-                      RETAILER PRICE (KM)
+                    <Label className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                      Retailer Price (KM)
                     </Label>
                     <Input
-                      id="retailerPriceKm"
                       type="number"
                       step="0.01"
                       value={kmFormData.retailerPriceKm}
-                      onChange={(e) => setKmFormData({ ...kmFormData, retailerPriceKm: e.target.value })}
+                      onChange={(e) => updateKmForm({ retailerPriceKm: e.target.value })}
                       className="mt-1"
                     />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Suggested: {eurFormData.retailerPrice ? convertEurToKm(parseFloat(eurFormData.retailerPrice)).toFixed(2) + ' KM' : 'Enter EUR price first'}
-                    </p>
                   </div>
                 </div>
-
-                {/* Auto-convert buttons */}
-                <div className="flex space-x-2 mt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      if (eurFormData.purchasePrice && eurFormData.resellerPrice && eurFormData.retailerPrice) {
-                        setKmFormData({
-                          purchasePriceKm: convertEurToKm(parseFloat(eurFormData.purchasePrice)).toFixed(2),
-                          resellerPriceKm: convertEurToKm(parseFloat(eurFormData.resellerPrice)).toFixed(2),
-                          retailerPriceKm: convertEurToKm(parseFloat(eurFormData.retailerPrice)).toFixed(2),
-                        });
-                      }
-                    }}
-                    className="text-[#FFB20F] border-[#FFB20F] hover:bg-[#FFB20F] hover:text-white"
-                  >
-                    Auto-Convert from EUR
-                  </Button>
-                </div>
-
-                {kmFormData.purchasePriceKm && kmFormData.resellerPriceKm && kmFormData.retailerPriceKm && (
-                  <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                    <h4 className="text-sm font-medium text-gray-700 mb-2">KM MARGIN ANALYSIS</h4>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-gray-600">Reseller Margin:</span>
-                        <span className="ml-2 font-medium text-[#FFB20F]">
-                          {(parseFloat(kmFormData.resellerPriceKm) - parseFloat(kmFormData.purchasePriceKm)).toFixed(2)} KM
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Retail Margin:</span>
-                        <span className="ml-2 font-medium text-[#FFB20F]">
-                          {(parseFloat(kmFormData.retailerPriceKm) - parseFloat(kmFormData.resellerPriceKm)).toFixed(2)} KM
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </CardContent>
             </Card>
           </TabsContent>
 
           {/* License Keys Tab */}
-          <TabsContent value="license-keys" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-[#6E6F71] flex items-center justify-between">
+          <TabsContent value="keys">
+            <Card className="border-gray-200">
+              <CardHeader className="bg-gray-50 border-b border-gray-200">
+                <CardTitle className="text-lg text-gray-900 uppercase tracking-[0.5px] flex items-center justify-between">
                   License Keys Management
-                  <Badge variant="outline">
-                    {licenseKeys?.length || 0} keys available
-                  </Badge>
+                  <Dialog open={showLicenseKeyDialog} onOpenChange={setShowLicenseKeyDialog}>
+                    <DialogTrigger asChild>
+                      <Button size="sm" className="bg-[#FFB20F] hover:bg-[#FFB20F]/90 text-white">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Key
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Add License Key</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="licenseKey">License Key</Label>
+                          <Input
+                            id="licenseKey"
+                            value={newLicenseKey}
+                            onChange={(e) => setNewLicenseKey(e.target.value)}
+                            placeholder="Enter license key..."
+                            className="mt-1"
+                          />
+                        </div>
+                        <div className="flex justify-end space-x-2">
+                          <Button
+                            variant="outline"
+                            onClick={() => setShowLicenseKeyDialog(false)}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            onClick={() => addLicenseKeyMutation.mutate(newLicenseKey)}
+                            disabled={!newLicenseKey.trim() || addLicenseKeyMutation.isPending}
+                            className="bg-[#FFB20F] hover:bg-[#FFB20F]/90 text-white"
+                          >
+                            Add Key
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </CardTitle>
+                <CardDescription>
+                  Manage digital license keys for this product
+                </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Add new license key */}
-                <div className="flex space-x-2">
-                  <Input
-                    placeholder="Enter license key"
-                    value={newLicenseKey}
-                    onChange={(e) => setNewLicenseKey(e.target.value)}
-                    className="flex-1"
-                  />
-                  <Button
-                    onClick={() => {
-                      if (newLicenseKey.trim()) {
-                        addLicenseKeyMutation.mutate(newLicenseKey.trim());
-                        setNewLicenseKey("");
-                      }
-                    }}
-                    disabled={addLicenseKeyMutation.isPending || !newLicenseKey.trim()}
-                    className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Key
-                  </Button>
-                </div>
-
-                {/* License keys list */}
-                <div className="space-y-2">
-                  {licenseKeysLoading ? (
-                    <div className="text-center py-4">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#FFB20F] mx-auto"></div>
-                    </div>
-                  ) : licenseKeys && Array.isArray(licenseKeys) && licenseKeys.length > 0 ? (
-                    licenseKeys.map((key: any) => (
-                      <div key={key.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+              <CardContent className="p-6">
+                {!Array.isArray(licenseKeys) || licenseKeys.length === 0 ? (
+                  <div className="text-center py-8">
+                    <FileImage className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500">No license keys added yet</p>
+                    <p className="text-sm text-gray-400 mt-1">Click "Add Key" to get started</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {Array.isArray(licenseKeys) && licenseKeys.map((key: any) => (
+                      <div key={key.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg bg-gray-50">
                         <div className="flex-1">
-                          <div className="font-mono text-sm">{key.licenseKey}</div>
-                          <div className="text-xs text-gray-500">
-                            {key.isUsed ? (
-                              <span className="text-red-600">Used on {new Date(key.usedAt).toLocaleDateString()}</span>
-                            ) : (
-                              <span className="text-green-600">Available</span>
-                            )}
+                          <div className="font-mono text-sm">{key.keyValue}</div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            Status: {key.isUsed ? 'Used' : 'Available'}
+                            {key.isUsed && key.usedBy && ` • Used by: ${key.usedBy}`}
                           </div>
                         </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => deleteLicenseKeyMutation.mutate(key.id)}
-                          disabled={deleteLicenseKeyMutation.isPending}
-                          className="text-red-600 border-red-600 hover:bg-red-600 hover:text-white"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              navigator.clipboard.writeText(key.keyValue);
+                              toast({
+                                title: "Copied",
+                                description: "License key copied to clipboard",
+                              });
+                            }}
+                            className="text-[#6E6F71] border-[#6E6F71] hover:bg-[#6E6F71] hover:text-white"
+                          >
+                            <Copy className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => deleteLicenseKeyMutation.mutate(key.id)}
+                            disabled={deleteLicenseKeyMutation.isPending}
+                            className="text-red-600 border-red-600 hover:bg-red-600 hover:text-white"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-8 text-gray-500">
-                      No license keys added yet. Add your first license key above.
-                    </div>
-                  )}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

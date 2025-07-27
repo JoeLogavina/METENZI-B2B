@@ -96,7 +96,7 @@ function Router() {
               <AdminPanel />
             </Suspense>
           )} />
-          <Route path="/admin/products/:id" component={() => (
+          <Route path="/admin/products/edit" component={() => (
             <Suspense fallback={<AdminLoadingFallback />}>
               <EditProduct />
             </Suspense>
