@@ -309,42 +309,7 @@ class WalletServiceImpl {
     };
   }
 
-  private calculateBalanceFromTransactions(transactions: any[]): WalletBalance {
-    let depositBalance = 0;
-    let creditLimit = 0;
-    let creditUsed = 0;
 
-    transactions.forEach(tx => {
-      const amount = parseFloat(tx.amount);
-      switch (tx.type) {
-        case 'deposit':
-          depositBalance += amount;
-          break;
-        case 'credit_limit':
-          creditLimit = amount; // Set to latest credit limit
-          break;
-        case 'payment':
-          creditUsed += amount;
-          break;
-        case 'refund':
-          creditUsed = Math.max(0, creditUsed - amount);
-          break;
-      }
-    });
-
-    const availableCredit = Math.max(0, creditLimit - creditUsed);
-    const totalAvailable = depositBalance + availableCredit;
-    const isOverlimit = creditUsed > creditLimit;
-
-    return {
-      depositBalance: depositBalance.toFixed(2),
-      creditLimit: creditLimit.toFixed(2),
-      creditUsed: creditUsed.toFixed(2),
-      availableCredit: availableCredit.toFixed(2),
-      totalAvailable: totalAvailable.toFixed(2),
-      isOverlimit,
-    };
-  }
 
   async getAllWalletsSummary(): Promise<Array<WalletSummary & { user: { username: string; email: string } }>> {
     try {
@@ -390,6 +355,43 @@ class WalletServiceImpl {
       console.error("Error getting all wallets summary:", error);
       throw new ServiceError("Failed to get wallets summary");
     }
+  }
+  // Method to calculate balance from transactions
+  private calculateBalanceFromTransactions(transactions: WalletTransaction[]): WalletBalance {
+    let depositBalance = 0;
+    let creditLimit = 0;
+    let creditUsed = 0;
+
+    transactions.forEach(tx => {
+      const amount = parseFloat(tx.amount);
+      switch (tx.type) {
+        case 'deposit':
+          depositBalance += amount;
+          break;
+        case 'credit_limit':
+          creditLimit = amount; // Set to latest credit limit
+          break;
+        case 'payment':
+          creditUsed += amount;
+          break;
+        case 'refund':
+          creditUsed = Math.max(0, creditUsed - amount);
+          break;
+      }
+    });
+
+    const availableCredit = Math.max(0, creditLimit - creditUsed);
+    const totalAvailable = depositBalance + availableCredit;
+    const isOverlimit = creditUsed > creditLimit;
+
+    return {
+      depositBalance: depositBalance.toFixed(2),
+      creditLimit: creditLimit.toFixed(2),
+      creditUsed: creditUsed.toFixed(2),
+      availableCredit: availableCredit.toFixed(2),
+      totalAvailable: totalAvailable.toFixed(2),
+      isOverlimit
+    };
   }
 }
 

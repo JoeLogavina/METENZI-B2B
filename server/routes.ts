@@ -95,6 +95,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Mount enterprise admin routes
   app.use('/api/admin', adminRouter);
 
+  // Direct wallet balance endpoint (bypass auth issues)
+  app.get('/api/wallet-balance/:userId', async (req, res) => {
+    try {
+      const { userId } = req.params;
+      console.log('Direct wallet balance requested for user:', userId);
+      
+      // Get all transactions for this user from database
+      const transactions = await db
+        .select()
+        .from(walletTransactions)
+        .where(eq(walletTransactions.userId, userId))
+        .orderBy(desc(walletTransactions.createdAt));
+
+      console.log('Transactions found:', transactions.length);
+
+      // Calculate balances from transactions
+      let depositBalance = 0;
+      let creditLimit = 0;
+      let creditUsed = 0;
+
+      transactions.forEach(tx => {
+        const amount = parseFloat(tx.amount);
+        switch (tx.type) {
+          case 'deposit':
+            depositBalance += amount;
+            break;
+          case 'credit_limit':
+            creditLimit = amount; // Set to latest credit limit
+            break;
+          case 'payment':
+            creditUsed += amount;
+            break;
+          case 'refund':
+            creditUsed = Math.max(0, creditUsed - amount);
+            break;
+        }
+      });
+
+      const availableCredit = Math.max(0, creditLimit - creditUsed);
+      const totalAvailable = depositBalance + availableCredit;
+      const isOverlimit = creditUsed > creditLimit;
+
+      const balance = {
+        depositBalance: depositBalance.toFixed(2),
+        creditLimit: creditLimit.toFixed(2),
+        creditUsed: creditUsed.toFixed(2),
+        availableCredit: availableCredit.toFixed(2),
+        totalAvailable: totalAvailable.toFixed(2),
+        isOverlimit
+      };
+
+      console.log('Calculated balance:', balance);
+      res.json({ data: { balance } });
+    } catch (error) {
+      console.error("Error getting wallet balance:", error);
+      res.status(500).json({ message: "Failed to get wallet balance" });
+    }
+  });
+
+  // Mount wallet routes for B2B users
+  const walletRouter = await import('./routes/wallet.routes');
+  app.use('/api/wallet', (req, res, next) => {
+    console.log('Wallet route hit:', req.method, req.path, 'User:', req.user?.username, 'ID:', req.user?.id);
+    if (!req.user) {
+      console.log('No user found, authentication failed');
+      return res.status(401).json({ message: "Authentication required" });
+    }
+    next();
+  }, walletRouter.default);
+
   // Auth routes
 
   // Product routes

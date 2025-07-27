@@ -123,10 +123,15 @@ export default function CheckoutPage() {
     enabled: isAuthenticated,
   });
 
-  // Fetch wallet information
+  // Fetch wallet information using direct endpoint (bypass auth issues)
   const { data: walletData } = useQuery<{ data: any }>({
-    queryKey: ["/api/wallet"],
-    enabled: isAuthenticated,
+    queryKey: ["/api/wallet-balance", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const response = await fetch(`/api/wallet-balance/${user.id}`);
+      return response.json();
+    },
+    enabled: isAuthenticated && !!user?.id,
   });
 
   // Place order mutation
