@@ -605,10 +605,10 @@ function ProductForm({
     name: product?.name || '',
     description: product?.description || '',
     price: product?.price || '',
-    category: product?.categoryId || product?.category || '',
+    category: product?.categoryId || '',
     platform: product?.platform || '',
     region: product?.region || '',
-    stock: product?.stock || '',
+    stock: product?.stockCount || product?.stock || '',
     isActive: product?.isActive ?? true,
   });
 
@@ -666,11 +666,9 @@ function ProductForm({
               <SelectValue placeholder="Select category" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Development Tools">Development Tools</SelectItem>
-              <SelectItem value="Design Software">Design Software</SelectItem>
-              <SelectItem value="Security Software">Security Software</SelectItem>
-              <SelectItem value="Business Software">Business Software</SelectItem>
-              <SelectItem value="Productivity Tools">Productivity Tools</SelectItem>
+              <SelectItem value="5f7c2d93-0865-489c-bc73-8c7521ca978d">Development Tools</SelectItem>
+              <SelectItem value="04c7d498-572f-46ca-bc54-2be8812035d4">Design Software</SelectItem>
+              <SelectItem value="dbe15a4f-3eab-44f0-bfcf-8427259ad19c">Business Applications</SelectItem>
             </SelectContent>
           </Select>
         </div>
