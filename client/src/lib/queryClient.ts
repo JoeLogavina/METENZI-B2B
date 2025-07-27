@@ -1,4 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { requestBatcher } from "./request-batcher";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -7,11 +8,31 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+// TIER 1 ENTERPRISE OPTIMIZATION: Enhanced API Request with Batching Support
 export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
+  // For GET requests without data, use the request batcher
+  if (method === 'GET' && !data) {
+    try {
+      const responseData = await requestBatcher.batchRequest(url, method);
+      // Create a mock Response object with the batched data
+      return {
+        ok: true,
+        status: 200,
+        json: async () => responseData,
+        text: async () => JSON.stringify(responseData),
+        statusText: 'OK'
+      } as Response;
+    } catch (error) {
+      // Fallback to regular fetch if batching fails
+      console.warn('Request batching failed, falling back to regular fetch:', error);
+    }
+  }
+
+  // Regular fetch for POST/PUT/DELETE or when batching fails
   const res = await fetch(url, {
     method,
     headers: data ? { "Content-Type": "application/json" } : {},
