@@ -459,7 +459,14 @@ export default function OrdersPage() {
                             )}
                           </Button>
                         </CollapsibleTrigger>
-                        <CollapsibleContent className="mt-4">
+                      </Collapsible>
+                    </div>
+                  </div>
+                </CardHeader>
+
+                <CardContent>
+                  <Collapsible open={expandedOrders.has(order.id)} onOpenChange={() => toggleOrderExpansion(order.id)}>
+                    <CollapsibleContent className="mt-4">
                   {/* Billing Information */}
                   <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
                     <h4 className="font-semibold mb-2">Billing Information</h4>
@@ -575,11 +582,7 @@ export default function OrdersPage() {
                     </div>
                   </div>
                   </CollapsibleContent>
-                      </Collapsible>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
+                  </Collapsible>
                 </CardContent>
               </Card>
             ))}
