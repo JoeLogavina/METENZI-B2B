@@ -8,7 +8,9 @@ This is a full-stack B2B software license management platform using a microservi
 
 ## Recent Changes (January 2025)
 - **MAJOR: Completely removed monolithic architecture** - Now only microservices exist
-- **Running Instructions**: Use `cd services && ./setup-and-run.sh` to start all services
+- **NEW: Implemented Proxy Server Architecture** - All services now accessible via single domain
+- **Running Instructions**: Use `npm run dev` to start proxy server that auto-launches all microservices
+- **Access URLs**: https://workspace.dinoharbinja.repl.co/admin (Admin), /shop (B2B), /api (Core API)
 - Separated Admin Portal (5001) and B2B Portal (5002) with independent authentication
 - Created Core API Service (5003) for shared business logic and database operations
 - Implemented inter-service authentication with secure API keys

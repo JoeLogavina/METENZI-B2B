@@ -64,52 +64,56 @@ function startMicroservices() {
 // Pokreni mikroservise
 startMicroservices();
 
-// Čekaj da se servisi pokrenu
-setTimeout(() => {
-  // Proxy konfiguracija
-  const adminProxy = createProxyMiddleware({
-    target: 'http://localhost:5001',
-    changeOrigin: true,
-    pathRewrite: {
-      '^/admin': ''
-    },
-    onError: (err, req, res) => {
-      console.error('Admin proxy greška:', err.message);
-      res.status(503).send('Admin servis nije dostupan');
+// Proxy konfiguracija - odmah postaviti
+const adminProxy = createProxyMiddleware({
+  target: 'http://localhost:5001',
+  changeOrigin: true,
+  pathRewrite: {
+    '^/admin': ''
+  },
+  onError: (err, req, res) => {
+    console.error('Admin proxy greška:', err.message);
+    if (!res.headersSent) {
+      res.status(503).send('Admin servis se pokreće...');
     }
-  });
+  }
+});
 
-  const shopProxy = createProxyMiddleware({
-    target: 'http://localhost:5002', 
-    changeOrigin: true,
-    pathRewrite: {
-      '^/shop': ''
-    },
-    onError: (err, req, res) => {
-      console.error('B2B proxy greška:', err.message);
-      res.status(503).send('B2B servis nije dostupan');
+const shopProxy = createProxyMiddleware({
+  target: 'http://localhost:5002', 
+  changeOrigin: true,
+  pathRewrite: {
+    '^/shop': ''
+  },
+  onError: (err, req, res) => {
+    console.error('B2B proxy greška:', err.message);
+    if (!res.headersSent) {
+      res.status(503).send('B2B servis se pokreće...');
     }
-  });
+  }
+});
 
-  const apiProxy = createProxyMiddleware({
-    target: 'http://localhost:5003',
-    changeOrigin: true,
-    pathRewrite: {
-      '^/api': '/api'
-    },
-    onError: (err, req, res) => {
-      console.error('API proxy greška:', err.message);
-      res.status(503).send('API servis nije dostupan');
+const apiProxy = createProxyMiddleware({
+  target: 'http://localhost:5003',
+  changeOrigin: true,
+  pathRewrite: {
+    '^/api': '/api'
+  },
+  onError: (err, req, res) => {
+    console.error('API proxy greška:', err.message);
+    if (!res.headersSent) {
+      res.status(503).send('API servis se pokreće...');
     }
-  });
+  }
+});
 
-  // Proxy rute
-  app.use('/admin', adminProxy);
-  app.use('/shop', shopProxy);
-  app.use('/api', apiProxy);
+// Proxy rute
+app.use('/admin', adminProxy);
+app.use('/shop', shopProxy);
+app.use('/api', apiProxy);
 
-  // Glavna stranica
-  app.get('/', (req, res) => {
+// Glavna stranica
+app.get('/', (req, res) => {
     res.send(`
   <!DOCTYPE html>
   <html>
