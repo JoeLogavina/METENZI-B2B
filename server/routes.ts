@@ -449,19 +449,109 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('Orders API called, user:', req.user?.username, 'ID:', req.user?.id);
       const userId = req.user.id;
-      const user = await storage.getUser(userId);
       
-      let orders;
-      if (user?.role === 'super_admin' || user?.role === 'admin') {
-        console.log('Admin user requesting all orders');
-        orders = await storage.getOrdersWithDetails(); // Admin can see all orders
-      } else {
-        console.log('B2B user requesting orders for userId:', userId);
-        orders = await storage.getOrdersWithDetails(userId); // Users see only their orders
-      }
+      // Use direct pool connection to bypass Drizzle completely
+      const { pool } = await import('./db');
       
-      console.log('Orders retrieved:', orders.length);
-      res.json(orders);
+      // Get user role directly with SQL to avoid Drizzle issues
+      const userQuery = `SELECT role FROM users WHERE id = $1`;
+      const userResult = await pool.query(userQuery, [userId]);
+      const userRole = userResult.rows[0]?.role || 'b2b_user';
+      
+      const orderQuery = userRole === 'super_admin' || userRole === 'admin'
+        ? `SELECT * FROM orders ORDER BY created_at DESC`
+        : `SELECT * FROM orders WHERE user_id = $1 ORDER BY created_at DESC`;
+      
+      const orderParams = userRole === 'super_admin' || userRole === 'admin' ? [] : [userId];
+      const orderResult = await pool.query(orderQuery, orderParams);
+      const orderRows = orderResult.rows;
+      
+      console.log('Found orders:', orderRows.length);
+
+      // Get order items with products and license keys for each order
+      const ordersWithDetails = await Promise.all(
+        orderRows.map(async (order: any) => {
+          // Get order items for this order
+          const itemsQuery = `
+            SELECT 
+              oi.*,
+              p.name as product_name,
+              p.description as product_description,
+              p.price as product_price,
+              p.platform as product_platform,
+              p.region as product_region,
+              lk.key_value as license_key,
+              lk.used_by,
+              lk.used_at as key_used_at,
+              lk.created_at as key_created_at
+            FROM order_items oi
+            LEFT JOIN products p ON oi.product_id = p.id
+            LEFT JOIN license_keys lk ON oi.license_key_id = lk.id
+            WHERE oi.order_id = $1
+          `;
+          
+          const itemsResult = await pool.query(itemsQuery, [order.id]);
+          const itemRows = itemsResult.rows;
+
+          const items = itemRows.map((item: any) => ({
+            id: item.id,
+            orderId: item.order_id,
+            productId: item.product_id,
+            quantity: item.quantity,
+            unitPrice: item.unit_price,
+            totalPrice: item.total_price,
+            licenseKeyId: item.license_key_id,
+            product: {
+              id: item.product_id,
+              name: item.product_name,
+              description: item.product_description,
+              price: item.product_price,
+              platform: item.product_platform,
+              region: item.product_region,
+            },
+            licenseKey: item.license_key ? {
+              id: item.license_key_id,
+              productId: item.product_id,
+              licenseKey: item.license_key,
+              usedBy: item.used_by,
+              usedAt: item.key_used_at,
+              createdAt: item.key_created_at,
+              product: {
+                id: item.product_id,
+                name: item.product_name,
+                platform: item.product_platform,
+              }
+            } : null
+          }));
+
+          return {
+            id: order.id,
+            userId: order.user_id,
+            orderNumber: order.order_number,
+            status: order.status,
+            totalAmount: order.total_amount,
+            paymentMethod: order.payment_method,
+            paymentStatus: order.payment_status,
+            createdAt: order.created_at,
+            updatedAt: order.updated_at,
+            billingInfo: {
+              companyName: order.company_name,
+              firstName: order.first_name,
+              lastName: order.last_name,
+              email: order.email,
+              phone: order.phone,
+              address: order.address,
+              city: order.city,
+              postalCode: order.postal_code,
+              country: order.country,
+            },
+            items
+          };
+        })
+      );
+
+      console.log('Returning orders:', ordersWithDetails.length);
+      res.json(ordersWithDetails);
     } catch (error) {
       console.error("Error fetching orders:", error);
       console.error("Error details:", error.message);

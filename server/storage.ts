@@ -25,7 +25,7 @@ import {
   type AdminPermissions,
   type InsertAdminPermissions,
 } from "@shared/schema";
-import { db } from "./db";
+import { db, pool } from "./db";
 import { eq, and, desc, sql, count } from "drizzle-orm";
 
 export interface IStorage {
@@ -387,107 +387,112 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getOrdersWithDetails(userId?: string): Promise<any[]> {
-    const orderQuery = db
-      .select({
-        id: orders.id,
-        userId: orders.userId,
-        orderNumber: orders.orderNumber,
-        status: orders.status,
-        totalAmount: orders.totalAmount,
-        taxAmount: orders.taxAmount,
-        finalAmount: orders.finalAmount,
-        paymentMethod: orders.paymentMethod,
-        paymentStatus: orders.paymentStatus,
-        companyName: orders.companyName,
-        firstName: orders.firstName,
-        lastName: orders.lastName,
-        email: orders.email,
-        phone: orders.phone,
-        address: orders.address,
-        city: orders.city,
-        postalCode: orders.postalCode,
-        country: orders.country,
-        createdAt: orders.createdAt,
-        updatedAt: orders.updatedAt,
-      })
-      .from(orders);
+    try {
+      console.log('Getting orders with raw SQL for user:', userId);
+      
+      // Use direct pool connection to bypass Drizzle completely
+      const orderQuery = userId 
+        ? `SELECT * FROM orders WHERE user_id = $1 ORDER BY created_at DESC`
+        : `SELECT * FROM orders ORDER BY created_at DESC`;
+      
+      const orderParams = userId ? [userId] : [];
+      const orderResult = await pool.query(orderQuery, orderParams);
+      const orderRows = orderResult.rows;
+      
+      console.log('Found orders:', orderRows.length);
 
-    const orderResults = userId 
-      ? await orderQuery.where(eq(orders.userId, userId)).orderBy(desc(orders.createdAt))
-      : await orderQuery.orderBy(desc(orders.createdAt));
+      // Get order items with products and license keys for each order
+      const ordersWithDetails = await Promise.all(
+        orderRows.map(async (order: any) => {
+          console.log('Processing order:', order.id);
+          
+          // Get order items for this order
+          const itemsQuery = `
+            SELECT 
+              oi.*,
+              p.name as product_name,
+              p.description as product_description,
+              p.price as product_price,
+              p.platform as product_platform,
+              p.region as product_region,
+              lk.key_value as license_key,
+              lk.used_by,
+              lk.used_at as key_used_at,
+              lk.created_at as key_created_at
+            FROM order_items oi
+            LEFT JOIN products p ON oi.product_id = p.id
+            LEFT JOIN license_keys lk ON oi.license_key_id = lk.id
+            WHERE oi.order_id = $1
+          `;
+          
+          const itemsResult = await pool.query(itemsQuery, [order.id]);
+          const itemRows = itemsResult.rows;
+          
+          console.log('Found items for order', order.id, ':', itemRows.length);
 
-    // Get order items with products and license keys for each order
-    const ordersWithDetails = await Promise.all(
-      orderResults.map(async (order) => {
-        const items = await db
-          .select({
-            id: orderItems.id,
-            orderId: orderItems.orderId,
-            productId: orderItems.productId,
-            quantity: orderItems.quantity,
-            unitPrice: orderItems.unitPrice,
-            totalPrice: orderItems.totalPrice,
-            licenseKeyId: orderItems.licenseKeyId,
-            product: {
-              id: products.id,
-              name: products.name,
-              description: products.description,
-              price: products.price,
-              version: products.version,
-              platform: products.platform,
-              region: products.region,
-            },
-            licenseKey: {
-              id: licenseKeys.id,
-              productId: licenseKeys.productId,
-              licenseKey: licenseKeys.licenseKey,
-              usedBy: licenseKeys.usedBy,
-              usedAt: licenseKeys.usedAt,
-              createdAt: licenseKeys.createdAt,
-            }
-          })
-          .from(orderItems)
-          .leftJoin(products, eq(orderItems.productId, products.id))
-          .leftJoin(licenseKeys, eq(orderItems.licenseKeyId, licenseKeys.id))
-          .where(eq(orderItems.orderId, order.id));
-
-        return {
-          ...order,
-          billingInfo: {
-            companyName: order.companyName,
-            firstName: order.firstName,
-            lastName: order.lastName,
-            email: order.email,
-            phone: order.phone,
-            address: order.address,
-            city: order.city,
-            postalCode: order.postalCode,
-            country: order.country,
-          },
-          items: items.map((item) => ({
+          const items = itemRows.map((item: any) => ({
             id: item.id,
-            orderId: item.orderId,
-            productId: item.productId,
+            orderId: item.order_id,
+            productId: item.product_id,
             quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            totalPrice: item.totalPrice,
-            licenseKeyId: item.licenseKeyId,
-            product: item.product,
-            licenseKey: item.licenseKey?.id ? {
-              ...item.licenseKey,
+            unitPrice: item.unit_price,
+            totalPrice: item.total_price,
+            licenseKeyId: item.license_key_id,
+            product: {
+              id: item.product_id,
+              name: item.product_name,
+              description: item.product_description,
+              price: item.product_price,
+              platform: item.product_platform,
+              region: item.product_region,
+            },
+            licenseKey: item.license_key ? {
+              id: item.license_key_id,
+              productId: item.product_id,
+              licenseKey: item.license_key,
+              usedBy: item.used_by,
+              usedAt: item.key_used_at,
+              createdAt: item.key_created_at,
               product: {
-                id: item.product.id,
-                name: item.product.name,
-                version: item.product.version,
-                platform: item.product.platform,
+                id: item.product_id,
+                name: item.product_name,
+                platform: item.product_platform,
               }
             } : null
-          }))
-        };
-      })
-    );
+          }));
 
-    return ordersWithDetails;
+          return {
+            id: order.id,
+            userId: order.user_id,
+            orderNumber: order.order_number,
+            status: order.status,
+            totalAmount: order.total_amount,
+            paymentMethod: order.payment_method,
+            paymentStatus: order.payment_status,
+            createdAt: order.created_at,
+            updatedAt: order.updated_at,
+            billingInfo: {
+              companyName: order.company_name,
+              firstName: order.first_name,
+              lastName: order.last_name,
+              email: order.email,
+              phone: order.phone,
+              address: order.address,
+              city: order.city,
+              postalCode: order.postal_code,
+              country: order.country,
+            },
+            items
+          };
+        })
+      );
+
+      console.log('Returning orders:', ordersWithDetails.length);
+      return ordersWithDetails;
+    } catch (error) {
+      console.error('Error in getOrdersWithDetails:', error);
+      throw error;
+    }
   }
 
   // Admin operations
