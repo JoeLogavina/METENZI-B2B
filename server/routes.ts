@@ -447,20 +447,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/orders', isAuthenticated, async (req: any, res) => {
     try {
+      console.log('Orders API called, user:', req.user?.username, 'ID:', req.user?.id);
       const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       let orders;
       if (user?.role === 'super_admin' || user?.role === 'admin') {
-        orders = await storage.getOrders(); // Admin can see all orders
+        console.log('Admin user requesting all orders');
+        orders = await storage.getOrdersWithDetails(); // Admin can see all orders
       } else {
-        orders = await storage.getOrders(userId); // Users see only their orders
+        console.log('B2B user requesting orders for userId:', userId);
+        orders = await storage.getOrdersWithDetails(userId); // Users see only their orders
       }
       
+      console.log('Orders retrieved:', orders.length);
       res.json(orders);
     } catch (error) {
       console.error("Error fetching orders:", error);
-      res.status(500).json({ message: "Failed to fetch orders" });
+      console.error("Error details:", error.message);
+      console.error("Stack trace:", error.stack);
+      res.status(500).json({ message: "Failed to fetch orders", error: error.message });
     }
   });
 

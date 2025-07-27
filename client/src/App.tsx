@@ -12,6 +12,7 @@ import CartPage from "@/pages/cart";
 import CheckoutPage from "@/pages/checkout";
 import AdminPanel from "@/pages/admin-panel";
 import WalletPage from "@/pages/wallet-page";
+import OrdersPage from "@/pages/orders";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -43,6 +44,7 @@ function Router() {
           <Route path="/cart" component={CartPage} />
           <Route path="/checkout" component={CheckoutPage} />
           <Route path="/wallet" component={WalletPage} />
+          <Route path="/orders" component={OrdersPage} />
           <Route path="/admin-panel" component={AdminPanel} />
           <Route path="/admin" component={() => <Redirect to="/admin-panel" />} />
           <Route path="/auth" component={() => <Redirect to="/" />} />

@@ -73,6 +73,7 @@ export interface IStorage {
   
   // Order operations
   createOrder(order: InsertOrder): Promise<Order>;
+  getOrdersWithDetails(userId?: string): Promise<any[]>;
   createOrderItem(item: InsertOrderItem): Promise<OrderItem>;
   getOrders(userId?: string): Promise<(Order & { items: (OrderItem & { product: Product })[] })[]>;
   updateOrderStatus(orderId: string, status: string): Promise<void>;
@@ -383,6 +384,110 @@ export class DatabaseStorage implements IStorage {
 
   async updatePaymentStatus(orderId: string, paymentStatus: string): Promise<void> {
     await db.update(orders).set({ paymentStatus, updatedAt: new Date() }).where(eq(orders.id, orderId));
+  }
+
+  async getOrdersWithDetails(userId?: string): Promise<any[]> {
+    const orderQuery = db
+      .select({
+        id: orders.id,
+        userId: orders.userId,
+        orderNumber: orders.orderNumber,
+        status: orders.status,
+        totalAmount: orders.totalAmount,
+        taxAmount: orders.taxAmount,
+        finalAmount: orders.finalAmount,
+        paymentMethod: orders.paymentMethod,
+        paymentStatus: orders.paymentStatus,
+        companyName: orders.companyName,
+        firstName: orders.firstName,
+        lastName: orders.lastName,
+        email: orders.email,
+        phone: orders.phone,
+        address: orders.address,
+        city: orders.city,
+        postalCode: orders.postalCode,
+        country: orders.country,
+        createdAt: orders.createdAt,
+        updatedAt: orders.updatedAt,
+      })
+      .from(orders);
+
+    const orderResults = userId 
+      ? await orderQuery.where(eq(orders.userId, userId)).orderBy(desc(orders.createdAt))
+      : await orderQuery.orderBy(desc(orders.createdAt));
+
+    // Get order items with products and license keys for each order
+    const ordersWithDetails = await Promise.all(
+      orderResults.map(async (order) => {
+        const items = await db
+          .select({
+            id: orderItems.id,
+            orderId: orderItems.orderId,
+            productId: orderItems.productId,
+            quantity: orderItems.quantity,
+            unitPrice: orderItems.unitPrice,
+            totalPrice: orderItems.totalPrice,
+            licenseKeyId: orderItems.licenseKeyId,
+            product: {
+              id: products.id,
+              name: products.name,
+              description: products.description,
+              price: products.price,
+              version: products.version,
+              platform: products.platform,
+              region: products.region,
+            },
+            licenseKey: {
+              id: licenseKeys.id,
+              productId: licenseKeys.productId,
+              licenseKey: licenseKeys.licenseKey,
+              usedBy: licenseKeys.usedBy,
+              usedAt: licenseKeys.usedAt,
+              createdAt: licenseKeys.createdAt,
+            }
+          })
+          .from(orderItems)
+          .leftJoin(products, eq(orderItems.productId, products.id))
+          .leftJoin(licenseKeys, eq(orderItems.licenseKeyId, licenseKeys.id))
+          .where(eq(orderItems.orderId, order.id));
+
+        return {
+          ...order,
+          billingInfo: {
+            companyName: order.companyName,
+            firstName: order.firstName,
+            lastName: order.lastName,
+            email: order.email,
+            phone: order.phone,
+            address: order.address,
+            city: order.city,
+            postalCode: order.postalCode,
+            country: order.country,
+          },
+          items: items.map((item) => ({
+            id: item.id,
+            orderId: item.orderId,
+            productId: item.productId,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            totalPrice: item.totalPrice,
+            licenseKeyId: item.licenseKeyId,
+            product: item.product,
+            licenseKey: item.licenseKey?.id ? {
+              ...item.licenseKey,
+              product: {
+                id: item.product.id,
+                name: item.product.name,
+                version: item.product.version,
+                platform: item.product.platform,
+              }
+            } : null
+          }))
+        };
+      })
+    );
+
+    return ordersWithDetails;
   }
 
   // Admin operations
