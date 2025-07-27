@@ -4,6 +4,8 @@ import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { insertProductSchema, insertCategorySchema, insertLicenseKeySchema, insertCartItemSchema } from "@shared/schema";
 import { z } from "zod";
+import { adminRouter } from "./routes/admin";
+import { errorHandler, rateLimit } from "./middleware/auth.middleware";
 
 // Authentication middleware
 const isAuthenticated = (req: any, res: any, next: any) => {
@@ -16,6 +18,12 @@ const isAuthenticated = (req: any, res: any, next: any) => {
 export function registerRoutes(app: Express): Server {
   // Auth middleware
   setupAuth(app);
+
+  // Global rate limiting for API routes
+  app.use('/api', rateLimit(15 * 60 * 1000, 300)); // 300 requests per 15 minutes
+
+  // Mount enterprise admin routes
+  app.use('/api/admin', adminRouter);
 
   // Auth routes
 
@@ -424,6 +432,9 @@ export function registerRoutes(app: Express): Server {
       res.status(500).json({ message: "Failed to update product status" });
     }
   });
+
+  // Global error handler (must be last middleware)
+  app.use(errorHandler);
 
   const httpServer = createServer(app);
   return httpServer;
