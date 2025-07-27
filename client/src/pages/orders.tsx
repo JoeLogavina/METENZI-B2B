@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
+import { useOrdersPreload } from "@/hooks/useDataPreload";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { CacheDebugPanel } from "@/components/cache-debug-panel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -108,6 +109,10 @@ export default function OrdersPage() {
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
   const [location, setLocation] = useLocation();
 
+  // TIER 2 OPTIMIZATION: Aggressive data preloading for orders
+  useOrdersPreload();
+
+  // TIER 2 OPTIMIZATION: Enhanced caching with stale-while-revalidate
   const {
     data: orders,
     error,
@@ -115,11 +120,10 @@ export default function OrdersPage() {
   } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
     enabled: isAuthenticated,
-    staleTime: 1000 * 30, // 30 seconds - balanced freshness for orders
-    gcTime: 1000 * 60 * 5, // 5 minutes in memory
-    refetchOnWindowFocus: true, // Refetch when user returns to tab
-    refetchOnMount: true, // Always refetch on component mount
-    retry: 3, // Retry failed requests
+    staleTime: 2 * 60 * 1000, // 2 minutes - show cached data immediately
+    gcTime: 15 * 60 * 1000, // 15 minutes - keep in cache longer
+    refetchOnWindowFocus: false, // Prevent unnecessary refetches
+    refetchOnMount: 'always', // Always refetch to ensure fresh data
   });
 
   useEffect(() => {

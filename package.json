@@ -43,6 +43,7 @@
     "@radix-ui/react-tooltip": "^1.2.0",
     "@tanstack/react-query": "^5.60.5",
     "@testcontainers/postgresql": "^11.4.0",
+    "@types/file-saver": "^2.0.7",
     "@types/memoizee": "^0.4.12",
     "@types/supertest": "^6.0.3",
     "@vitest/ui": "^3.2.4",

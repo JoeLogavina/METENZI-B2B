@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import { WalletProvider } from "@/contexts/WalletContext";
 import { usePreloadRoutes } from "@/hooks/usePreloadRoutes";
+import { useDataPreload } from "@/hooks/useDataPreload";
 import { 
   ShopLoadingFallback, 
   CartLoadingFallback, 
@@ -36,6 +37,7 @@ const OrdersPage = lazy(() => import("@/pages/orders"));
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
   const { preloadOnHover } = usePreloadRoutes();
+  const { preloadDataOnHover } = useDataPreload();
 
   if (isLoading) {
     return (

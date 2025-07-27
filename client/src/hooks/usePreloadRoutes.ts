@@ -4,13 +4,13 @@
 import { useEffect } from "react";
 import { preloadRoute } from "@/lib/bundle-analyzer";
 
-// Route preloading strategies
+// TIER 2 OPTIMIZATION: Enhanced preloading strategies
 const PRELOAD_STRATEGIES = {
-  // Immediate preload on app start (critical routes)
-  immediate: ['b2b-shop', 'cart'],
+  // Immediate preload on app start (critical routes) - ORDERS MOVED HERE
+  immediate: ['b2b-shop', 'cart', 'orders'],
   
-  // Preload after initial render (likely routes)
-  delayed: ['wallet', 'orders'],
+  // Preload after initial render (secondary routes)
+  delayed: ['wallet'],
   
   // Preload on hover/interaction (admin routes)
   interactive: ['admin-panel']

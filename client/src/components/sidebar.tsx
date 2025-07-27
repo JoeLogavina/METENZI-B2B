@@ -54,6 +54,36 @@ export default function Sidebar({ activeItem, userRole }: SidebarProps) {
             const isActive = activeItem === item.id;
             const IconComponent = item.icon;
             
+            // TIER 2 OPTIMIZATION: Hover-based preloading for navigation
+            const getPreloadProps = () => {
+              const routeName = item.href.replace('/', '') || 'b2b-shop';
+              const dataEndpoint = routeName === 'orders' ? '/api/orders' : 
+                                 routeName === 'wallet' ? '/api/wallet' : null;
+              
+              return {
+                onMouseEnter: () => {
+                  // Preload route bundle
+                  if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+                    requestIdleCallback(() => {
+                      import(`@/pages/${routeName === 'b2b-shop' ? 'b2b-shop' : routeName === 'orders' ? 'orders' : routeName === 'wallet' ? 'wallet-page' : routeName === 'admin-panel' ? 'admin-panel' : 'cart'}`).catch(() => {});
+                    });
+                  }
+                  // Preload data if applicable
+                  if (dataEndpoint) {
+                    import("@/lib/queryClient").then(({ queryClient }) => {
+                      if (!queryClient.getQueryData([dataEndpoint])) {
+                        queryClient.prefetchQuery({
+                          queryKey: [dataEndpoint],
+                          staleTime: 5 * 60 * 1000,
+                          gcTime: 30 * 60 * 1000,
+                        }).catch(() => {});
+                      }
+                    });
+                  }
+                }
+              };
+            };
+
             return (
               <Link key={item.id} href={item.href}>
                 <Button
@@ -63,6 +93,7 @@ export default function Sidebar({ activeItem, userRole }: SidebarProps) {
                       ? 'bg-primary text-white hover:bg-primary/90'
                       : 'text-gray-300 hover:bg-gray-600 hover:text-white'
                   }`}
+                  {...getPreloadProps()}
                 >
                   <IconComponent className="w-5 h-5 mr-3" />
                   {item.label}
