@@ -663,18 +663,38 @@ function ProductForm({
       return;
     }
 
+    console.log('DEBUG: Starting handleSaveKeys');
+    console.log('DEBUG: Product ID:', product.id);
+    console.log('DEBUG: License keys input:', licenseKeys);
+    console.log('DEBUG: License keys length:', licenseKeys.length);
+    
+    // Parse and validate keys
+    const keyValues = licenseKeys
+      .split('\n')
+      .map(key => key.trim())
+      .filter(key => key.length > 0);
+    
+    console.log('DEBUG: Parsed key values:', keyValues);
+    console.log('DEBUG: Number of valid keys:', keyValues.length);
+
     try {
+      const requestBody = {
+        keys: licenseKeys,
+        ignoreDuplicates: false
+      };
+      
+      console.log('DEBUG: Request body:', requestBody);
+
       const response = await fetch(`/api/admin/license-keys/${product.id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({
-          keys: licenseKeys,
-          ignoreDuplicates: false
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const result = await response.json();
+      console.log('DEBUG: Response status:', response.status);
+      console.log('DEBUG: Response result:', result);
 
       if (response.status === 409) {
         // Handle duplicates

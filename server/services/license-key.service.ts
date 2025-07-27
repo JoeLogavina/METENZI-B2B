@@ -34,8 +34,14 @@ export class LicenseKeyServiceImpl implements ILicenseKeyService {
 
   async addKeys(productId: string, keyValues: string[]): Promise<{ added: LicenseKey[], duplicates: string[] }> {
     try {
+      console.log('DEBUG Service: addKeys called with productId:', productId);
+      console.log('DEBUG Service: Raw key values:', keyValues);
+      console.log('DEBUG Service: Number of raw keys:', keyValues.length);
+      
       // Validate keys format
       const validatedKeys = this.validateKeys(keyValues);
+      console.log('DEBUG Service: Valid keys after validation:', validatedKeys);
+      console.log('DEBUG Service: Number of valid keys:', validatedKeys.length);
       
       // Check for existing keys
       const existingKeys = await db
@@ -43,6 +49,7 @@ export class LicenseKeyServiceImpl implements ILicenseKeyService {
         .from(licenseKeys)
         .where(eq(licenseKeys.productId, productId));
       
+      console.log('DEBUG Service: Existing keys in DB:', existingKeys);
       const existingKeyValues = new Set(existingKeys.map(k => k.keyValue));
       
       const newKeys: string[] = [];
@@ -55,6 +62,9 @@ export class LicenseKeyServiceImpl implements ILicenseKeyService {
           newKeys.push(key);
         }
       }
+      
+      console.log('DEBUG Service: New keys to add:', newKeys);
+      console.log('DEBUG Service: Duplicate keys found:', duplicates);
       
       // Insert new keys
       const added: LicenseKey[] = [];

@@ -57,7 +57,11 @@ export class AdminLicenseKeysController {
   async addKeys(req: Request, res: Response) {
     try {
       const { productId } = req.params;
+      console.log('DEBUG Controller: Product ID:', productId);
+      console.log('DEBUG Controller: Request body:', req.body);
+      
       const validatedData = addKeysSchema.parse(req.body);
+      console.log('DEBUG Controller: Validated data:', validatedData);
       
       if (!productId) {
         throw new ValidationError("Product ID is required");
@@ -69,11 +73,15 @@ export class AdminLicenseKeysController {
         .map(key => key.trim())
         .filter(key => key.length > 0);
       
+      console.log('DEBUG Controller: Parsed key values:', keyValues);
+      console.log('DEBUG Controller: Number of valid keys:', keyValues.length);
+      
       if (keyValues.length === 0) {
         throw new ValidationError("No valid keys provided");
       }
       
       const result = await licenseKeyService.addKeys(productId, keyValues);
+      console.log('DEBUG Controller: Service result:', result);
       
       // If there are duplicates and user hasn't acknowledged them
       if (result.duplicates.length > 0 && !validatedData.ignoreDuplicates) {
