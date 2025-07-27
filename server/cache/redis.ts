@@ -24,12 +24,14 @@ class RedisCache {
     });
 
     this.client.on('error', (error) => {
-      console.warn('⚠️ Redis connection error, using in-memory fallback:', error.message);
+      if (!this.isConnected) {
+        // Only log the first error, not subsequent retry attempts
+        console.warn('⚠️ Redis unavailable, using in-memory cache fallback');
+      }
       this.isConnected = false;
     });
 
     this.client.on('close', () => {
-      console.log('📴 Redis connection closed, using in-memory fallback');
       this.isConnected = false;
     });
     

@@ -122,3 +122,8 @@ export const userCacheMiddleware = cacheMiddleware({
   ttl: 600, // 10 minutes
   keyPrefix: 'user'
 });
+
+export const categoriesCacheMiddleware = cacheMiddleware({
+  ttl: 900, // 15 minutes (categories change rarely)
+  keyPrefix: 'categories'
+});

@@ -12,6 +12,7 @@ import {
   productsCacheMiddleware, 
   walletCacheMiddleware, 
   ordersCacheMiddleware,
+  categoriesCacheMiddleware,
   invalidateCacheMiddleware 
 } from "./middleware/cache.middleware";
 import { cacheHelpers } from "./cache/redis";
@@ -321,32 +322,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
 
-  // Category routes
-  app.get('/api/categories', async (req, res) => {
-    try {
-      const categories = await storage.getCategories();
-      res.json(categories);
-    } catch (error) {
-      console.error("Error fetching categories:", error);
-      res.status(500).json({ message: "Failed to fetch categories" });
-    }
-  });
-
-  app.post('/api/categories', isAuthenticated, async (req: any, res) => {
-    try {
-      const user = await storage.getUser(req.user.id);
-      if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
-        return res.status(403).json({ message: "Insufficient permissions" });
+  // Category routes with caching and performance monitoring
+  app.get('/api/categories', 
+    categoriesCacheMiddleware,
+    async (req, res) => {
+      try {
+        // Fetch from database with timing
+        const startTime = Date.now();
+        const categories = await storage.getCategories();
+        const duration = Date.now() - startTime;
+        
+        if (duration > 50) {
+          console.warn(`🐌 Slow categories query: ${duration}ms`);
+        }
+        
+        res.json(categories);
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+        res.status(500).json({ message: "Failed to fetch categories" });
       }
+    });
 
-      const categoryData = insertCategorySchema.parse(req.body);
-      const category = await storage.createCategory(categoryData);
-      res.status(201).json(category);
-    } catch (error) {
-      console.error("Error creating category:", error);
-      res.status(500).json({ message: "Failed to create category" });
-    }
-  });
+  app.post('/api/categories', 
+    isAuthenticated, 
+    invalidateCacheMiddleware('categories:*'),
+    async (req: any, res) => {
+      try {
+        const user = await storage.getUser(req.user.id);
+        if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
+          return res.status(403).json({ message: "Insufficient permissions" });
+        }
+
+        const categoryData = insertCategorySchema.parse(req.body);
+        const startTime = Date.now();
+        const category = await storage.createCategory(categoryData);
+        const duration = Date.now() - startTime;
+        
+        if (duration > 100) {
+          console.warn(`🐌 Slow category creation: ${duration}ms`);
+        }
+        
+        res.status(201).json(category);
+      } catch (error) {
+        console.error("Error creating category:", error);
+        res.status(500).json({ message: "Failed to create category" });
+      }
+    });
 
   // License key routes
   app.get('/api/license-keys', isAuthenticated, async (req: any, res) => {
