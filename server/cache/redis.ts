@@ -9,12 +9,13 @@ class RedisCache {
     const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
     
     this.client = new Redis(redisUrl, {
-      maxRetriesPerRequest: 2,
+      maxRetriesPerRequest: 0,
       lazyConnect: true,
       connectionName: 'b2b-portal',
       retryDelayOnFailover: 100,
-      connectTimeout: 5000,
-      commandTimeout: 3000,
+      connectTimeout: 2000,
+      commandTimeout: 1000,
+      enableAutoPipelining: false,
     });
 
     this.client.on('connect', () => {
@@ -32,9 +33,9 @@ class RedisCache {
       this.isConnected = false;
     });
     
-    // Try to connect immediately and fallback if it fails
+    // Try to connect once and fallback silently if it fails
     this.client.connect().catch(() => {
-      console.log('🔄 Redis unavailable, enabling in-memory cache');
+      console.log('🔄 Redis unavailable, using in-memory cache');
       this.isConnected = false;
     });
   }
