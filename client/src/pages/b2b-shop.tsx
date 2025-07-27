@@ -52,10 +52,12 @@ export default function B2BShop() {
     }
   }, [isAuthenticated, isLoading, toast]);
 
-  // Fetch products with optimized caching and debounced filters
-  const { data: products = [], isLoading: productsLoading } = useQuery<ProductWithStock[]>({
+  // Fetch products with enterprise-grade performance optimization
+  const { data: products = [], isLoading: productsLoading, isFetching: productsIsFetching } = useQuery<ProductWithStock[]>({
     queryKey: ["/api/products", debouncedFilters],
     queryFn: async () => {
+      const startTime = performance.now();
+      
       const params = new URLSearchParams();
       if (debouncedFilters.region) params.append('region', debouncedFilters.region);
       if (debouncedFilters.platform) params.append('platform', debouncedFilters.platform);
@@ -71,32 +73,52 @@ export default function B2BShop() {
         throw new Error(`${res.status}: ${res.statusText}`);
       }
       
-      return await res.json();
+      const data = await res.json();
+      const duration = performance.now() - startTime;
+      
+      // Log performance metrics for monitoring
+      if (duration > 1000) {
+        console.warn(`🐌 Slow products query: ${duration.toFixed(2)}ms`);
+      } else if (duration < 100) {
+        console.log(`⚡ Fast products query: ${duration.toFixed(2)}ms`);
+      }
+      
+      return data;
     },
     enabled: isAuthenticated,
     staleTime: 5 * 60 * 1000, // 5 minutes fresh data
     gcTime: 30 * 60 * 1000, // 30 minutes cache retention
     refetchOnWindowFocus: false, // Prevent excessive refetches
+    retry: 2, // Retry failed requests twice
     placeholderData: (previousData) => previousData, // Keep previous data while loading
   });
 
-  // Fetch cart items
+  // Fetch cart items with enterprise caching strategy
   const { data: cartItems = [], isLoading: cartLoading } = useQuery<any[]>({
     queryKey: ["/api/cart"],
     enabled: isAuthenticated,
+    staleTime: 2 * 60 * 1000, // 2 minutes fresh data (cart changes frequently)
+    gcTime: 10 * 60 * 1000, // 10 minutes cache retention
+    refetchOnWindowFocus: false, // Don't refetch when user returns to tab
+    refetchOnReconnect: true, // Refetch when connection restored
+    retry: 2, // Retry failed requests twice
+    placeholderData: (previousData) => previousData, // Keep previous data while loading
   });
 
   // Track which product is currently being added to cart
   const [addingProductId, setAddingProductId] = useState<string | null>(null);
 
-  // Add to cart mutation with optimistic updates
+  // Enterprise-grade optimistic updates with instant UI response
   const addToCartMutation = useMutation({
     mutationFn: async ({ productId, quantity }: { productId, quantity: number }) => {
-      setAddingProductId(productId);
+      // Don't set loading state here - let optimistic update handle UX
       const response = await apiRequest("POST", "/api/cart", { productId, quantity });
       return response.json();
     },
     onMutate: async ({ productId, quantity }) => {
+      // Instant UI response - set loading state immediately
+      setAddingProductId(productId);
+      
       // Cancel any outgoing cart queries to prevent overwriting our optimistic update
       await queryClient.cancelQueries({ queryKey: ["/api/cart"] });
       
@@ -107,7 +129,7 @@ export default function B2BShop() {
       const product = products.find(p => p.id === productId);
       
       if (product) {
-        // Optimistically update cart
+        // Optimistically update cart immediately
         queryClient.setQueryData(["/api/cart"], (old: any[]) => {
           const existingItem = old?.find(item => item.productId === productId);
           if (existingItem) {
@@ -118,9 +140,9 @@ export default function B2BShop() {
                 : item
             );
           } else {
-            // Add new item
+            // Add new item with optimistic data
             return [...(old || []), {
-              id: `temp-${Date.now()}`,
+              id: `optimistic-${productId}-${Date.now()}`,
               productId,
               quantity,
               product,
@@ -131,43 +153,63 @@ export default function B2BShop() {
           }
         });
         
-        // Show success toast immediately
+        // Show success toast immediately for better UX
         toast({
           title: "Added to Cart",
           description: `${product.name} added successfully`,
         });
+        
+        // Clear loading state after optimistic update (faster UX)
+        setTimeout(() => setAddingProductId(null), 200);
       }
       
-      return { previousCart, productId, quantity };
+      return { previousCart, productId, quantity, product };
+    },
+    onSuccess: (serverResponse, variables, context) => {
+      // Replace optimistic data with server response
+      queryClient.setQueryData(["/api/cart"], (old: any[]) => {
+        if (!old) return [serverResponse];
+        
+        // Replace optimistic item with server response
+        const optimisticId = `optimistic-${variables.productId}-`;
+        return old.map(item => 
+          item.id.startsWith(optimisticId) ? serverResponse : item
+        );
+      });
     },
     onError: (error, variables, context) => {
+      // Clear loading state
+      setAddingProductId(null);
+      
       // Rollback the optimistic update on error
       if (context?.previousCart) {
         queryClient.setQueryData(["/api/cart"], context.previousCart);
       }
       
+      // Show error notification (overrides success toast)
+      toast({
+        title: "Error",
+        description: context?.product ? 
+          `Failed to add ${context.product.name} to cart. Please try again.` :
+          "Failed to add item to cart. Please try again.",
+        variant: "destructive",
+      });
+      
       if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
         setTimeout(() => {
           window.location.href = "/api/login";
         }, 500);
         return;
       }
-      toast({
-        title: "Error",
-        description: "Failed to add item to cart. Please try again.",
-        variant: "destructive",
-      });
     },
     onSettled: () => {
-      // Clear the loading state
+      // Always clear loading state and sync with server
       setAddingProductId(null);
-      // Synchronize with server after mutation
-      queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
+      // Gentle background sync without disrupting UX
+      queryClient.invalidateQueries({ 
+        queryKey: ["/api/cart"],
+        refetchType: 'none', // Don't trigger immediate refetch
+      });
     },
   });
 
@@ -363,6 +405,12 @@ export default function B2BShop() {
                   onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
                   className="pl-10 border-[#ddd] rounded-[5px] focus:border-[#FFB20F] transition-colors duration-200"
                 />
+                {/* Subtle performance indicator */}
+                {productsIsFetching && filters.search && (
+                  <div className="absolute right-3 top-3">
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#FFB20F] border-t-transparent"></div>
+                  </div>
+                )}
               </div>
               <Select value={filters.region || 'all'} onValueChange={(value) => setFilters(prev => ({ ...prev, region: value === 'all' ? '' : value }))}>
                 <SelectTrigger className="w-32 border-[#ddd] rounded-[5px] focus:border-[#FFB20F]">

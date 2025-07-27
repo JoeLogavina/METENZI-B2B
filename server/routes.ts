@@ -403,72 +403,158 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Cart routes
-  app.get('/api/cart', isAuthenticated, async (req: any, res) => {
-    try {
+  // Enterprise-optimized Cart routes with caching and performance monitoring
+  app.get('/api/cart', 
+    isAuthenticated, 
+    async (req: any, res) => {
+      const startTime = Date.now();
       const userId = req.user.id;
-      const cartItems = await storage.getCartItems(userId);
-      res.json(cartItems);
-    } catch (error) {
-      console.error("Error fetching cart:", error);
-      res.status(500).json({ message: "Failed to fetch cart" });
-    }
-  });
+      
+      try {
+        // Try cache first for better performance
+        const cacheKey = `cart:${userId}`;
+        const cachedCart = await cacheService.get(cacheKey);
+        
+        if (cachedCart) {
+          console.log(`📦 Cart from cache for user: ${req.user.username}`);
+          res.setHeader('X-Cache', 'HIT');
+          return res.json(cachedCart);
+        }
+        
+        // Fetch from database with performance monitoring
+        const cartItems = await storage.getCartItems(userId);
+        const duration = Date.now() - startTime;
+        
+        if (duration > 100) {
+          console.warn(`🐌 Slow cart query: ${duration}ms for user: ${req.user.username}`);
+        }
+        
+        // Cache cart items for 5 minutes
+        await cacheService.set(cacheKey, cartItems, 300);
+        
+        res.setHeader('X-Cache', 'MISS');
+        res.json(cartItems);
+      } catch (error) {
+        console.error("Error fetching cart:", error);
+        res.status(500).json({ message: "Failed to fetch cart" });
+      }
+    });
 
-  app.post('/api/cart', isAuthenticated, async (req: any, res) => {
-    try {
+  app.post('/api/cart', 
+    isAuthenticated, 
+    async (req: any, res) => {
+      const startTime = Date.now();
       const userId = req.user.id;
-      const cartData = insertCartItemSchema.parse({ ...req.body, userId });
-      const cartItem = await storage.addToCart(cartData);
-      res.status(201).json(cartItem);
-    } catch (error) {
-      console.error("Error adding to cart:", error);
-      res.status(500).json({ message: "Failed to add to cart" });
-    }
-  });
+      
+      try {
+        // Validate and parse cart data
+        const cartData = insertCartItemSchema.parse({ ...req.body, userId });
+        
+        // Add to cart with performance monitoring
+        const cartItem = await storage.addToCart(cartData);
+        const duration = Date.now() - startTime;
+        
+        if (duration > 200) {
+          console.warn(`🐌 Slow cart add operation: ${duration}ms for user: ${req.user.username}`);
+        }
+        
+        // Invalidate cart cache for this user
+        const cacheKey = `cart:${userId}`;
+        await cacheService.delete(cacheKey);
+        
+        console.log(`✅ Added to cart (${duration}ms): ${cartData.quantity}x product ${cartData.productId} for user: ${req.user.username}`);
+        res.status(201).json(cartItem);
+      } catch (error) {
+        console.error("Error adding to cart:", error);
+        res.status(500).json({ message: "Failed to add to cart" });
+      }
+    });
 
-  app.put('/api/cart/:id', isAuthenticated, async (req: any, res) => {
-    try {
-      const { quantity } = req.body;
-      await storage.updateCartItem(req.params.id, quantity);
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Error updating cart item:", error);
-      res.status(500).json({ message: "Failed to update cart item" });
-    }
-  });
-
-  app.patch('/api/cart/:id', isAuthenticated, async (req: any, res) => {
-    try {
-      const { quantity } = req.body;
-      await storage.updateCartItem(req.params.id, quantity);
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Error updating cart item:", error);
-      res.status(500).json({ message: "Failed to update cart item" });
-    }
-  });
-
-  app.delete('/api/cart/:id', isAuthenticated, async (req: any, res) => {
-    try {
-      await storage.removeFromCart(req.params.id);
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Error removing from cart:", error);
-      res.status(500).json({ message: "Failed to remove from cart" });
-    }
-  });
-
-  app.delete('/api/cart', isAuthenticated, async (req: any, res) => {
-    try {
+  app.put('/api/cart/:id', 
+    isAuthenticated, 
+    async (req: any, res) => {
+      const startTime = Date.now();
       const userId = req.user.id;
-      await storage.clearCart(userId);
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Error clearing cart:", error);
-      res.status(500).json({ message: "Failed to clear cart" });
-    }
-  });
+      
+      try {
+        const { quantity } = req.body;
+        await storage.updateCartItem(req.params.id, quantity);
+        
+        // Invalidate user's cart cache
+        await cacheService.delete(`cart:${userId}`);
+        
+        const duration = Date.now() - startTime;
+        console.log(`✅ Updated cart item (${duration}ms): ${req.params.id} for user: ${req.user.username}`);
+        res.json({ success: true });
+      } catch (error) {
+        console.error("Error updating cart item:", error);
+        res.status(500).json({ message: "Failed to update cart item" });
+      }
+    });
+
+  app.patch('/api/cart/:id', 
+    isAuthenticated, 
+    async (req: any, res) => {
+      const startTime = Date.now();
+      const userId = req.user.id;
+      
+      try {
+        const { quantity } = req.body;
+        await storage.updateCartItem(req.params.id, quantity);
+        
+        // Invalidate user's cart cache
+        await cacheService.delete(`cart:${userId}`);
+        
+        const duration = Date.now() - startTime;
+        console.log(`✅ Patched cart item (${duration}ms): ${req.params.id} for user: ${req.user.username}`);
+        res.json({ success: true });
+      } catch (error) {
+        console.error("Error updating cart item:", error);
+        res.status(500).json({ message: "Failed to update cart item" });
+      }
+    });
+
+  app.delete('/api/cart/:id', 
+    isAuthenticated, 
+    async (req: any, res) => {
+      const startTime = Date.now();
+      const userId = req.user.id;
+      
+      try {
+        await storage.removeFromCart(req.params.id);
+        
+        // Invalidate user's cart cache
+        await cacheService.delete(`cart:${userId}`);
+        
+        const duration = Date.now() - startTime;
+        console.log(`✅ Removed cart item (${duration}ms): ${req.params.id} for user: ${req.user.username}`);
+        res.json({ success: true });
+      } catch (error) {
+        console.error("Error removing from cart:", error);
+        res.status(500).json({ message: "Failed to remove from cart" });
+      }
+    });
+
+  app.delete('/api/cart', 
+    isAuthenticated, 
+    async (req: any, res) => {
+      const startTime = Date.now();
+      const userId = req.user.id;
+      
+      try {
+        await storage.clearCart(userId);
+        
+        // Invalidate user's cart cache
+        await cacheService.delete(`cart:${userId}`);
+        
+        const duration = Date.now() - startTime;
+        console.log(`✅ Cleared cart (${duration}ms) for user: ${req.user.username}`);
+        res.json({ success: true });
+      } catch (error) {
+        console.error("Error clearing cart:", error);
+        res.status(500).json({ message: "Failed to clear cart" });
+      }
+    });
 
   // Order routes with enterprise cache invalidation
   app.post('/api/orders', 
