@@ -422,9 +422,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Clear cart
       await storage.clearCart(userId);
       
-      // Simulate payment processing based on payment method
+      // Process payment based on payment method
       let updatedOrder = order;
-      if (paymentMethod === 'credit_card') {
+      if (paymentMethod === 'wallet') {
+        // Import wallet service
+        const { WalletService } = await import('./services/wallet.service');
+        const walletService = new WalletService();
+        
+        // Process wallet payment
+        const paymentResult = await walletService.processPayment(
+          userId, 
+          finalAmount.toString(), 
+          order.id, 
+          `Payment for order ${orderNumber}`
+        );
+        
+        if (paymentResult.success) {
+          await storage.updateOrderStatus(order.id, 'completed');
+          await storage.updatePaymentStatus(order.id, 'paid');
+          updatedOrder = { ...order, status: 'completed', paymentStatus: 'paid' };
+        } else {
+          return res.status(400).json({ 
+            message: "Insufficient wallet balance to complete the payment" 
+          });
+        }
+      } else if (paymentMethod === 'credit_card') {
         // In a real app, this would integrate with Stripe, Square, etc.
         // For demo purposes, we'll simulate successful payment
         await storage.updateOrderStatus(order.id, 'completed');
