@@ -627,8 +627,7 @@ export default function AdminPanel() {
                                   size="sm"
                                   variant="outline"
                                   onClick={() => {
-                                    setEditingProduct(product);
-                                    setShowProductForm(true);
+                                    window.location.href = `/admin/products/${product.id}`;
                                   }}
                                   className="text-[#FFB20F] border-[#FFB20F] hover:bg-[#FFB20F] hover:text-white"
                                 >

@@ -31,6 +31,7 @@ const B2BShop = lazy(() => import("@/pages/b2b-shop"));
 const CartPage = lazy(() => import("@/pages/cart"));
 const CheckoutPage = lazy(() => import("@/pages/checkout"));
 const AdminPanel = lazy(() => import("@/pages/admin-panel"));
+const EditProduct = lazy(() => import("@/pages/edit-product"));
 const WalletPage = lazy(() => import("@/pages/wallet-page"));
 const OrdersPage = lazy(() => import("@/pages/orders"));
 
@@ -93,6 +94,11 @@ function Router() {
           <Route path="/admin-panel" component={() => (
             <Suspense fallback={<AdminLoadingFallback />}>
               <AdminPanel />
+            </Suspense>
+          )} />
+          <Route path="/admin/products/:id" component={() => (
+            <Suspense fallback={<AdminLoadingFallback />}>
+              <EditProduct />
             </Suspense>
           )} />
           <Route path="/admin" component={() => <Redirect to="/admin-panel" />} />
