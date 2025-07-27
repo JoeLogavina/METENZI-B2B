@@ -4,6 +4,8 @@ import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { insertProductSchema, insertCategorySchema, insertLicenseKeySchema, insertCartItemSchema } from "@shared/schema";
 import { z } from "zod";
+import { db } from "./db";
+import { sql } from "drizzle-orm";
 import { adminRouter } from "./routes/admin";
 import { errorHandler, rateLimit } from "./middleware/auth.middleware";
 
@@ -95,19 +97,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Mount enterprise admin routes
   app.use('/api/admin', adminRouter);
 
-  // Direct wallet balance endpoint (bypass auth issues)
+  // Direct wallet balance endpoint (bypass auth issues) using raw SQL
   app.get('/api/wallet-balance/:userId', async (req, res) => {
     try {
       const { userId } = req.params;
       console.log('Direct wallet balance requested for user:', userId);
       
-      // Get all transactions for this user from database
-      const transactions = await db
-        .select()
-        .from(walletTransactions)
-        .where(eq(walletTransactions.userId, userId))
-        .orderBy(desc(walletTransactions.createdAt));
-
+      // Use raw SQL to avoid schema import issues
+      const result = await db.execute(sql`
+        SELECT type, amount FROM wallet_transactions 
+        WHERE user_id = ${userId} 
+        ORDER BY created_at DESC
+      `);
+      
+      const transactions = result.rows;
       console.log('Transactions found:', transactions.length);
 
       // Calculate balances from transactions
@@ -150,7 +153,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ data: { balance } });
     } catch (error) {
       console.error("Error getting wallet balance:", error);
-      res.status(500).json({ message: "Failed to get wallet balance" });
+      console.error("Error details:", error.message);
+      console.error("Stack trace:", error.stack);
+      res.status(500).json({ message: "Failed to get wallet balance", error: error.message });
     }
   });
 
