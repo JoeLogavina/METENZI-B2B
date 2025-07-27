@@ -38,13 +38,7 @@ class PerformanceService {
       metadata
     });
 
-    // Log slow operations
-    if (duration > this.SLOW_QUERY_THRESHOLD) {
-      console.warn(`🐌 Slow ${operation}: ${duration.toFixed(2)}ms`, {
-        userId,
-        metadata
-      });
-    }
+    // Performance monitoring disabled for production
 
     // Clean up performance entries
     performance.clearMarks(`start-${timingId}`);

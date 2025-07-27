@@ -19,7 +19,6 @@ class RedisCache {
     });
 
     this.client.on('connect', () => {
-      console.log('✅ Redis connected successfully');
       this.isConnected = true;
     });
 

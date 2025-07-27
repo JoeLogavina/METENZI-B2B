@@ -48,7 +48,6 @@ export default function AdminPanel() {
 
   // Redirect if not authenticated or not admin
   useEffect(() => {
-    console.log("Admin panel auth check:", { isLoading, isAuthenticated, userRole: (user as any)?.role, user });
     if (!isLoading && (!isAuthenticated || ((user as any)?.role !== 'admin' && (user as any)?.role !== 'super_admin'))) {
       toast({
         title: "Unauthorized", 
@@ -675,8 +674,6 @@ export default function AdminPanel() {
                         if (!response.ok) {
                           const errorData = await response.json();
                           console.error('Product save error:', errorData);
-                          console.log('Submitted data:', data);
-                          console.log('Product being edited:', editingProduct);
                           throw new Error(errorData.message || 'Failed to save product');
                         }
 
@@ -829,10 +826,6 @@ function ProductForm({
       return;
     }
 
-    console.log('DEBUG: Starting handleSaveKeys');
-    console.log('DEBUG: Product ID:', product.id);
-    console.log('DEBUG: License keys input:', licenseKeys);
-    console.log('DEBUG: License keys length:', licenseKeys.length);
     
     // Parse and validate keys
     const keyValues = licenseKeys
@@ -840,8 +833,6 @@ function ProductForm({
       .map(key => key.trim())
       .filter(key => key.length > 0);
     
-    console.log('DEBUG: Parsed key values:', keyValues);
-    console.log('DEBUG: Number of valid keys:', keyValues.length);
 
     try {
       const requestBody = {
@@ -849,7 +840,6 @@ function ProductForm({
         ignoreDuplicates: false
       };
       
-      console.log('DEBUG: Request body:', requestBody);
 
       const response = await fetch(`/api/admin/license-keys/${product.id}`, {
         method: 'POST',
@@ -859,8 +849,6 @@ function ProductForm({
       });
 
       const result = await response.json();
-      console.log('DEBUG: Response status:', response.status);
-      console.log('DEBUG: Response result:', result);
 
       if (response.status === 409) {
         // Handle duplicates

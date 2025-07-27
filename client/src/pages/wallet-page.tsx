@@ -62,16 +62,7 @@ export default function WalletPage() {
   // Use unified wallet system
   const { walletData, balance, isLoading, error, formatCurrency } = useWallet();
 
-  // Debug logging to see what's happening
-  console.log('Wallet Debug Full:', { 
-    walletData, 
-    balance, 
-    isLoading, 
-    error, 
-    errorKeys: error ? Object.keys(error) : [],
-    hasWalletData: !!walletData,
-    hasBalance: !!balance
-  });
+  // Debug logging removed for production
 
   const sidebarItems = [
     { icon: Package, label: "B2B SHOP", active: false, href: "/", allowed: true },
@@ -136,7 +127,6 @@ export default function WalletPage() {
                   : 'text-white hover:bg-[#7a7b7d]'
               }`}
               onClick={() => {
-                console.log('Sidebar item clicked:', item.label, 'href:', item.href);
                 setLocation(item.href);
               }}
             >

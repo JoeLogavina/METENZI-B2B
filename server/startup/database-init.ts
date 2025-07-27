@@ -17,9 +17,7 @@ export async function initializeDatabase(): Promise<void> {
       
       // Create missing indexes
       await dbOptimizationService.createPerformanceIndexes();
-      console.log('✅ Performance indexes created successfully');
     } else {
-      console.log('✅ All performance indexes already exist');
     }
     
     // Update table statistics for better query planning

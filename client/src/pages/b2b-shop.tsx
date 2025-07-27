@@ -56,8 +56,6 @@ export default function B2BShop() {
   const { data: products = [], isLoading: productsLoading, isFetching: productsIsFetching } = useQuery<ProductWithStock[]>({
     queryKey: ["/api/products", debouncedFilters],
     queryFn: async () => {
-      const startTime = performance.now();
-      
       const params = new URLSearchParams();
       if (debouncedFilters.region) params.append('region', debouncedFilters.region);
       if (debouncedFilters.platform) params.append('platform', debouncedFilters.platform);
@@ -73,17 +71,7 @@ export default function B2BShop() {
         throw new Error(`${res.status}: ${res.statusText}`);
       }
       
-      const data = await res.json();
-      const duration = performance.now() - startTime;
-      
-      // Log performance metrics for monitoring
-      if (duration > 1000) {
-        console.warn(`🐌 Slow products query: ${duration.toFixed(2)}ms`);
-      } else if (duration < 100) {
-        console.log(`⚡ Fast products query: ${duration.toFixed(2)}ms`);
-      }
-      
-      return data;
+      return await res.json();
     },
     enabled: isAuthenticated,
     staleTime: 5 * 60 * 1000, // 5 minutes fresh data
@@ -273,7 +261,7 @@ export default function B2BShop() {
                   : 'text-white hover:bg-[#7a7b7d]'
               }`}
               onClick={() => {
-                console.log('Sidebar item clicked:', item.label, 'href:', item.href);
+                // Navigation tracking removed for production
                 setLocation(item.href);
               }}
             >

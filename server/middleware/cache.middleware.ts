@@ -30,7 +30,6 @@ export function cacheMiddleware(options: CacheOptions = {}) {
       const cachedResponse = await redisCache.get(cacheKey);
       
       if (cachedResponse) {
-        console.log(`📦 Cache HIT: ${req.originalUrl}`);
         
         // Set cache headers
         res.set({

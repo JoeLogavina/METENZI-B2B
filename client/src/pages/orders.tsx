@@ -390,7 +390,6 @@ export default function OrdersPage() {
                   : 'text-white hover:bg-[#7a7b7d]'
               }`}
               onClick={() => {
-                console.log('Sidebar item clicked:', item.label, 'href:', item.href);
                 setLocation(item.href);
               }}
             >

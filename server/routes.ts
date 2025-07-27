@@ -121,7 +121,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Debug middleware for admin routes
   app.use('/api/admin', (req, res, next) => {
-    console.log('Main admin route hit:', req.method, req.path, 'User authenticated:', !!req.user);
     next();
   });
 
@@ -136,7 +135,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/wallet-balance/:userId', async (req, res) => {
     try {
       const { userId } = req.params;
-      console.log('Direct wallet balance requested for user:', userId);
       
       // Use raw SQL to avoid schema import issues
       const result = await db.execute(sql`
@@ -146,7 +144,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       `);
       
       const transactions = result.rows;
-      console.log('Transactions found:', transactions.length);
 
       // Calculate balances from transactions - CORRECT LOGIC: deposits first, then credit
       let depositBalance = 0;
@@ -207,7 +204,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isOverlimit
       };
 
-      console.log('Calculated balance:', balance);
       res.json({ data: { balance } });
     } catch (error) {
       console.error("Error getting wallet balance:", error);
@@ -230,9 +226,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Mount wallet routes for B2B users
   const walletRouter = await import('./routes/wallet.routes');
   app.use('/api/wallet', (req, res, next) => {
-    console.log('Wallet route hit:', req.method, req.path, 'User:', req.user?.username, 'ID:', req.user?.id);
     if (!req.user) {
-      console.log('No user found, authentication failed');
       return res.status(401).json({ message: "Authentication required" });
     }
     next();
@@ -258,17 +252,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Try cache first
         const cachedProducts = await cacheHelpers.getProducts(filters);
         if (cachedProducts) {
-          console.log('📦 Products from cache');
           return res.json(cachedProducts);
         }
         
         // Fetch from database with timing
-        const startTime = Date.now();
+        
         const products = await storage.getProducts(filters);
-        const duration = Date.now() - startTime;
         
         if (duration > 100) {
-          console.warn(`🐌 Slow products query: ${duration}ms`);
         }
         
         // Cache the results
@@ -305,12 +296,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         const productData = insertProductSchema.parse(req.body);
-        const startTime = Date.now();
+        
         const product = await storage.createProduct(productData);
-        const duration = Date.now() - startTime;
         
         if (duration > 100) {
-          console.warn(`🐌 Slow product creation: ${duration}ms`);
         }
         
         // Clear products cache
@@ -329,9 +318,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     async (req, res) => {
       try {
         // Fetch from database with timing
-        const startTime = Date.now();
+        
         const categories = await storage.getCategories();
-        const duration = Date.now() - startTime;
         
         if (duration > 50) {
           console.warn(`🐌 Slow categories query: ${duration}ms`);
@@ -355,9 +343,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         const categoryData = insertCategorySchema.parse(req.body);
-        const startTime = Date.now();
+        
         const category = await storage.createCategory(categoryData);
-        const duration = Date.now() - startTime;
         
         if (duration > 100) {
           console.warn(`🐌 Slow category creation: ${duration}ms`);
@@ -403,11 +390,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Enterprise-optimized Cart routes with caching and performance monitoring
+  // Enterprise-optimized Cart routes with caching
   app.get('/api/cart', 
     isAuthenticated, 
     async (req: any, res) => {
-      const startTime = Date.now();
       const userId = req.user.id;
       
       try {
@@ -416,18 +402,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const cachedCart = await redisCache.get(cacheKey);
         
         if (cachedCart) {
-          console.log(`📦 Cart from cache for user: ${req.user.username}`);
           res.setHeader('X-Cache', 'HIT');
           return res.json(cachedCart);
         }
         
-        // Fetch from database with performance monitoring
+        // Fetch from database
         const cartItems = await storage.getCartItems(userId);
-        const duration = Date.now() - startTime;
-        
-        if (duration > 100) {
-          console.warn(`🐌 Slow cart query: ${duration}ms for user: ${req.user.username}`);
-        }
         
         // Cache cart items for 5 minutes
         await redisCache.set(cacheKey, cartItems, 300);
@@ -443,26 +423,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/cart', 
     isAuthenticated, 
     async (req: any, res) => {
-      const startTime = Date.now();
       const userId = req.user.id;
       
       try {
         // Validate and parse cart data
         const cartData = insertCartItemSchema.parse({ ...req.body, userId });
         
-        // Add to cart with performance monitoring
+        // Add to cart
         const cartItem = await storage.addToCart(cartData);
-        const duration = Date.now() - startTime;
-        
-        if (duration > 200) {
-          console.warn(`🐌 Slow cart add operation: ${duration}ms for user: ${req.user.username}`);
-        }
         
         // Invalidate cart cache for this user
         const cacheKey = `cart:${userId}`;
         await redisCache.del(cacheKey);
         
-        console.log(`✅ Added to cart (${duration}ms): ${cartData.quantity}x product ${cartData.productId} for user: ${req.user.username}`);
         res.status(201).json(cartItem);
       } catch (error) {
         console.error("Error adding to cart:", error);
@@ -473,7 +446,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put('/api/cart/:id', 
     isAuthenticated, 
     async (req: any, res) => {
-      const startTime = Date.now();
       const userId = req.user.id;
       
       try {
@@ -483,8 +455,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Invalidate user's cart cache
         await redisCache.del(`cart:${userId}`);
         
-        const duration = Date.now() - startTime;
-        console.log(`✅ Updated cart item (${duration}ms): ${req.params.id} for user: ${req.user.username}`);
         res.json({ success: true });
       } catch (error) {
         console.error("Error updating cart item:", error);
@@ -495,7 +465,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch('/api/cart/:id', 
     isAuthenticated, 
     async (req: any, res) => {
-      const startTime = Date.now();
       const userId = req.user.id;
       
       try {
@@ -505,8 +474,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Invalidate user's cart cache
         await redisCache.del(`cart:${userId}`);
         
-        const duration = Date.now() - startTime;
-        console.log(`✅ Patched cart item (${duration}ms): ${req.params.id} for user: ${req.user.username}`);
         res.json({ success: true });
       } catch (error) {
         console.error("Error updating cart item:", error);
@@ -517,7 +484,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/cart/:id', 
     isAuthenticated, 
     async (req: any, res) => {
-      const startTime = Date.now();
       const userId = req.user.id;
       
       try {
@@ -526,8 +492,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Invalidate user's cart cache
         await redisCache.del(`cart:${userId}`);
         
-        const duration = Date.now() - startTime;
-        console.log(`✅ Removed cart item (${duration}ms): ${req.params.id} for user: ${req.user.username}`);
         res.json({ success: true });
       } catch (error) {
         console.error("Error removing from cart:", error);
@@ -538,7 +502,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/cart', 
     isAuthenticated, 
     async (req: any, res) => {
-      const startTime = Date.now();
       const userId = req.user.id;
       
       try {
@@ -547,8 +510,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Invalidate user's cart cache
         await redisCache.del(`cart:${userId}`);
         
-        const duration = Date.now() - startTime;
-        console.log(`✅ Cleared cart (${duration}ms) for user: ${req.user.username}`);
         res.json({ success: true });
       } catch (error) {
         console.error("Error clearing cart:", error);

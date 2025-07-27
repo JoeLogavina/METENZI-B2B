@@ -104,7 +104,6 @@ export class DatabaseOptimizationService {
             ON license_keys (product_id, is_used) WHERE is_used = false`
       );
 
-      console.log('✅ Performance indexes created successfully');
       
       // Update table statistics
       await this.updateTableStatistics();
@@ -118,7 +117,6 @@ export class DatabaseOptimizationService {
     try {
       console.log(`Creating index: ${indexName}`);
       await db.execute(indexSql);
-      console.log(`✅ Index created: ${indexName}`);
     } catch (error) {
       if (error.message?.includes('already exists')) {
         console.log(`⚠️ Index already exists: ${indexName}`);
@@ -144,7 +142,6 @@ export class DatabaseOptimizationService {
       for (const table of tables) {
         try {
           await db.execute(sql.raw(`ANALYZE ${table}`));
-          console.log(`✅ Updated statistics for: ${table}`);
         } catch (error) {
           console.warn(`⚠️ Failed to update statistics for ${table}:`, error);
         }
@@ -252,7 +249,6 @@ export class DatabaseOptimizationService {
         console.log('Sessions table cleanup skipped');
       }
       
-      console.log('✅ Old data cleanup completed');
       
     } finally {
       performanceService.endTiming(timingId);

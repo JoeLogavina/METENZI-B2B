@@ -132,7 +132,6 @@ export default function CheckoutPage() {
   // Place order mutation
   const placeOrderMutation = useMutation({
     mutationFn: async (orderData: CheckoutFormData) => {
-      console.log("Placing order with data:", orderData);
       
       const orderPayload = {
         billingInfo: {
@@ -156,10 +155,8 @@ export default function CheckoutPage() {
         },
       };
       
-      console.log("Order payload:", orderPayload);
       
       const response = await apiRequest("POST", "/api/orders", orderPayload);
-      console.log("Order response status:", response.status);
       
       if (!response.ok) {
         const errorData = await response.json();
@@ -168,7 +165,6 @@ export default function CheckoutPage() {
       }
       
       const result = await response.json();
-      console.log("Order created successfully:", result);
       return result;
     },
     onSuccess: (order) => {
@@ -176,7 +172,6 @@ export default function CheckoutPage() {
       setStep('success');
       
       // Optimistic UI update: immediately show order completion
-      console.log('Order created successfully, triggering optimistic update:', order);
       if (order.items) {
         updateOrderOptimistically({
           orderId: order.id,
@@ -189,7 +184,6 @@ export default function CheckoutPage() {
       }
       
       // Invalidate all related caches for real-time updates
-      console.log('Invalidating caches after order completion');
       queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
       queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
       queryClient.invalidateQueries({ queryKey: ["/api/wallet"] });

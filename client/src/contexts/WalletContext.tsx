@@ -30,7 +30,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     const unsubscribers = [
       // Payment events
       walletEventBus.subscribe('payment:started', (data) => {
-        console.log('Payment started:', data);
         toast({
           title: "Processing Payment",
           description: `Processing payment of €${data.amount.toFixed(2)}...`,
@@ -38,7 +37,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       }),
 
       walletEventBus.subscribe('payment:completed', (data) => {
-        console.log('Payment completed:', data);
         toast({
           title: "Payment Successful",
           description: `Payment of €${data.amount.toFixed(2)} completed successfully`,
@@ -53,12 +51,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
       // Wallet refresh events
       walletEventBus.subscribe('wallet:refreshed', (data) => {
-        console.log('Wallet refreshed for user:', data.userId);
       }),
 
       // Order completion events (for external integrations)
       walletEventBus.subscribe('order:completed', (data) => {
-        console.log('Order completed, refreshing wallet:', data);
         setTimeout(() => {
           wallet.refreshWallet();
         }, 500);
