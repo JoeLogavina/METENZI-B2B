@@ -23,10 +23,11 @@ class RedisCache {
       this.isConnected = true;
     });
 
+    let hasLoggedError = false;
     this.client.on('error', (error) => {
-      if (!this.isConnected) {
-        // Only log the first error, not subsequent retry attempts
+      if (!hasLoggedError) {
         console.warn('⚠️ Redis unavailable, using in-memory cache fallback');
+        hasLoggedError = true;
       }
       this.isConnected = false;
     });
