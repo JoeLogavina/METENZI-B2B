@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database (Development)
+  postgres-dev:
+    image: postgres:15-alpine
+    container_name: b2b-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: b2b_licenses_dev
+      POSTGRES_USER: dev_user
+      POSTGRES_PASSWORD: dev_password
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    networks:
+      - b2b-dev-network
+
+  # Redis for Development
+  redis-dev:
+    image: redis:7-alpine
+    container_name: b2b-redis-dev
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_dev_data:/data
+    ports:
+      - "6380:6379"
+    networks:
+      - b2b-dev-network
+
+  # Development Application (with hot reload)
+  app-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: b2b-app-dev
+    restart: unless-stopped
+    ports:
+      - "5001:5000"
+    environment:
+      NODE_ENV: development
+      PORT: 5000
+      DATABASE_URL: postgresql://dev_user:dev_password@postgres-dev:5432/b2b_licenses_dev
+      REDIS_URL: redis://redis-dev:6379
+      SESSION_SECRET: development_session_secret
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      - postgres-dev
+      - redis-dev
+    networks:
+      - b2b-dev-network
+    command: npm run dev
+
+networks:
+  b2b-dev-network:
+    driver: bridge
+
+volumes:
+  postgres_dev_data:
+    driver: local
+  redis_dev_data:
+    driver: local

@@ -16,6 +16,70 @@ const isAuthenticated = (req: any, res: any, next: any) => {
 };
 
 export function registerRoutes(app: Express): Server {
+  // Health check endpoints (before auth middleware)
+  app.get('/health', async (req, res) => {
+    try {
+      // Check database connection
+      await storage.getProducts({ search: 'health-check', limit: 1 });
+      
+      res.status(200).json({
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        version: process.env.npm_package_version || '1.0.0',
+        environment: process.env.NODE_ENV || 'development'
+      });
+    } catch (error) {
+      res.status(503).json({
+        status: 'unhealthy',
+        timestamp: new Date().toISOString(),
+        error: 'Database connection failed'
+      });
+    }
+  });
+
+  app.get('/ready', async (req, res) => {
+    try {
+      // More comprehensive readiness check
+      await storage.getProducts({ search: 'readiness-check', limit: 1 });
+      
+      res.status(200).json({
+        status: 'ready',
+        timestamp: new Date().toISOString(),
+        services: {
+          database: 'connected',
+          application: 'running'
+        }
+      });
+    } catch (error) {
+      res.status(503).json({
+        status: 'not_ready',
+        timestamp: new Date().toISOString(),
+        services: {
+          database: 'disconnected',
+          application: 'running'
+        }
+      });
+    }
+  });
+
+  app.get('/metrics', (req, res) => {
+    const memUsage = process.memoryUsage();
+    res.json({
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      memory: {
+        rss: Math.round(memUsage.rss / 1024 / 1024) + ' MB',
+        heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024) + ' MB',
+        heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024) + ' MB',
+        external: Math.round(memUsage.external / 1024 / 1024) + ' MB'
+      },
+      cpu: process.cpuUsage(),
+      environment: process.env.NODE_ENV || 'development',
+      version: process.env.npm_package_version || '1.0.0'
+    });
+  });
+
   // Auth middleware
   setupAuth(app);
 
