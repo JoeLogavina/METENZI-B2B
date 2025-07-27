@@ -529,7 +529,11 @@ export default function AdminPanel() {
                           body: JSON.stringify(data),
                         });
 
-                        if (!response.ok) throw new Error('Failed to save product');
+                        if (!response.ok) {
+                          const errorData = await response.json();
+                          console.error('Product save error:', errorData);
+                          throw new Error(errorData.message || 'Failed to save product');
+                        }
 
                         toast({
                           title: "Success",
@@ -599,7 +603,7 @@ function ProductForm({
     name: product?.name || '',
     description: product?.description || '',
     price: product?.price || '',
-    category: product?.category || '',
+    category: product?.categoryId || product?.category || '',
     platform: product?.platform || '',
     region: product?.region || '',
     stock: product?.stock || '',
@@ -608,11 +612,28 @@ function ProductForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({
-      ...formData,
-      price: parseFloat(formData.price),
-      stock: parseInt(formData.stock),
-    });
+    
+    // Prepare data for submission - keep price as string since backend expects it
+    const submitData: any = {
+      name: formData.name,
+      description: formData.description,
+      price: formData.price, // Keep as string for backend validation
+      platform: formData.platform,
+      region: formData.region,
+      isActive: formData.isActive,
+    };
+
+    // Only include category if it's provided and not empty
+    if (formData.category && formData.category.trim()) {
+      submitData.categoryId = formData.category;
+    }
+
+    // Only include stock if it's provided (since it's not required)
+    if (formData.stock && formData.stock.trim()) {
+      submitData.stock = parseInt(formData.stock);
+    }
+
+    onSubmit(submitData);
   };
 
   return (
