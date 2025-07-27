@@ -11,17 +11,19 @@ import {
   Package, 
   Calendar, 
   CreditCard, 
-  Eye, 
-  EyeOff, 
   ChevronDown, 
   ChevronRight,
   Copy,
   CheckCircle,
   Clock,
   XCircle,
-  Key
+  Key,
+  Download,
+  Files
 } from "lucide-react";
 import { useEffect } from "react";
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
 
 interface LicenseKey {
   id: string;
@@ -33,9 +35,19 @@ interface LicenseKey {
   product: {
     id: string;
     name: string;
-    version: string;
     platform: string;
   };
+}
+
+interface LicenseKeyTableRow {
+  licenseKey: string;
+  productTitle: string;
+  price: string;
+  orderNumber: string;
+  warranty: string;
+  platform: string;
+  region: string;
+  orderDate: string;
 }
 
 interface OrderItem {
@@ -51,7 +63,6 @@ interface OrderItem {
     name: string;
     description: string;
     price: string;
-    version: string;
     platform: string;
     region: string;
   };
@@ -77,33 +88,40 @@ interface Order {
     postalCode: string;
     country: string;
   };
+  items: OrderItem[];
   createdAt: string;
   updatedAt: string;
-  items: OrderItem[];
 }
 
-const statusConfig = {
-  pending: { color: "bg-yellow-100 text-yellow-800", icon: Clock },
-  processing: { color: "bg-blue-100 text-blue-800", icon: Clock },
-  completed: { color: "bg-green-100 text-green-800", icon: CheckCircle },
-  cancelled: { color: "bg-red-100 text-red-800", icon: XCircle },
-};
-
-const paymentMethodLabels = {
-  credit_card: "Credit Card",
-  bank_transfer: "Bank Transfer", 
-  purchase_order: "Purchase Order",
-  wallet: "Wallet"
-};
-
 export default function OrdersPage() {
-  const { user, isLoading, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
-  const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set());
-  const [copiedKeys, setCopiedKeys] = useState<Set<string>>(new Set());
 
-  // Redirect if not authenticated
+  const {
+    data: orders,
+    error,
+    isLoading: ordersLoading,
+  } = useQuery<Order[]>({
+    queryKey: ["/api/orders"],
+    enabled: isAuthenticated,
+  });
+
+  useEffect(() => {
+    if (error && isUnauthorizedError(error)) {
+      toast({
+        title: "Unauthorized",
+        description: "You are logged out. Logging in again...",
+        variant: "destructive",
+      });
+      setTimeout(() => {
+        window.location.href = "/api/login";
+      }, 500);
+      return;
+    }
+  }, [error, toast]);
+
+  // Redirect to auth if not authenticated
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       toast({
@@ -112,31 +130,37 @@ export default function OrdersPage() {
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/auth";
+        window.location.href = "/api/login";
       }, 500);
       return;
     }
   }, [isAuthenticated, isLoading, toast]);
 
-  // Fetch orders
-  const { data: orders = [], isLoading: ordersLoading, error } = useQuery<Order[]>({
-    queryKey: ["/api/orders"],
-    enabled: isAuthenticated,
-    onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/auth";
-        }, 500);
-        return;
-      }
-    },
-  });
+  if (isLoading || ordersLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
 
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Card className="max-w-md mx-auto">
+          <CardContent className="flex flex-col items-center justify-center py-8">
+            <XCircle className="h-12 w-12 text-red-500 mb-4" />
+            <h3 className="text-lg font-semibold text-red-700 mb-2">Failed to Load Orders</h3>
+            <p className="text-sm text-gray-600 text-center">
+              There was an error loading your orders. Please try again later.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Helper functions
   const toggleOrderExpansion = (orderId: string) => {
     const newExpanded = new Set(expandedOrders);
     if (newExpanded.has(orderId)) {
@@ -147,291 +171,356 @@ export default function OrdersPage() {
     setExpandedOrders(newExpanded);
   };
 
-  const toggleKeyVisibility = (keyId: string) => {
-    const newVisible = new Set(visibleKeys);
-    if (newVisible.has(keyId)) {
-      newVisible.delete(keyId);
-    } else {
-      newVisible.add(keyId);
-    }
-    setVisibleKeys(newVisible);
-  };
-
-  const copyToClipboard = async (text: string, keyId: string) => {
+  const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      setCopiedKeys(new Set(copiedKeys).add(keyId));
       toast({
-        title: "Copied to clipboard",
-        description: "License key copied successfully",
+        title: "Copied",
+        description: "License key copied to clipboard",
       });
-      setTimeout(() => {
-        setCopiedKeys(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(keyId);
-          return newSet;
-        });
-      }, 2000);
     } catch (err) {
       toast({
-        title: "Failed to copy",
-        description: "Could not copy license key to clipboard",
+        title: "Copy Failed",
+        description: "Failed to copy to clipboard",
         variant: "destructive",
       });
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: '2-digit', 
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+  const copyAllKeys = async () => {
+    if (!orders) return;
+    
+    const allKeys = orders.flatMap(order => 
+      order.items
+        .filter(item => item.licenseKey)
+        .map(item => item.licenseKey!.licenseKey)
+    );
+    
+    const keysText = allKeys.join('\n');
+    
+    try {
+      await navigator.clipboard.writeText(keysText);
+      toast({
+        title: "Copied",
+        description: `${allKeys.length} license keys copied to clipboard`,
+      });
+    } catch (err) {
+      toast({
+        title: "Copy Failed",
+        description: "Failed to copy keys to clipboard",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const exportToExcel = () => {
+    if (!orders) return;
+
+    // Prepare data for Excel export
+    const excelData: LicenseKeyTableRow[] = [];
+    
+    orders.forEach(order => {
+      order.items.forEach(item => {
+        if (item.licenseKey) {
+          excelData.push({
+            licenseKey: item.licenseKey.licenseKey,
+            productTitle: item.product.name,
+            price: `€${parseFloat(item.unitPrice).toFixed(2)}`,
+            orderNumber: order.orderNumber,
+            warranty: getWarrantyPeriod(item.licenseKey.createdAt),
+            platform: item.product.platform,
+            region: item.product.region,
+            orderDate: formatDate(order.createdAt)
+          });
+        }
+      });
+    });
+
+    // Create worksheet
+    const worksheet = XLSX.utils.json_to_sheet(excelData, {
+      header: ['licenseKey', 'productTitle', 'price', 'orderNumber', 'warranty', 'platform', 'region', 'orderDate']
+    });
+
+    // Set column headers
+    XLSX.utils.sheet_add_aoa(worksheet, [
+      ['License Key', 'Product Title', 'Price', 'Order Number', 'Warranty', 'Platform', 'Region', 'Order Date']
+    ], { origin: 'A1' });
+
+    // Set column widths
+    worksheet['!cols'] = [
+      { width: 25 }, // License Key
+      { width: 30 }, // Product Title
+      { width: 10 }, // Price
+      { width: 20 }, // Order Number
+      { width: 15 }, // Warranty
+      { width: 15 }, // Platform
+      { width: 15 }, // Region
+      { width: 15 }  // Order Date
+    ];
+
+    // Create workbook and add worksheet
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'License Keys');
+
+    // Export file
+    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(blob, `license-keys-${new Date().toISOString().split('T')[0]}.xlsx`);
+
+    toast({
+      title: "Export Complete",
+      description: "License keys exported to Excel file",
     });
   };
 
-  const maskLicenseKey = (key: string) => {
-    if (!key) return '';
-    const parts = key.split('-');
-    return parts.map((part, index) => {
-      if (index === 0 || index === parts.length - 1) {
-        return part;
-      }
-      return '*'.repeat(part.length);
-    }).join('-');
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
   };
 
-  if (isLoading || ordersLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6E6F71] mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading your orders...</p>
-        </div>
-      </div>
-    );
-  }
+  const getWarrantyPeriod = (createdAt: string) => {
+    const purchaseDate = new Date(createdAt);
+    const warrantyEnd = new Date(purchaseDate);
+    warrantyEnd.setFullYear(warrantyEnd.getFullYear() + 1); // 1 year warranty
+    return formatDate(warrantyEnd.toISOString());
+  };
 
-  if (error) {
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+      default:
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+    }
+  };
+
+  const getPaymentStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'paid':
+        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+      case 'failed':
+        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+      default:
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+    }
+  };
+
+  if (!orders || orders.length === 0) {
     return (
-      <div className="max-w-4xl mx-auto p-6">
-        <Card className="border-red-200 bg-red-50">
-          <CardContent className="p-6 text-center">
-            <XCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-red-800 mb-2">Failed to Load Orders</h3>
-            <p className="text-red-600">There was an error loading your orders. Please try again later.</p>
+      <div className="container mx-auto px-4 py-8">
+        <Card className="max-w-md mx-auto">
+          <CardContent className="flex flex-col items-center justify-center py-8">
+            <Package className="h-12 w-12 text-gray-400 mb-4" />
+            <h3 className="text-lg font-semibold text-gray-700 mb-2">No Orders Found</h3>
+            <p className="text-sm text-gray-600 text-center">
+              You haven't placed any orders yet. Start shopping to see your orders here.
+            </p>
           </CardContent>
         </Card>
       </div>
     );
   }
+
+  // Count total license keys
+  const totalKeys = orders.reduce((total, order) => 
+    total + order.items.filter(item => item.licenseKey).length, 0
+  );
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">My Orders</h1>
-        <p className="text-gray-600">View your order history and download license keys</p>
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">My Orders</h1>
+          <p className="text-muted-foreground">
+            View your order history and access your digital license keys
+          </p>
+        </div>
+        
+        {totalKeys > 0 && (
+          <div className="flex gap-2">
+            <Button onClick={copyAllKeys} variant="outline" className="gap-2">
+              <Files className="h-4 w-4" />
+              Copy All Keys ({totalKeys})
+            </Button>
+            <Button onClick={exportToExcel} variant="outline" className="gap-2">
+              <Download className="h-4 w-4" />
+              Export to Excel
+            </Button>
+          </div>
+        )}
       </div>
 
-      {orders.length === 0 ? (
-        <Card>
-          <CardContent className="p-12 text-center">
-            <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-700 mb-2">No Orders Yet</h3>
-            <p className="text-gray-500 mb-4">You haven't placed any orders yet.</p>
-            <Button 
-              onClick={() => window.location.href = '/'}
-              className="bg-[#FFB20F] hover:bg-[#e69d0a] text-black"
-            >
-              Browse Products
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-6">
-          {orders.map((order) => {
-            const StatusIcon = statusConfig[order.status]?.icon || Clock;
-            const isExpanded = expandedOrders.has(order.id);
-            
-            return (
-              <Card key={order.id} className="overflow-hidden">
-                <CardHeader className="bg-gray-50 border-b">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <div>
-                        <CardTitle className="text-lg font-semibold text-gray-900">
-                          Order #{order.orderNumber}
-                        </CardTitle>
-                        <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600">
-                          <div className="flex items-center">
-                            <Calendar className="w-4 h-4 mr-1" />
-                            {formatDate(order.createdAt)}
-                          </div>
-                          <div className="flex items-center">
-                            <CreditCard className="w-4 h-4 mr-1" />
-                            {paymentMethodLabels[order.paymentMethod] || order.paymentMethod}
-                          </div>
-                        </div>
-                      </div>
+      <div className="space-y-6">
+        {orders.map((order) => (
+          <Card key={order.id} className="w-full">
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <div className="space-y-1">
+                  <CardTitle className="text-xl font-semibold">
+                    Order {order.orderNumber}
+                  </CardTitle>
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <Calendar className="h-4 w-4" />
+                      {formatDate(order.createdAt)}
                     </div>
-                    <div className="flex items-center space-x-4">
-                      <div className="text-right">
-                        <div className="text-2xl font-bold text-gray-900">
-                          €{parseFloat(order.totalAmount).toFixed(2)}
-                        </div>
-                        <Badge className={`${statusConfig[order.status]?.color || 'bg-gray-100 text-gray-800'}`}>
-                          <StatusIcon className="w-3 h-3 mr-1" />
-                          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                        </Badge>
+                    <div className="flex items-center gap-1">
+                      <CreditCard className="h-4 w-4" />
+                      {order.paymentMethod === 'wallet' ? 'Wallet' : 'Credit Card'}
+                    </div>
+                    <Badge className={getStatusColor(order.status)}>
+                      {order.status === 'pending' && <Clock className="h-3 w-3 mr-1" />}
+                      {order.status === 'completed' && <CheckCircle className="h-3 w-3 mr-1" />}
+                      {order.status === 'cancelled' && <XCircle className="h-3 w-3 mr-1" />}
+                      {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                    </Badge>
+                    <Badge className={getPaymentStatusColor(order.paymentStatus)}>
+                      {order.paymentStatus.charAt(0).toUpperCase() + order.paymentStatus.slice(1)}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-[#FFB20F]">
+                    €{parseFloat(order.totalAmount).toFixed(2)}
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+
+            <CardContent>
+              <Collapsible open={expandedOrders.has(order.id)} onOpenChange={() => toggleOrderExpansion(order.id)}>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" className="w-full justify-between p-0 h-auto">
+                    <span className="text-sm font-medium">View Order Details</span>
+                    {expandedOrders.has(order.id) ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
+                    )}
+                  </Button>
+                </CollapsibleTrigger>
+
+                <CollapsibleContent className="mt-4">
+                  {/* Billing Information */}
+                  <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                    <h4 className="font-semibold mb-2">Billing Information</h4>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <strong>Company:</strong> {order.billingInfo.companyName}
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => toggleOrderExpansion(order.id)}
-                        className="ml-4"
-                      >
-                        {isExpanded ? (
-                          <>
-                            <ChevronDown className="w-4 h-4 mr-1" />
-                            Hide Details
-                          </>
-                        ) : (
-                          <>
-                            <ChevronRight className="w-4 h-4 mr-1" />
-                            Show Details
-                          </>
-                        )}
-                      </Button>
+                      <div>
+                        <strong>Name:</strong> {order.billingInfo.firstName} {order.billingInfo.lastName}
+                      </div>
+                      <div>
+                        <strong>Email:</strong> {order.billingInfo.email}
+                      </div>
+                      <div>
+                        <strong>Phone:</strong> {order.billingInfo.phone}
+                      </div>
+                      <div className="col-span-2">
+                        <strong>Address:</strong> {order.billingInfo.address}, {order.billingInfo.city}, {order.billingInfo.postalCode}, {order.billingInfo.country}
+                      </div>
                     </div>
                   </div>
-                </CardHeader>
 
-                <Collapsible open={isExpanded}>
-                  <CollapsibleContent>
-                    <CardContent className="p-6">
-                      {/* Billing Information */}
-                      <div className="grid md:grid-cols-2 gap-6 mb-6">
-                        <div>
-                          <h3 className="font-semibold text-gray-900 mb-3">Billing Information</h3>
-                          <div className="space-y-1 text-sm text-gray-600">
-                            <p><strong>Company:</strong> {order.billingInfo.companyName}</p>
-                            <p><strong>Contact:</strong> {order.billingInfo.firstName} {order.billingInfo.lastName}</p>
-                            <p><strong>Email:</strong> {order.billingInfo.email}</p>
-                            <p><strong>Phone:</strong> {order.billingInfo.phone}</p>
-                          </div>
+                  {/* License Keys Table */}
+                  <div className="mb-4">
+                    <h4 className="font-semibold mb-3 flex items-center gap-2">
+                      <Key className="h-4 w-4" />
+                      Digital License Keys
+                    </h4>
+                    
+                    <div className="overflow-x-auto border rounded-lg">
+                      <table className="w-full text-sm">
+                        <thead className="bg-[#6E6F71] text-white">
+                          <tr>
+                            <th className="text-left p-3 font-semibold">License Key</th>
+                            <th className="text-left p-3 font-semibold">Product Title</th>
+                            <th className="text-left p-3 font-semibold">Price</th>
+                            <th className="text-left p-3 font-semibold">Order Number</th>
+                            <th className="text-left p-3 font-semibold">Warranty</th>
+                            <th className="text-left p-3 font-semibold">Platform</th>
+                            <th className="text-left p-3 font-semibold">Region</th>
+                            <th className="text-left p-3 font-semibold">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {order.items
+                            .filter(item => item.licenseKey)
+                            .map((item, index) => (
+                              <tr key={item.id} className={index % 2 === 0 ? 'bg-gray-50 dark:bg-gray-900' : 'bg-white dark:bg-gray-800'}>
+                                <td className="p-3 font-mono text-xs border-r">
+                                  {item.licenseKey!.licenseKey}
+                                </td>
+                                <td className="p-3 border-r">
+                                  {item.product.name}
+                                </td>
+                                <td className="p-3 font-semibold text-[#FFB20F] border-r">
+                                  €{parseFloat(item.unitPrice).toFixed(2)}
+                                </td>
+                                <td className="p-3 border-r">
+                                  {order.orderNumber}
+                                </td>
+                                <td className="p-3 border-r">
+                                  {getWarrantyPeriod(item.licenseKey!.createdAt)}
+                                </td>
+                                <td className="p-3 border-r">
+                                  <Badge variant="secondary">{item.product.platform}</Badge>
+                                </td>
+                                <td className="p-3 border-r">
+                                  <Badge variant="outline">{item.product.region}</Badge>
+                                </td>
+                                <td className="p-3">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => copyToClipboard(item.licenseKey!.licenseKey)}
+                                    className="gap-1"
+                                  >
+                                    <Copy className="h-3 w-3" />
+                                    Copy
+                                  </Button>
+                                </td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Order Summary */}
+                  <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+                    <h4 className="font-semibold mb-2">Order Summary</h4>
+                    <div className="space-y-2 text-sm">
+                      {order.items.map((item) => (
+                        <div key={item.id} className="flex justify-between">
+                          <span>{item.product.name} (x{item.quantity})</span>
+                          <span className="font-semibold">€{parseFloat(item.totalPrice).toFixed(2)}</span>
                         </div>
-                        <div>
-                          <h3 className="font-semibold text-gray-900 mb-3">Billing Address</h3>
-                          <div className="space-y-1 text-sm text-gray-600">
-                            <p>{order.billingInfo.address}</p>
-                            <p>{order.billingInfo.city}, {order.billingInfo.postalCode}</p>
-                            <p>{order.billingInfo.country}</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Order Items */}
-                      <div>
-                        <h3 className="font-semibold text-gray-900 mb-4">Order Items</h3>
-                        <div className="space-y-4">
-                          {order.items.map((item) => (
-                            <div key={item.id} className="border rounded-lg p-4 bg-white">
-                              <div className="flex justify-between items-start mb-3">
-                                <div className="flex-1">
-                                  <h4 className="font-semibold text-gray-900">{item.product.name}</h4>
-                                  <p className="text-sm text-gray-600 mt-1">{item.product.description}</p>
-                                  <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
-                                    <span>Version: {item.product.version}</span>
-                                    <span>Platform: {item.product.platform}</span>
-                                    <span>Region: {item.product.region}</span>
-                                  </div>
-                                </div>
-                                <div className="text-right ml-4">
-                                  <div className="text-sm text-gray-600">
-                                    €{parseFloat(item.unitPrice).toFixed(2)} × {item.quantity}
-                                  </div>
-                                  <div className="font-semibold text-gray-900">
-                                    €{parseFloat(item.totalPrice).toFixed(2)}
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* License Key Section */}
-                              {item.licenseKey && (
-                                <div className="border-t pt-3 mt-3 bg-yellow-50 rounded p-3">
-                                  <div className="flex items-center justify-between mb-2">
-                                    <div className="flex items-center">
-                                      <Key className="w-4 h-4 text-[#FFB20F] mr-2" />
-                                      <span className="font-medium text-gray-900">Digital License Key</span>
-                                    </div>
-                                    <div className="flex items-center space-x-2">
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => toggleKeyVisibility(item.licenseKey!.id)}
-                                        className="text-xs"
-                                      >
-                                        {visibleKeys.has(item.licenseKey.id) ? (
-                                          <>
-                                            <EyeOff className="w-3 h-3 mr-1" />
-                                            Hide
-                                          </>
-                                        ) : (
-                                          <>
-                                            <Eye className="w-3 h-3 mr-1" />
-                                            Show
-                                          </>
-                                        )}
-                                      </Button>
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => copyToClipboard(item.licenseKey!.licenseKey, item.licenseKey!.id)}
-                                        className="text-xs"
-                                        disabled={copiedKeys.has(item.licenseKey!.id)}
-                                      >
-                                        {copiedKeys.has(item.licenseKey!.id) ? (
-                                          <>
-                                            <CheckCircle className="w-3 h-3 mr-1" />
-                                            Copied
-                                          </>
-                                        ) : (
-                                          <>
-                                            <Copy className="w-3 h-3 mr-1" />
-                                            Copy
-                                          </>
-                                        )}
-                                      </Button>
-                                    </div>
-                                  </div>
-                                  <div className="bg-white border rounded p-3 font-mono text-sm">
-                                    {visibleKeys.has(item.licenseKey.id) 
-                                      ? item.licenseKey.licenseKey 
-                                      : maskLicenseKey(item.licenseKey.licenseKey)}
-                                  </div>
-                                  <div className="text-xs text-gray-500 mt-2">
-                                    Generated: {formatDate(item.licenseKey.createdAt)}
-                                    {item.licenseKey.usedAt && (
-                                      <span className="ml-4">
-                                        Activated: {formatDate(item.licenseKey.usedAt)}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          ))}
+                      ))}
+                      <div className="border-t pt-2 mt-2">
+                        <div className="flex justify-between font-bold text-lg">
+                          <span>Total</span>
+                          <span className="text-[#FFB20F]">€{parseFloat(order.totalAmount).toFixed(2)}</span>
                         </div>
                       </div>
-                    </CardContent>
-                  </CollapsibleContent>
-                </Collapsible>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+                    </div>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }
