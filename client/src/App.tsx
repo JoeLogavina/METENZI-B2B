@@ -33,6 +33,7 @@ const CheckoutPage = lazy(() => import("@/pages/checkout"));
 const AdminPanel = lazy(() => import("@/pages/admin-panel"));
 const WalletPage = lazy(() => import("@/pages/wallet-page"));
 const OrdersPage = lazy(() => import("@/pages/orders"));
+const EditProduct = lazy(() => import("@/pages/edit-product"));
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -93,6 +94,11 @@ function Router() {
           <Route path="/admin-panel" component={() => (
             <Suspense fallback={<AdminLoadingFallback />}>
               <AdminPanel />
+            </Suspense>
+          )} />
+          <Route path="/admin/products/edit/:id" component={({ params }: any) => (
+            <Suspense fallback={<AdminLoadingFallback />}>
+              <EditProduct productId={params.id} />
             </Suspense>
           )} />
           <Route path="/admin" component={() => <Redirect to="/admin-panel" />} />

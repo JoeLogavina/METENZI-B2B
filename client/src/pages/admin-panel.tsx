@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -38,6 +39,7 @@ interface DashboardStats {
 }
 
 export default function AdminPanel() {
+  const [location, setLocation] = useLocation();
   const { user, isLoading, isAuthenticated, logout, isLoggingOut } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -627,8 +629,7 @@ export default function AdminPanel() {
                                   size="sm"
                                   variant="outline"
                                   onClick={() => {
-                                    setEditingProduct(product);
-                                    setShowProductForm(true);
+                                    setLocation(`/admin/products/edit/${product.id}`);
                                   }}
                                   className="text-[#FFB20F] border-[#FFB20F] hover:bg-[#FFB20F] hover:text-white"
                                 >
