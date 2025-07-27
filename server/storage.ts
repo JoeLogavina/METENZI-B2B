@@ -222,12 +222,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateProduct(id: string, product: Partial<InsertProduct>): Promise<Product> {
-    const [updatedProduct] = await db
-      .update(products)
-      .set({ ...product, updatedAt: new Date() })
-      .where(eq(products.id, id))
-      .returning();
-    return updatedProduct;
+    console.log('Storage.updateProduct - ID:', id);
+    console.log('Storage.updateProduct - Data:', product);
+    
+    try {
+      const [updatedProduct] = await db
+        .update(products)
+        .set({ ...product, updatedAt: new Date() })
+        .where(eq(products.id, id))
+        .returning();
+      
+      console.log('Storage.updateProduct - Success:', updatedProduct);
+      return updatedProduct;
+    } catch (error) {
+      console.error('Storage.updateProduct - Database Error:', error);
+      throw error;
+    }
   }
 
   async deleteProduct(id: string): Promise<void> {
