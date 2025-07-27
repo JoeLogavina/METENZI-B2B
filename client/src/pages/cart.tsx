@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import { parsePrice, formatPrice, calculateTotal } from "@/lib/price-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -160,12 +161,12 @@ export default function CartPage() {
   };
 
   const totalAmount = cartItems.reduce((sum, item) => {
-    // Add safety check for product and price
-    if (!item.product || typeof item.product.price !== 'number') {
-      console.warn('Cart item missing product or price:', item);
+    // Add safety check for product and price using utility function
+    if (!item.product) {
+      console.warn('Cart item missing product:', item);
       return sum;
     }
-    return sum + (item.product.price * item.quantity);
+    return sum + calculateTotal(item.product.price, item.quantity);
   }, 0);
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -275,7 +276,9 @@ export default function CartPage() {
 
                       {/* Price */}
                       <div className="text-right">
-                        <div className="font-mono font-semibold text-[#4D585A]">€{(item.product.price || 0).toFixed(2)}</div>
+                        <div className="font-mono font-semibold text-[#4D585A]">
+                          {formatPrice(item.product.price)}
+                        </div>
                         <div className="text-xs text-gray-500">per license</div>
                       </div>
 
@@ -305,7 +308,7 @@ export default function CartPage() {
                       {/* Total Price */}
                       <div className="text-right min-w-[80px]">
                         <div className="font-mono font-semibold text-lg text-[#4D585A]">
-                          €{((item.product.price || 0) * item.quantity).toFixed(2)}
+                          {formatPrice(calculateTotal(item.product.price, item.quantity))}
                         </div>
                       </div>
 
