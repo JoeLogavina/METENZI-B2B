@@ -364,6 +364,49 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  app.put("/api/admin/products/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      const productData = req.body;
+      
+      console.log("Updating product with data:", productData);
+      
+      const updatedProduct = await storage.updateProduct(id, productData);
+      console.log("Product updated successfully:", updatedProduct);
+      
+      res.json(updatedProduct);
+    } catch (error) {
+      console.error("Error updating product:", error);
+      res.status(500).json({ message: "Failed to update product" });
+    }
+  });
+
+  app.post("/api/admin/products", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const productData = req.body;
+      
+      console.log("Creating product with data:", productData);
+      
+      const newProduct = await storage.createProduct(productData);
+      console.log("Product created successfully:", newProduct);
+      
+      res.status(201).json(newProduct);
+    } catch (error) {
+      console.error("Error creating product:", error);
+      res.status(500).json({ message: "Failed to create product" });
+    }
+  });
+
   app.patch("/api/admin/products/:id/status", isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.id);
