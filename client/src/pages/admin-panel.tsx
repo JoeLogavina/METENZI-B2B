@@ -337,7 +337,7 @@ export default function AdminPanel() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
-                          {(users?.data || []).map((userItem: any) => (
+                          {(Array.isArray(users) ? users : users?.data || []).map((userItem: any) => (
                             <tr key={userItem.id} className="hover:bg-gray-50">
                               <td className="py-3 px-4">
                                 <div className="flex items-center">
@@ -532,6 +532,8 @@ export default function AdminPanel() {
                         if (!response.ok) {
                           const errorData = await response.json();
                           console.error('Product save error:', errorData);
+                          console.log('Submitted data:', data);
+                          console.log('Product being edited:', editingProduct);
                           throw new Error(errorData.message || 'Failed to save product');
                         }
 
