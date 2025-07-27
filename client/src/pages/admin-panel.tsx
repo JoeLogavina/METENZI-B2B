@@ -601,10 +601,21 @@ function ProductForm({
   onSubmit: (data: any) => void; 
   onCancel: () => void; 
 }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [currentTab, setCurrentTab] = useState("details");
+  const [licenseKeys, setLicenseKeys] = useState("");
+  const [duplicateWarning, setDuplicateWarning] = useState<string[]>([]);
+  const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
+  
   const [formData, setFormData] = useState({
     name: product?.name || '',
     description: product?.description || '',
     price: product?.price || '',
+    purchasePrice: product?.purchasePrice || '',
+    b2bPrice: product?.b2bPrice || '',
+    retailPrice: product?.retailPrice || '',
+    imageUrl: product?.imageUrl || '',
     category: product?.categoryId || '',
     platform: product?.platform || '',
     region: product?.region || '',
@@ -619,7 +630,11 @@ function ProductForm({
     const submitData: any = {
       name: formData.name,
       description: formData.description,
-      price: formData.price, // Keep as string for backend validation
+      price: formData.price,
+      purchasePrice: formData.purchasePrice || null,
+      b2bPrice: formData.b2bPrice || null,
+      retailPrice: formData.retailPrice || null,
+      imageUrl: formData.imageUrl || null,
       platform: formData.platform,
       region: formData.region,
       isActive: formData.isActive,
@@ -638,157 +653,448 @@ function ProductForm({
     onSubmit(submitData);
   };
 
+  const handleSaveKeys = async () => {
+    if (!product?.id || !licenseKeys.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter license keys to save",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/admin/license-keys/${product.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          keys: licenseKeys,
+          ignoreDuplicates: false
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.status === 409) {
+        // Handle duplicates
+        setDuplicateWarning(result.data.duplicates);
+        setShowDuplicateDialog(true);
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Failed to save keys');
+      }
+
+      toast({
+        title: "Success",
+        description: `Added ${result.data.added.length} license keys`,
+        variant: "default",
+      });
+
+      setLicenseKeys('');
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/license-keys/${product.id}`] });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to save license keys",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSaveKeysIgnoreDuplicates = async () => {
+    if (!product?.id) return;
+
+    try {
+      const response = await fetch(`/api/admin/license-keys/${product.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          keys: licenseKeys,
+          ignoreDuplicates: true
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Failed to save keys');
+      }
+
+      toast({
+        title: "Success",
+        description: `Added ${result.data.added.length} license keys (${duplicateWarning.length} duplicates ignored)`,
+        variant: "default",
+      });
+
+      setLicenseKeys('');
+      setDuplicateWarning([]);
+      setShowDuplicateDialog(false);
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/license-keys/${product.id}`] });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to save license keys",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="name" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-            PRODUCT NAME
-          </Label>
-          <Input
-            id="name"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className="mt-1"
-            required
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="category" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-            CATEGORY
-          </Label>
-          <Select 
-            value={formData.category} 
-            onValueChange={(value) => setFormData({ ...formData, category: value })}
-          >
-            <SelectTrigger className="mt-1">
-              <SelectValue placeholder="Select category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="5f7c2d93-0865-489c-bc73-8c7521ca978d">Development Tools</SelectItem>
-              <SelectItem value="04c7d498-572f-46ca-bc54-2be8812035d4">Design Software</SelectItem>
-              <SelectItem value="dbe15a4f-3eab-44f0-bfcf-8427259ad19c">Business Applications</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <Label htmlFor="price" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-            PRICE (€)
-          </Label>
-          <Input
-            id="price"
-            type="number"
-            step="0.01"
-            value={formData.price}
-            onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-            className="mt-1"
-            required
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="stock" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-            STOCK
-          </Label>
-          <Input
-            id="stock"
-            type="number"
-            value={formData.stock}
-            onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
-            className="mt-1"
-            required
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="platform" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-            PLATFORM
-          </Label>
-          <Select 
-            value={formData.platform} 
-            onValueChange={(value) => setFormData({ ...formData, platform: value })}
-          >
-            <SelectTrigger className="mt-1">
-              <SelectValue placeholder="Select platform" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Windows">Windows</SelectItem>
-              <SelectItem value="Mac">Mac</SelectItem>
-              <SelectItem value="Linux">Linux</SelectItem>
-              <SelectItem value="Web">Web</SelectItem>
-              <SelectItem value="Cross-platform">Cross-platform</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <Label htmlFor="region" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-            REGION
-          </Label>
-          <Select 
-            value={formData.region} 
-            onValueChange={(value) => setFormData({ ...formData, region: value })}
-          >
-            <SelectTrigger className="mt-1">
-              <SelectValue placeholder="Select region" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Worldwide">Worldwide</SelectItem>
-              <SelectItem value="Europe">Europe</SelectItem>
-              <SelectItem value="North America">North America</SelectItem>
-              <SelectItem value="Asia">Asia</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      <div>
-        <Label htmlFor="description" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-          DESCRIPTION
-        </Label>
-        <Textarea
-          id="description"
-          value={formData.description}
-          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-          className="mt-1"
-          rows={3}
-          required
-        />
-      </div>
-
-      <div className="flex items-center justify-between pt-4 border-t">
-        <div className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            id="isActive"
-            checked={formData.isActive}
-            onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-            className="rounded border-gray-300"
-          />
-          <Label htmlFor="isActive" className="text-sm font-medium text-gray-700">
-            Active (visible to B2B users)
-          </Label>
-        </div>
-
-        <div className="flex space-x-3">
-          <Button
+    <div className="space-y-6">
+      {/* Tab Navigation */}
+      <div className="border-b border-gray-200">
+        <nav className="-mb-px flex space-x-8">
+          <button
             type="button"
-            variant="outline"
-            onClick={onCancel}
-            className="px-6"
+            onClick={() => setCurrentTab("details")}
+            className={`py-2 px-1 border-b-2 font-medium text-sm uppercase tracking-[0.5px] ${
+              currentTab === "details"
+                ? "border-[#FFB20F] text-[#FFB20F]"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            }`}
           >
-            CANCEL
-          </Button>
-          <Button
-            type="submit"
-            className="bg-[#4D9DE0] hover:bg-[#4a94d1] text-white px-6"
-          >
-            {product ? 'UPDATE' : 'CREATE'} PRODUCT
-          </Button>
-        </div>
+            Product Details
+          </button>
+          {product?.id && (
+            <button
+              type="button"
+              onClick={() => setCurrentTab("keys")}
+              className={`py-2 px-1 border-b-2 font-medium text-sm uppercase tracking-[0.5px] ${
+                currentTab === "keys"
+                  ? "border-[#FFB20F] text-[#FFB20F]"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              License Keys
+            </button>
+          )}
+        </nav>
       </div>
-    </form>
+
+      {/* Product Details Tab */}
+      {currentTab === "details" && (
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="name" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                PRODUCT NAME
+              </Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="mt-1"
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="category" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                CATEGORY
+              </Label>
+              <Select 
+                value={formData.category} 
+                onValueChange={(value) => setFormData({ ...formData, category: value })}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5f7c2d93-0865-489c-bc73-8c7521ca978d">Development Tools</SelectItem>
+                  <SelectItem value="04c7d498-572f-46ca-bc54-2be8812035d4">Design Software</SelectItem>
+                  <SelectItem value="dbe15a4f-3eab-44f0-bfcf-8427259ad19c">Business Applications</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="md:col-span-2">
+              <Label htmlFor="description" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                DESCRIPTION
+              </Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className="mt-1"
+                rows={3}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="price" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                DISPLAY PRICE (€)
+              </Label>
+              <Input
+                id="price"
+                type="number"
+                step="0.01"
+                value={formData.price}
+                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                className="mt-1"
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="purchasePrice" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                PURCHASE PRICE (€)
+              </Label>
+              <Input
+                id="purchasePrice"
+                type="number"
+                step="0.01"
+                value={formData.purchasePrice}
+                onChange={(e) => setFormData({ ...formData, purchasePrice: e.target.value })}
+                className="mt-1"
+                placeholder="Optional"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="b2bPrice" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                B2B PRICE (€)
+              </Label>
+              <Input
+                id="b2bPrice"
+                type="number"
+                step="0.01"
+                value={formData.b2bPrice}
+                onChange={(e) => setFormData({ ...formData, b2bPrice: e.target.value })}
+                className="mt-1"
+                placeholder="Optional"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="retailPrice" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                RETAIL PRICE (€)
+              </Label>
+              <Input
+                id="retailPrice"
+                type="number"
+                step="0.01"
+                value={formData.retailPrice}
+                onChange={(e) => setFormData({ ...formData, retailPrice: e.target.value })}
+                className="mt-1"
+                placeholder="Optional"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="stock" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                STOCK
+              </Label>
+              <Input
+                id="stock"
+                type="number"
+                value={formData.stock}
+                onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
+                className="mt-1"
+                required
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <Label htmlFor="imageUrl" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                IMAGE URL
+              </Label>
+              <Input
+                id="imageUrl"
+                type="url"
+                value={formData.imageUrl}
+                onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                className="mt-1"
+                placeholder="https://example.com/image.jpg"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="platform" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                PLATFORM
+              </Label>
+              <Select 
+                value={formData.platform} 
+                onValueChange={(value) => setFormData({ ...formData, platform: value })}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select platform" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Windows">Windows</SelectItem>
+                  <SelectItem value="Mac">Mac</SelectItem>
+                  <SelectItem value="Linux">Linux</SelectItem>
+                  <SelectItem value="Web">Web</SelectItem>
+                  <SelectItem value="Windows, Mac">Windows & Mac</SelectItem>
+                  <SelectItem value="Windows, Mac, Linux">Windows, Mac & Linux</SelectItem>
+                  <SelectItem value="All Platforms">All Platforms</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="region" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                REGION
+              </Label>
+              <Select 
+                value={formData.region} 
+                onValueChange={(value) => setFormData({ ...formData, region: value })}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select region" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Global">Global</SelectItem>
+                  <SelectItem value="EU">Europe</SelectItem>
+                  <SelectItem value="US">United States</SelectItem>
+                  <SelectItem value="Asia">Asia</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-4 border-t">
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="isActive"
+                checked={formData.isActive}
+                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                className="rounded border-gray-300"
+              />
+              <Label htmlFor="isActive" className="text-sm font-medium text-gray-700">
+                Active (visible to B2B users)
+              </Label>
+            </div>
+
+            <div className="flex space-x-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onCancel}
+                className="px-6"
+              >
+                CANCEL
+              </Button>
+              <Button
+                type="submit"
+                className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white px-6"
+              >
+                {product ? 'UPDATE' : 'CREATE'} PRODUCT
+              </Button>
+            </div>
+          </div>
+        </form>
+      )}
+
+      {/* License Keys Tab */}
+      {currentTab === "keys" && product?.id && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="text-lg font-semibold text-gray-900 uppercase tracking-[0.5px]">
+                License Key Management
+              </h4>
+              <p className="text-sm text-gray-600">
+                Add license keys for {product.name}. Each line represents one key.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="licenseKeys" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                License Keys (One per line)
+              </Label>
+              <Textarea
+                id="licenseKeys"
+                value={licenseKeys}
+                onChange={(e) => setLicenseKeys(e.target.value)}
+                className="mt-1 font-mono text-sm"
+                rows={20}
+                placeholder={`Enter license keys, one per line:
+ABCD1-EFGH2-IJKL3-MNOP4-QRST5
+XYZ12-ABC34-DEF56-GHI78-JKL90
+...`}
+              />
+              <p className="mt-2 text-xs text-gray-500">
+                Format: 3-6 blocks with 5-6 characters each. Spaces between blocks are allowed.
+              </p>
+            </div>
+
+            <div className="flex justify-between items-center pt-4 border-t">
+              <div className="text-sm text-gray-600">
+                {licenseKeys.split('\n').filter(k => k.trim()).length} keys ready to add
+              </div>
+              
+              <div className="flex space-x-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onCancel}
+                  className="px-6"
+                >
+                  CLOSE
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleSaveKeys}
+                  disabled={!licenseKeys.trim()}
+                  className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white px-6"
+                >
+                  SAVE KEYS
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Duplicate Warning Dialog */}
+      {showDuplicateDialog && (
+        <Dialog open={showDuplicateDialog} onOpenChange={setShowDuplicateDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-red-600 uppercase tracking-[0.5px]">
+                Duplicate Keys Found
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-gray-600 mb-3">
+                  The following keys already exist:
+                </p>
+                <div className="max-h-40 overflow-y-auto bg-gray-50 p-3 rounded-md">
+                  <ul className="text-xs font-mono space-y-1">
+                    {duplicateWarning.map((key, index) => (
+                      <li key={index} className="text-red-600">{key}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+              
+              <div className="flex justify-end space-x-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowDuplicateDialog(false)}
+                  className="px-4"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSaveKeysIgnoreDuplicates}
+                  className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white px-4"
+                >
+                  Save Anyway
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
   );
 }

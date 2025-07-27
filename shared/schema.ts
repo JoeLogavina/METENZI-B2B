@@ -58,6 +58,9 @@ export const products = pgTable("products", {
   name: varchar("name").notNull(),
   description: text("description"),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  purchasePrice: decimal("purchase_price", { precision: 10, scale: 2 }),
+  b2bPrice: decimal("b2b_price", { precision: 10, scale: 2 }),
+  retailPrice: decimal("retail_price", { precision: 10, scale: 2 }),
   categoryId: varchar("category_id").references(() => categories.id),
   region: varchar("region").notNull(), // Global, EU, US, etc.
   platform: varchar("platform").notNull(), // Windows, Mac, Both
@@ -71,7 +74,7 @@ export const products = pgTable("products", {
 export const licenseKeys = pgTable("license_keys", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   productId: varchar("product_id").references(() => products.id).notNull(),
-  keyValue: text("key_value").notNull(),
+  keyValue: text("key_value").notNull().unique(),
   isUsed: boolean("is_used").default(false).notNull(),
   usedBy: varchar("used_by").references(() => users.id),
   usedAt: timestamp("used_at"),
@@ -288,4 +291,12 @@ export type InsertAdminPermissions = z.infer<typeof insertAdminPermissionsSchema
 // Extend product with stock count
 export type ProductWithStock = Product & {
   stockCount: number;
+};
+
+// Extend product with license keys
+export type ProductWithKeys = Product & {
+  licenseKeys: LicenseKey[];
+  totalKeys: number;
+  usedKeys: number;
+  availableKeys: number;
 };
