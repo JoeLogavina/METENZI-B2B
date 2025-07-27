@@ -16,7 +16,7 @@ import {
   invalidateCacheMiddleware 
 } from "./middleware/cache.middleware";
 import { invalidateOrdersCache } from "./middleware/cache-invalidation.middleware";
-import { cacheHelpers } from "./cache/redis";
+import { cacheHelpers, redisCache } from "./cache/redis";
 
 // Authentication middleware
 const isAuthenticated = (req: any, res: any, next: any) => {
@@ -413,7 +413,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         // Try cache first for better performance
         const cacheKey = `cart:${userId}`;
-        const cachedCart = await cacheService.get(cacheKey);
+        const cachedCart = await redisCache.get(cacheKey);
         
         if (cachedCart) {
           console.log(`📦 Cart from cache for user: ${req.user.username}`);
@@ -430,7 +430,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // Cache cart items for 5 minutes
-        await cacheService.set(cacheKey, cartItems, 300);
+        await redisCache.set(cacheKey, cartItems, 300);
         
         res.setHeader('X-Cache', 'MISS');
         res.json(cartItems);
@@ -460,7 +460,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Invalidate cart cache for this user
         const cacheKey = `cart:${userId}`;
-        await cacheService.delete(cacheKey);
+        await redisCache.del(cacheKey);
         
         console.log(`✅ Added to cart (${duration}ms): ${cartData.quantity}x product ${cartData.productId} for user: ${req.user.username}`);
         res.status(201).json(cartItem);
@@ -481,7 +481,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updateCartItem(req.params.id, quantity);
         
         // Invalidate user's cart cache
-        await cacheService.delete(`cart:${userId}`);
+        await redisCache.del(`cart:${userId}`);
         
         const duration = Date.now() - startTime;
         console.log(`✅ Updated cart item (${duration}ms): ${req.params.id} for user: ${req.user.username}`);
@@ -503,7 +503,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updateCartItem(req.params.id, quantity);
         
         // Invalidate user's cart cache
-        await cacheService.delete(`cart:${userId}`);
+        await redisCache.del(`cart:${userId}`);
         
         const duration = Date.now() - startTime;
         console.log(`✅ Patched cart item (${duration}ms): ${req.params.id} for user: ${req.user.username}`);
@@ -524,7 +524,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.removeFromCart(req.params.id);
         
         // Invalidate user's cart cache
-        await cacheService.delete(`cart:${userId}`);
+        await redisCache.del(`cart:${userId}`);
         
         const duration = Date.now() - startTime;
         console.log(`✅ Removed cart item (${duration}ms): ${req.params.id} for user: ${req.user.username}`);
@@ -545,7 +545,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.clearCart(userId);
         
         // Invalidate user's cart cache
-        await cacheService.delete(`cart:${userId}`);
+        await redisCache.del(`cart:${userId}`);
         
         const duration = Date.now() - startTime;
         console.log(`✅ Cleared cart (${duration}ms) for user: ${req.user.username}`);
