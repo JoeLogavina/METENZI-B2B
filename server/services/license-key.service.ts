@@ -141,30 +141,44 @@ export class LicenseKeyServiceImpl implements ILicenseKeyService {
       const trimmedKey = key.trim();
       if (!trimmedKey) continue;
       
-      // Basic validation: 3-6 blocks of 5-6 characters
-      // Allow spaces between blocks, normalize to remove extra spaces
-      const normalizedKey = trimmedKey.replace(/\s+/g, ' ').trim();
+      console.log('DEBUG: Validating key:', trimmedKey);
       
-      // Check if key has valid format (letters, numbers, dashes)
+      // Check if key has valid format (letters, numbers, dashes, spaces)
       const keyPattern = /^[A-Z0-9\-\s]+$/i;
-      if (!keyPattern.test(normalizedKey)) {
-        console.warn(`Invalid key format: ${normalizedKey}`);
+      if (!keyPattern.test(trimmedKey)) {
+        console.warn(`Invalid key format (invalid characters): ${trimmedKey}`);
         continue;
       }
       
-      // Split by spaces and check block count and length
-      const blocks = normalizedKey.split(/\s+/);
+      // Handle both dash-separated and space-separated formats
+      const blocks = trimmedKey.includes('-') 
+        ? trimmedKey.split('-')
+        : trimmedKey.split(/\s+/);
+      
+      console.log('DEBUG: Key blocks:', blocks, 'Count:', blocks.length);
+      
       if (blocks.length >= 3 && blocks.length <= 6) {
-        const validBlocks = blocks.every(block => 
-          block.length >= 4 && block.length <= 7 // Allow 4-7 characters per block
-        );
+        const validBlocks = blocks.every(block => {
+          const trimmedBlock = block.trim();
+          const isValid = trimmedBlock.length >= 4 && trimmedBlock.length <= 7;
+          console.log('DEBUG: Block validation:', trimmedBlock, 'Length:', trimmedBlock.length, 'Valid:', isValid);
+          return isValid;
+        });
         
         if (validBlocks) {
-          validKeys.push(normalizedKey.toUpperCase());
+          // Normalize to dash format for consistency
+          const normalizedKey = blocks.map(b => b.trim().toUpperCase()).join('-');
+          validKeys.push(normalizedKey);
+          console.log('DEBUG: Valid key added:', normalizedKey);
+        } else {
+          console.warn(`Invalid key blocks: ${trimmedKey}`);
         }
+      } else {
+        console.warn(`Invalid key block count (${blocks.length}): ${trimmedKey}`);
       }
     }
     
+    console.log('DEBUG: Total valid keys:', validKeys.length);
     return validKeys;
   }
 }

@@ -194,10 +194,16 @@ export default function B2BShop() {
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <div className="text-sm text-white flex items-center">
-                <User className="w-4 h-4 mr-1" />
-                <span className="font-medium">{user?.username}</span>
-              </div>
+              {(user?.role === 'admin' || user?.role === 'super_admin') && (
+                <Button
+                  size="sm"
+                  onClick={() => window.location.href = "/admin"}
+                  className="bg-[#4D9DE0] hover:bg-[#4a94d1] text-white border-0 px-4 py-2 rounded-[5px] font-medium transition-colors duration-200 flex items-center"
+                >
+                  <User className="w-4 h-4 mr-1" />
+                  <span className="font-medium capitalize">{user?.role?.replace('_', ' ')}</span>
+                </Button>
+              )}
               <div className="text-sm text-white flex items-center">
                 <Package className="w-4 h-4 mr-1" />
                 <span className="font-mono font-medium">{products.length}</span> available
