@@ -70,6 +70,8 @@ export const products = pgTable("products", {
   platform: varchar("platform").notNull(), // Windows, Mac, Both
   stockCount: integer("stock_count").default(0).notNull(),
   imageUrl: varchar("image_url"),
+  warranty: text("warranty"), // Warranty information
+  htmlDescription: text("html_description"), // Rich HTML description
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -304,9 +306,14 @@ export const insertProductSchema = createInsertSchema(products).omit({
 }).extend({
   price: z.union([z.string(), z.number()]).transform(val => String(val)),
   priceKm: z.union([z.string(), z.number()]).transform(val => val ? String(val) : null).optional(),
+  purchasePrice: z.union([z.string(), z.number()]).transform(val => val ? String(val) : null).optional(),
+  retailPrice: z.union([z.string(), z.number()]).transform(val => val ? String(val) : null).optional(),
   purchasePriceKm: z.union([z.string(), z.number()]).transform(val => val ? String(val) : null).optional(),
   resellerPriceKm: z.union([z.string(), z.number()]).transform(val => val ? String(val) : null).optional(),
   retailerPriceKm: z.union([z.string(), z.number()]).transform(val => val ? String(val) : null).optional(),
+  warranty: z.string().optional(),
+  htmlDescription: z.string().optional(),
+  stockCount: z.union([z.string(), z.number()]).transform(val => val ? Number(val) : 0).optional(),
 });
 
 export const insertCategorySchema = createInsertSchema(categories).omit({

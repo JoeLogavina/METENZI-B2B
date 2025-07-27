@@ -60,6 +60,8 @@ export default function AdminPanel() {
   const [editProductFormData, setEditProductFormData] = useState({
     name: '',
     description: '',
+    htmlDescription: '',
+    warranty: '',
     category: '',
     platform: '',
     region: '',
@@ -69,14 +71,12 @@ export default function AdminPanel() {
   const [editEurPricing, setEditEurPricing] = useState({
     price: '',
     purchasePrice: '',
-    b2bPrice: '',
     retailPrice: '',
     stock: ''
   });
   const [editKmPricing, setEditKmPricing] = useState({
     priceKm: '',
     purchasePriceKm: '',
-    b2bPriceKm: '',
     retailPriceKm: ''
   });
   const [editActiveTab, setEditActiveTab] = useState('details');
@@ -878,6 +878,8 @@ function EditProductIntegratedSection({
       setEditProductFormData({
         name: prod.name || '',
         description: prod.description || '',
+        htmlDescription: prod.htmlDescription || '',
+        warranty: prod.warranty || '',
         category: prod.categoryId || '',
         platform: prod.platform || '',
         region: prod.region || '',
@@ -888,7 +890,6 @@ function EditProductIntegratedSection({
       setEditEurPricing({
         price: prod.price || '',
         purchasePrice: prod.purchasePrice || '',
-        b2bPrice: prod.b2bPrice || '',
         retailPrice: prod.retailPrice || '',
         stock: (prod.stockCount || prod.stock)?.toString() || ''
       });
@@ -896,8 +897,7 @@ function EditProductIntegratedSection({
       setEditKmPricing({
         priceKm: prod.priceKm || '',
         purchasePriceKm: prod.purchasePriceKm || '',
-        b2bPriceKm: prod.b2bPriceKm || '',
-        retailPriceKm: prod.retailPriceKm || ''
+        retailPriceKm: prod.resellerPriceKm || ''
       });
     }
   }, [editProductData]);
@@ -1165,7 +1165,7 @@ function EditProductIntegratedSection({
 
                 <div className="md:col-span-2">
                   <Label htmlFor="description" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-                    DESCRIPTION
+                    BASIC DESCRIPTION
                   </Label>
                   <Textarea
                     id="description"
@@ -1175,7 +1175,66 @@ function EditProductIntegratedSection({
                       setEditUnsavedChanges(true);
                     }}
                     className="mt-1"
+                    rows={4}
+                    placeholder="Brief product description for listings"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <Label htmlFor="htmlDescription" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                    DETAILED HTML DESCRIPTION
+                  </Label>
+                  <Textarea
+                    id="htmlDescription"
+                    value={editProductFormData.htmlDescription}
+                    onChange={(e) => {
+                      setEditProductFormData({ ...editProductFormData, htmlDescription: e.target.value });
+                      setEditUnsavedChanges(true);
+                    }}
+                    className="mt-1 font-mono text-sm"
+                    rows={8}
+                    placeholder="Rich HTML content with images, formatting, etc."
+                  />
+                  <div className="mt-2 text-xs text-gray-500">
+                    <p>• Supports full HTML including images, tables, lists</p>
+                    <p>• Use &lt;img src="..." alt="..." /&gt; for images</p>
+                    <p>• Use &lt;b&gt;, &lt;i&gt;, &lt;u&gt; for formatting</p>
+                  </div>
+                </div>
+
+                <div className="md:col-span-2">
+                  <Label htmlFor="imageUrl" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                    PRODUCT IMAGE URL
+                  </Label>
+                  <Input
+                    id="imageUrl"
+                    value={editProductFormData.imageUrl}
+                    onChange={(e) => {
+                      setEditProductFormData({ ...editProductFormData, imageUrl: e.target.value });
+                      setEditUnsavedChanges(true);
+                    }}
+                    className="mt-1"
+                    placeholder="https://example.com/image.jpg"
+                  />
+                  <div className="mt-2 text-xs text-gray-500">
+                    Upload image to external hosting service and paste URL here
+                  </div>
+                </div>
+
+                <div className="md:col-span-2">
+                  <Label htmlFor="warranty" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                    WARRANTY INFORMATION
+                  </Label>
+                  <Textarea
+                    id="warranty"
+                    value={editProductFormData.warranty}
+                    onChange={(e) => {
+                      setEditProductFormData({ ...editProductFormData, warranty: e.target.value });
+                      setEditUnsavedChanges(true);
+                    }}
+                    className="mt-1"
                     rows={3}
+                    placeholder="Warranty terms, duration, coverage details..."
                   />
                 </div>
 
@@ -1258,7 +1317,7 @@ function EditProductIntegratedSection({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="price" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-                    DISPLAY PRICE (€)
+                    B2B PRICE (€)
                   </Label>
                   <Input
                     id="price"
@@ -1271,7 +1330,7 @@ function EditProductIntegratedSection({
                     }}
                     className="mt-1"
                     required
-                    placeholder="Customer-facing price"
+                    placeholder="Primary B2B price"
                   />
                 </div>
 
@@ -1290,24 +1349,6 @@ function EditProductIntegratedSection({
                     }}
                     className="mt-1"
                     placeholder="Internal cost price"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="b2bPrice" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-                    B2B PRICE (€)
-                  </Label>
-                  <Input
-                    id="b2bPrice"
-                    type="number"
-                    step="0.01"
-                    value={editEurPricing.b2bPrice}
-                    onChange={(e) => {
-                      setEditEurPricing({ ...editEurPricing, b2bPrice: e.target.value });
-                      setEditUnsavedChanges(true);
-                    }}
-                    className="mt-1"
-                    placeholder="B2B wholesale price"
                   />
                 </div>
 
@@ -1353,17 +1394,17 @@ function EditProductIntegratedSection({
           {editActiveTab === "km-pricing" && (
             <div className="space-y-6">
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                <h4 className="text-sm font-medium text-blue-800 mb-1">KM Currency Support</h4>
+                <h4 className="text-sm font-medium text-blue-800 mb-1">KM Currency Pricing</h4>
                 <p className="text-sm text-blue-600">
-                  Configure pricing in Bosnian Marks (KM) for future multi-tenant support. 
-                  Exchange rate: 1 EUR ≈ 1.96 KM
+                  Configure pricing in Convertible Marks (KM) for the Bosnian market. 
+                  These prices are used for regional B2B customers.
                 </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="priceKm" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-                    DISPLAY PRICE (KM)
+                    B2B PRICE (KM)
                   </Label>
                   <Input
                     id="priceKm"
@@ -1375,7 +1416,7 @@ function EditProductIntegratedSection({
                       setEditUnsavedChanges(true);
                     }}
                     className="mt-1"
-                    placeholder="Bosnian Mark price"
+                    placeholder="Primary B2B price in KM"
                   />
                 </div>
 
@@ -1393,25 +1434,7 @@ function EditProductIntegratedSection({
                       setEditUnsavedChanges(true);
                     }}
                     className="mt-1"
-                    placeholder="Optional"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="b2bPriceKm" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-                    B2B PRICE (KM)
-                  </Label>
-                  <Input
-                    id="b2bPriceKm"
-                    type="number"
-                    step="0.01"
-                    value={editKmPricing.b2bPriceKm}
-                    onChange={(e) => {
-                      setEditKmPricing({ ...editKmPricing, b2bPriceKm: e.target.value });
-                      setEditUnsavedChanges(true);
-                    }}
-                    className="mt-1"
-                    placeholder="Optional"
+                    placeholder="Internal cost in KM"
                   />
                 </div>
 
@@ -1429,7 +1452,7 @@ function EditProductIntegratedSection({
                       setEditUnsavedChanges(true);
                     }}
                     className="mt-1"
-                    placeholder="Optional"
+                    placeholder="Recommended retail price in KM"
                   />
                 </div>
               </div>

@@ -17,7 +17,10 @@ class ValidationError extends ApplicationError {
 }
 
 const addKeysSchema = z.object({
-  keys: z.string().min(1, "Keys are required"),
+  keys: z.union([
+    z.string().min(1, "Keys are required"),
+    z.array(z.string()).min(1, "Keys are required")
+  ]),
   ignoreDuplicates: z.boolean().optional().default(false),
 });
 
@@ -67,11 +70,13 @@ export class AdminLicenseKeysController {
         throw new ValidationError("Product ID is required");
       }
       
-      // Parse keys from textarea input (split by newlines)
-      const keyValues = validatedData.keys
-        .split('\n')
-        .map(key => key.trim())
-        .filter(key => key.length > 0);
+      // Parse keys from textarea input (split by newlines) or use array directly
+      const keyValues = Array.isArray(validatedData.keys) 
+        ? validatedData.keys.filter(key => key.trim().length > 0)
+        : validatedData.keys
+            .split('\n')
+            .map(key => key.trim())
+            .filter(key => key.length > 0);
       
       console.log('DEBUG Controller: Parsed key values:', keyValues);
       console.log('DEBUG Controller: Number of valid keys:', keyValues.length);
