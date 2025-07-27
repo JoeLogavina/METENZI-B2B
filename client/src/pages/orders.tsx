@@ -490,7 +490,7 @@ export default function OrdersPage() {
                     </h4>
                     
                     <div className="overflow-x-auto border rounded-lg">
-                      <table className="w-full text-sm">
+                      <table className="w-full text-sm table-auto border-collapse">
                         <thead className="bg-[#6E6F71] text-white">
                           <tr>
                             <th className="text-left p-2 font-semibold">License Key</th>
