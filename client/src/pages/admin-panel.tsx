@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import WalletManagement from "@/components/wallet-management";
 import UserForm from "@/components/user-form";
+import { formatAdminPrice, convertEurToKm } from "@/lib/currency-utils";
 
 interface DashboardStats {
   totalUsers: number;
@@ -560,7 +561,7 @@ export default function AdminPanel() {
                         <tr>
                           <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Product</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Category</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Price</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Price (EUR / KM)</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Stock</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Status</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Actions</th>
@@ -603,8 +604,13 @@ export default function AdminPanel() {
                                   {product.category}
                                 </span>
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-[#FFB20F] font-mono">
-                                €{product.price}
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium font-mono">
+                                <div className="space-y-1">
+                                  <div className="text-[#FFB20F]">€{product.price}</div>
+                                  {product.priceKm && (
+                                    <div className="text-[#6E6F71] text-xs">{product.priceKm} KM</div>
+                                  )}
+                                </div>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-[#6E6F71] font-mono">
                                 {product.stock}
@@ -775,6 +781,7 @@ function ProductForm({
     name: product?.name || '',
     description: product?.description || '',
     price: product?.price || '',
+    priceKm: product?.priceKm || '',
     purchasePrice: product?.purchasePrice || '',
     b2bPrice: product?.b2bPrice || '',
     retailPrice: product?.retailPrice || '',
@@ -794,6 +801,7 @@ function ProductForm({
       name: formData.name,
       description: formData.description,
       price: formData.price,
+      priceKm: formData.priceKm || null,
       purchasePrice: formData.purchasePrice || null,
       b2bPrice: formData.b2bPrice || null,
       retailPrice: formData.retailPrice || null,
@@ -1013,6 +1021,24 @@ function ProductForm({
                 className="mt-1"
                 required
               />
+            </div>
+
+            <div>
+              <Label htmlFor="priceKm" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                PRICE (KM) - Bosnian Mark
+              </Label>
+              <Input
+                id="priceKm"
+                type="number"
+                step="0.01"
+                value={formData.priceKm}
+                onChange={(e) => setFormData({ ...formData, priceKm: e.target.value })}
+                className="mt-1"
+                placeholder="Optional - for future tenant"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                For future Bosnian market tenant (1 EUR ≈ 1.96 KM)
+              </p>
             </div>
 
             <div>

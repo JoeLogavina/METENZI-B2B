@@ -57,7 +57,8 @@ export const products = pgTable("products", {
   sku: varchar("sku").unique().notNull(),
   name: varchar("name").notNull(),
   description: text("description"),
-  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(), // EUR price for B2B shop
+  priceKm: decimal("price_km", { precision: 10, scale: 2 }), // KM (Bosnian Mark) price for future tenant
   purchasePrice: decimal("purchase_price", { precision: 10, scale: 2 }),
   b2bPrice: decimal("b2b_price", { precision: 10, scale: 2 }),
   retailPrice: decimal("retail_price", { precision: 10, scale: 2 }),
@@ -299,6 +300,7 @@ export const insertProductSchema = createInsertSchema(products).omit({
   updatedAt: true,
 }).extend({
   price: z.union([z.string(), z.number()]).transform(val => String(val)),
+  priceKm: z.union([z.string(), z.number()]).transform(val => val ? String(val) : null).optional(),
 });
 
 export const insertCategorySchema = createInsertSchema(categories).omit({
@@ -348,36 +350,21 @@ export const insertWalletTransactionSchema = createInsertSchema(walletTransactio
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type Product = typeof products.$inferSelect;
-export type InsertProduct = typeof products.$inferInsert;
-export type Category = typeof categories.$inferSelect;
-export type InsertCategory = typeof categories.$inferInsert;
-export type Order = typeof orders.$inferSelect;
-export type InsertOrder = typeof orders.$inferInsert;
-export type OrderItem = typeof orderItems.$inferSelect;
-export type InsertOrderItem = typeof orderItems.$inferInsert;
-export type CartItem = typeof cartItems.$inferSelect;
-export type InsertCartItem = typeof cartItems.$inferInsert;
-export type LicenseKey = typeof licenseKeys.$inferSelect;
-export type InsertLicenseKey = typeof licenseKeys.$inferInsert;
-export type Wallet = typeof wallets.$inferSelect;
-export type InsertWallet = typeof wallets.$inferInsert;
-export type WalletTransaction = typeof walletTransactions.$inferSelect;
-export type InsertWalletTransaction = typeof walletTransactions.$inferInsert;
-export type AdminPermissions = typeof adminPermissions.$inferSelect;
-export type InsertAdminPermissions = typeof adminPermissions.$inferInsert;
-export type InsertUser = typeof users.$inferInsert;
-export type Product = typeof products.$inferSelect;
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type Category = typeof categories.$inferSelect;
 export type InsertCategory = z.infer<typeof insertCategorySchema>;
-export type LicenseKey = typeof licenseKeys.$inferSelect;
-export type InsertLicenseKey = z.infer<typeof insertLicenseKeySchema>;
 export type Order = typeof orders.$inferSelect;
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
 export type OrderItem = typeof orderItems.$inferSelect;
 export type InsertOrderItem = z.infer<typeof insertOrderItemSchema>;
 export type CartItem = typeof cartItems.$inferSelect;
 export type InsertCartItem = z.infer<typeof insertCartItemSchema>;
+export type LicenseKey = typeof licenseKeys.$inferSelect;
+export type InsertLicenseKey = z.infer<typeof insertLicenseKeySchema>;
+export type Wallet = typeof wallets.$inferSelect;
+export type InsertWallet = typeof wallets.$inferInsert;
+export type WalletTransaction = typeof walletTransactions.$inferSelect;
+export type InsertWalletTransaction = typeof walletTransactions.$inferInsert;
 export type AdminPermissions = typeof adminPermissions.$inferSelect;
 export type InsertAdminPermissions = z.infer<typeof insertAdminPermissionsSchema>;
 
