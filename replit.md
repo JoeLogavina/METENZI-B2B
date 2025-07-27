@@ -13,6 +13,9 @@ This is a full-stack B2B software license management platform built with React, 
 - Updated color scheme from Coffee Mist to Corporate Gray (#6E6F71) and Spanish Yellow (#FFB20F)
 - Applied new color palette throughout admin portal and B2B shop interfaces
 - Enhanced visual hierarchy with Spanish Yellow accents for prices, buttons, and active states
+- Increased sidebar text and icon sizes by 35% for better visibility
+- Changed sidebar text from gray to white for improved contrast
+- Updated table headers with new Corporate Gray background color
 
 ## User Preferences
 

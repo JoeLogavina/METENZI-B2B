@@ -206,14 +206,14 @@ export default function AdminPanel() {
               <div
                 key={item.id}
                 onClick={() => setActiveSection(item.id)}
-                className={`flex items-center px-4 py-3 text-sm transition-colors duration-200 cursor-pointer ${
+                className={`flex items-center px-4 py-3 text-lg transition-colors duration-200 cursor-pointer ${
                   activeSection === item.id
                     ? 'bg-[#FFB20F] text-white border-r-2 border-[#e6a00e]' 
-                    : 'text-gray-300 hover:bg-[#7a7b7d]'
+                    : 'text-white hover:bg-[#7a7b7d]'
                 }`}
               >
-                <item.icon className="w-4 h-4 mr-3" />
-                <span className="uppercase tracking-[0.5px] font-medium text-xs">{item.label}</span>
+                <item.icon className="w-6 h-6 mr-3" />
+                <span className="uppercase tracking-[0.5px] font-medium text-sm">{item.label}</span>
               </div>
             ))}
           </nav>
@@ -414,14 +414,14 @@ export default function AdminPanel() {
                   
                   <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
+                      <thead className="bg-[#6E6F71]">
                         <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-[#6E6F71] uppercase tracking-wider">Product</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-[#6E6F71] uppercase tracking-wider">Category</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-[#6E6F71] uppercase tracking-wider">Price</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-[#6E6F71] uppercase tracking-wider">Stock</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-[#6E6F71] uppercase tracking-wider">Status</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-[#6E6F71] uppercase tracking-wider">Actions</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Product</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Category</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Price</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Stock</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Status</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">

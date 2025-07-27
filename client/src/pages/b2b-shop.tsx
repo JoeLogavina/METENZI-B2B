@@ -165,18 +165,18 @@ export default function B2BShop() {
           {sidebarItems.map((item, index) => (
             <div
               key={index}
-              className={`flex items-center px-4 py-3 text-sm transition-colors duration-200 cursor-pointer ${
+              className={`flex items-center px-4 py-3 text-lg transition-colors duration-200 cursor-pointer ${
                 item.active 
                   ? 'bg-[#FFB20F] text-white border-r-2 border-[#e6a00e]' 
-                  : 'text-gray-300 hover:bg-[#7a7b7d]'
+                  : 'text-white hover:bg-[#7a7b7d]'
               }`}
               onClick={() => {
                 console.log('Sidebar item clicked:', item.label, 'href:', item.href);
                 setLocation(item.href);
               }}
             >
-              <item.icon className="w-4 h-4 mr-3" />
-              <span className="uppercase tracking-[0.5px] font-medium text-xs">{item.label}</span>
+              <item.icon className="w-6 h-6 mr-3" />
+              <span className="uppercase tracking-[0.5px] font-medium text-sm">{item.label}</span>
             </div>
           ))}
         </nav>
@@ -452,7 +452,7 @@ export default function B2BShop() {
             <div className="bg-white rounded-[8px] shadow-[0_2px_5px_rgba(0,0,0,0.1)] overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="min-w-full">
-                  <thead className="bg-[#4D585A] text-white">
+                  <thead className="bg-[#6E6F71] text-white">
                     <tr>
                       <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.5px]">SKU</th>
                       <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.5px]">IMAGE</th>
