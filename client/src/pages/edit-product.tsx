@@ -5,100 +5,152 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Upload, X, Plus, Trash2, Copy, Save, FileImage } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Trash2, Copy, Key } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { formatPrice } from '@/lib/currency-utils';
-import { apiRequest } from '@/lib/queryClient';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useAuth } from '@/hooks/useAuth';
+import { isUnauthorizedError } from '@/lib/authUtils';
 
 export default function EditProduct() {
   const [location, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { isAuthenticated, isLoading } = useAuth();
 
   // Get product ID from URL params
   const urlParams = new URLSearchParams(location.split('?')[1]);
   const productId = urlParams.get('id');
 
+  const [activeTab, setActiveTab] = useState('details');
+  const [unsavedChanges, setUnsavedChanges] = useState(false);
+  const [licenseKeys, setLicenseKeys] = useState('');
+
   // State for forms
-  const [eurFormData, setEurFormData] = useState({
+  const [formData, setFormData] = useState({
     name: '',
     description: '',
+    category: '',
+    platform: '',
+    region: '',
+    imageUrl: '',
+    isActive: true
+  });
+
+  const [eurPricing, setEurPricing] = useState({
     price: '',
     purchasePrice: '',
     b2bPrice: '',
     retailPrice: '',
-    category: '',
-    region: 'Global',
-    platform: 'Both',
-    sku: '',
-    stockCount: 0,
-    imageUrl: ''
+    stock: ''
   });
 
-  const [kmFormData, setKmFormData] = useState({
+  const [kmPricing, setKmPricing] = useState({
     priceKm: '',
     purchasePriceKm: '',
-    resellerPriceKm: '',
-    retailerPriceKm: ''
+    b2bPriceKm: '',
+    retailPriceKm: ''
   });
 
-  const [unsavedChanges, setUnsavedChanges] = useState(false);
-  const [showLicenseKeyDialog, setShowLicenseKeyDialog] = useState(false);
-  const [newLicenseKey, setNewLicenseKey] = useState('');
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      toast({
+        title: "Unauthorized",
+        description: "Admin access required. Redirecting...",
+        variant: "destructive",
+      });
+      setTimeout(() => {
+        window.location.href = "/admin-panel";
+      }, 500);
+      return;
+    }
+  }, [isAuthenticated, isLoading, toast]);
 
   // Fetch product data
   const { data: product, isLoading: productLoading } = useQuery({
     queryKey: [`/api/admin/products/${productId}`],
-    enabled: !!productId
+    enabled: !!productId && isAuthenticated,
   });
 
   // Fetch categories
   const { data: categories = [] } = useQuery({
-    queryKey: ['/api/categories']
+    queryKey: ['/api/categories'],
+    enabled: isAuthenticated
   });
 
   // Fetch license keys
-  const { data: licenseKeys = [], refetch: refetchLicenseKeys } = useQuery({
-    queryKey: [`/api/admin/products/${productId}/license-keys`],
-    enabled: !!productId
+  const { data: existingLicenseKeys = [], refetch: refetchLicenseKeys } = useQuery({
+    queryKey: [`/api/admin/license-keys/${productId}`],
+    enabled: !!productId && isAuthenticated
   });
 
-  // Populate form data when product loads
+  // Update form data when product loads
   useEffect(() => {
     if (product && typeof product === 'object') {
-      setEurFormData({
-        name: (product as any).name || '',
-        description: (product as any).description || '',
-        price: (product as any).price || '',
-        purchasePrice: (product as any).purchasePrice || '',
-        b2bPrice: (product as any).b2bPrice || '',
-        retailPrice: (product as any).retailPrice || '',
-        category: (product as any).categoryId || '',
-        region: (product as any).region || 'Global',
-        platform: (product as any).platform || 'Both',
-        sku: (product as any).sku || '',
-        stockCount: (product as any).stockCount || 0,
-        imageUrl: (product as any).imageUrl || ''
+      const prod = product as any;
+      setFormData({
+        name: prod.name || '',
+        description: prod.description || '',
+        category: prod.categoryId || '',
+        platform: prod.platform || '',
+        region: prod.region || '',
+        imageUrl: prod.imageUrl || '',
+        isActive: prod.isActive ?? true
       });
 
-      setKmFormData({
-        priceKm: (product as any).priceKm || '',
-        purchasePriceKm: (product as any).purchasePriceKm || '',
-        resellerPriceKm: (product as any).resellerPriceKm || '',
-        retailerPriceKm: (product as any).retailerPriceKm || ''
+      setEurPricing({
+        price: prod.price || '',
+        purchasePrice: prod.purchasePrice || '',
+        b2bPrice: prod.b2bPrice || '',
+        retailPrice: prod.retailPrice || '',
+        stock: prod.stock?.toString() || ''
+      });
+
+      setKmPricing({
+        priceKm: prod.priceKm || '',
+        purchasePriceKm: prod.purchasePriceKm || '',
+        b2bPriceKm: prod.b2bPriceKm || '',
+        retailPriceKm: prod.retailPriceKm || ''
       });
     }
   }, [product]);
 
-  // Auto-save mutation
+  // Mark unsaved changes
+  const handleFormChange = (section: string, field: string, value: any) => {
+    setUnsavedChanges(true);
+    if (section === 'details') {
+      setFormData(prev => ({ ...prev, [field]: value }));
+    } else if (section === 'eur') {
+      setEurPricing(prev => ({ ...prev, [field]: value }));
+    } else if (section === 'km') {
+      setKmPricing(prev => ({ ...prev, [field]: value }));
+    }
+  };
+
+  // Save product mutation
   const saveProductMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const response = await apiRequest('PUT', `/api/admin/products/${productId}`, data);
-      return response.json();
+    mutationFn: async () => {
+      const submitData = {
+        ...formData,
+        ...eurPricing,
+        ...kmPricing,
+        categoryId: formData.category,
+        stock: eurPricing.stock ? parseInt(eurPricing.stock) : undefined
+      };
+
+      const response = await fetch(`/api/admin/products/${productId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(submitData)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to save product');
+      }
+
+      return await response.json();
     },
     onSuccess: () => {
       setUnsavedChanges(false);
@@ -107,39 +159,54 @@ export default function EditProduct() {
         description: "Product updated successfully",
       });
       queryClient.invalidateQueries({ queryKey: [`/api/admin/products/${productId}`] });
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/products'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/products"] });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
-        description: "Failed to update product",
+        description: error.message,
         variant: "destructive",
       });
     }
   });
 
-  // Add license key mutation
-  const addLicenseKeyMutation = useMutation({
-    mutationFn: async (keyValue: string) => {
-      const response = await apiRequest('POST', '/api/admin/license-keys', {
-        productId,
-        keyValue
+  // Save license keys mutation
+  const saveLicenseKeysMutation = useMutation({
+    mutationFn: async () => {
+      if (!licenseKeys.trim()) {
+        throw new Error("Please enter license keys to save");
+      }
+
+      const response = await fetch(`/api/admin/license-keys/${productId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          keys: licenseKeys,
+          ignoreDuplicates: false
+        })
       });
-      return response.json();
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to save license keys');
+      }
+
+      return await response.json();
     },
-    onSuccess: () => {
-      setNewLicenseKey('');
-      setShowLicenseKeyDialog(false);
+    onSuccess: (result) => {
+      setLicenseKeys('');
       toast({
         title: "Success",
-        description: "License key added successfully",
+        description: `Added ${result.data.added.length} license keys. Stock updated to ${result.data.stats.available} available keys.`,
       });
       refetchLicenseKeys();
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/products"] });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
-        description: "Failed to add license key",
+        description: error.message,
         variant: "destructive",
       });
     }
@@ -148,8 +215,15 @@ export default function EditProduct() {
   // Delete license key mutation
   const deleteLicenseKeyMutation = useMutation({
     mutationFn: async (keyId: string) => {
-      const response = await apiRequest('DELETE', `/api/admin/license-keys/${keyId}`);
-      return response.json();
+      const response = await fetch(`/api/admin/license-keys/${keyId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to delete license key');
+      }
     },
     onSuccess: () => {
       toast({
@@ -157,44 +231,24 @@ export default function EditProduct() {
         description: "License key deleted successfully",
       });
       refetchLicenseKeys();
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/products"] });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
-        description: "Failed to delete license key",
+        description: error.message,
         variant: "destructive",
       });
     }
   });
 
-  // Handle save
-  const handleSave = () => {
-    const combinedData = {
-      ...eurFormData,
-      ...kmFormData,
-      stockCount: Number(eurFormData.stockCount)
-    };
-    saveProductMutation.mutate(combinedData);
-  };
-
-  // Handle field changes and mark as unsaved
-  const updateEurForm = (updates: any) => {
-    setEurFormData(prev => ({ ...prev, ...updates }));
-    setUnsavedChanges(true);
-  };
-
-  const updateKmForm = (updates: any) => {
-    setKmFormData(prev => ({ ...prev, ...updates }));
-    setUnsavedChanges(true);
-  };
-
   if (!productId) {
     return (
-      <div className="min-h-screen bg-gray-50 p-8">
-        <div className="max-w-2xl mx-auto text-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Product ID Required</h1>
-          <p className="text-gray-600 mb-8">Please provide a product ID to edit.</p>
-          <Button onClick={() => navigate('/admin-panel')} className="bg-[#FFB20F] hover:bg-[#FFB20F]/90 text-white">
+          <p className="text-gray-600 mb-6">Please provide a product ID to edit.</p>
+          <Button onClick={() => navigate('/admin-panel')} className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white">
             Back to Admin Panel
           </Button>
         </div>
@@ -202,13 +256,10 @@ export default function EditProduct() {
     );
   }
 
-  if (productLoading) {
+  if (productLoading || isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB20F] mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading product...</p>
-        </div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FFB20F]"></div>
       </div>
     );
   }
@@ -216,35 +267,34 @@ export default function EditProduct() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-8 py-6">
+      <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <Button
-              variant="ghost"
-              size="sm"
+              variant="outline"
               onClick={() => navigate('/admin-panel')}
-              className="text-[#6E6F71] hover:text-[#FFB20F] hover:bg-[#FFB20F]/10"
+              className="flex items-center space-x-2"
             >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Products
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back to Admin Panel</span>
             </Button>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 uppercase tracking-[0.5px]">
-                Edit Product
+              <h1 className="text-2xl font-bold text-[#6E6F71] uppercase tracking-[0.5px]">
+                EDIT PRODUCT
               </h1>
-              <p className="text-sm text-[#6E6F71]">SKU: {eurFormData.sku}</p>
+              <p className="text-[#6E6F71]">{(product as any)?.name}</p>
             </div>
           </div>
           <div className="flex items-center space-x-3">
             {unsavedChanges && (
-              <span className="text-sm text-amber-600 bg-amber-50 px-3 py-1 rounded-full">
+              <span className="text-sm text-orange-600 font-medium">
                 Unsaved changes
               </span>
             )}
             <Button
-              onClick={handleSave}
+              onClick={() => saveProductMutation.mutate()}
               disabled={saveProductMutation.isPending}
-              className="bg-[#FFB20F] hover:bg-[#FFB20F]/90 text-white px-6"
+              className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white"
             >
               <Save className="w-4 h-4 mr-2" />
               {saveProductMutation.isPending ? 'Saving...' : 'Save Changes'}
@@ -253,372 +303,422 @@ export default function EditProduct() {
         </div>
       </div>
 
-      {/* Content */}
-      <div className="max-w-6xl mx-auto p-8">
-        <Tabs defaultValue="eur" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 bg-white border border-gray-200 rounded-lg p-1">
-            <TabsTrigger 
-              value="eur" 
-              className="data-[state=active]:bg-[#FFB20F] data-[state=active]:text-white font-medium"
+      {/* Tab Navigation */}
+      <div className="bg-white border-b border-gray-200 px-6">
+        <nav className="flex space-x-8">
+          {[
+            { id: 'details', label: 'Product Details' },
+            { id: 'eur-pricing', label: 'EUR Pricing' },
+            { id: 'km-pricing', label: 'KM Pricing' },
+            { id: 'license-keys', label: 'License Keys' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`py-4 px-1 border-b-2 font-medium text-sm uppercase tracking-[0.5px] transition-colors ${
+                activeTab === tab.id
+                  ? "border-[#FFB20F] text-[#FFB20F]"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
             >
-              EUR Product Details
-            </TabsTrigger>
-            <TabsTrigger 
-              value="km" 
-              className="data-[state=active]:bg-[#FFB20F] data-[state=active]:text-white font-medium"
-            >
-              KM Pricing
-            </TabsTrigger>
-            <TabsTrigger 
-              value="keys" 
-              className="data-[state=active]:bg-[#FFB20F] data-[state=active]:text-white font-medium"
-            >
-              License Keys ({Array.isArray(licenseKeys) ? licenseKeys.length : 0})
-            </TabsTrigger>
-          </TabsList>
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+      </div>
 
-          {/* EUR Tab */}
-          <TabsContent value="eur">
-            <Card className="border-gray-200">
-              <CardHeader className="bg-gray-50 border-b border-gray-200">
-                <CardTitle className="text-lg text-gray-900 uppercase tracking-[0.5px]">
-                  Product Information (EUR)
-                </CardTitle>
-                <CardDescription>
-                  Primary product details and EUR pricing
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-6 space-y-6">
-                {/* Basic Info */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <Label htmlFor="name" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-                      Product Name
-                    </Label>
-                    <Input
-                      id="name"
-                      value={eurFormData.name}
-                      onChange={(e) => updateEurForm({ name: e.target.value })}
-                      className="mt-1"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="sku" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-                      SKU
-                    </Label>
-                    <Input
-                      id="sku"
-                      value={eurFormData.sku}
-                      onChange={(e) => updateEurForm({ sku: e.target.value })}
-                      className="mt-1"
-                      required
-                    />
-                  </div>
+      {/* Tab Content */}
+      <div className="px-6 py-8">
+        <div className="max-w-4xl mx-auto">
+          {/* Product Details Tab */}
+          {activeTab === 'details' && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h2 className="text-lg font-semibold text-[#6E6F71] uppercase tracking-[0.5px] mb-6">
+                Product Details
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <Label htmlFor="name" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                    PRODUCT NAME
+                  </Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => handleFormChange('details', 'name', e.target.value)}
+                    className="mt-1"
+                  />
                 </div>
 
                 <div>
+                  <Label htmlFor="category" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                    CATEGORY
+                  </Label>
+                  <Select 
+                    value={formData.category} 
+                    onValueChange={(value) => handleFormChange('details', 'category', value)}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5f7c2d93-0865-489c-bc73-8c7521ca978d">Development Tools</SelectItem>
+                      <SelectItem value="04c7d498-572f-46ca-bc54-2be8812035d4">Design Software</SelectItem>
+                      <SelectItem value="dbe15a4f-3eab-44f0-bfcf-8427259ad19c">Business Applications</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="md:col-span-2">
                   <Label htmlFor="description" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-                    Description
+                    DESCRIPTION
                   </Label>
                   <Textarea
                     id="description"
-                    value={eurFormData.description}
-                    onChange={(e) => updateEurForm({ description: e.target.value })}
+                    value={formData.description}
+                    onChange={(e) => handleFormChange('details', 'description', e.target.value)}
                     className="mt-1"
-                    rows={3}
+                    rows={4}
                   />
-                </div>
-
-                {/* Pricing */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div>
-                    <Label className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-                      B2B Price (EUR)
-                    </Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={eurFormData.price}
-                      onChange={(e) => updateEurForm({ price: e.target.value })}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-                      Purchase Price (EUR)
-                    </Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={eurFormData.purchasePrice}
-                      onChange={(e) => updateEurForm({ purchasePrice: e.target.value })}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-                      Reseller Price (EUR)
-                    </Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={eurFormData.b2bPrice}
-                      onChange={(e) => updateEurForm({ b2bPrice: e.target.value })}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-                      Retail Price (EUR)
-                    </Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={eurFormData.retailPrice}
-                      onChange={(e) => updateEurForm({ retailPrice: e.target.value })}
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
-
-                {/* Categories and Settings */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <Label className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-                      Category
-                    </Label>
-                    <Select value={eurFormData.category} onValueChange={(value) => updateEurForm({ category: value })}>
-                      <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Array.isArray(categories) && categories.map((category: any) => (
-                          <SelectItem key={category.id} value={category.id}>
-                            {category.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-                      Region
-                    </Label>
-                    <Select value={eurFormData.region} onValueChange={(value) => updateEurForm({ region: value })}>
-                      <SelectTrigger className="mt-1">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Global">Global</SelectItem>
-                        <SelectItem value="EU">EU</SelectItem>
-                        <SelectItem value="US">US</SelectItem>
-                        <SelectItem value="Asia">Asia</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-                      Platform
-                    </Label>
-                    <Select value={eurFormData.platform} onValueChange={(value) => updateEurForm({ platform: value })}>
-                      <SelectTrigger className="mt-1">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Windows">Windows</SelectItem>
-                        <SelectItem value="Mac">Mac</SelectItem>
-                        <SelectItem value="Both">Both</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
                 </div>
 
                 <div>
-                  <Label className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-                    Stock Count
+                  <Label htmlFor="platform" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                    PLATFORM
+                  </Label>
+                  <Select 
+                    value={formData.platform} 
+                    onValueChange={(value) => handleFormChange('details', 'platform', value)}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select platform" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Windows">Windows</SelectItem>
+                      <SelectItem value="Mac">Mac</SelectItem>
+                      <SelectItem value="Linux">Linux</SelectItem>
+                      <SelectItem value="Web">Web</SelectItem>
+                      <SelectItem value="Windows, Mac">Windows & Mac</SelectItem>
+                      <SelectItem value="Windows, Mac, Linux">Windows, Mac & Linux</SelectItem>
+                      <SelectItem value="All Platforms">All Platforms</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="region" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                    REGION
+                  </Label>
+                  <Select 
+                    value={formData.region} 
+                    onValueChange={(value) => handleFormChange('details', 'region', value)}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select region" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Global">Global</SelectItem>
+                      <SelectItem value="EU">Europe</SelectItem>
+                      <SelectItem value="US">United States</SelectItem>
+                      <SelectItem value="Asia">Asia</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="md:col-span-2">
+                  <Label htmlFor="imageUrl" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                    IMAGE URL
                   </Label>
                   <Input
-                    type="number"
-                    value={eurFormData.stockCount}
-                    onChange={(e) => updateEurForm({ stockCount: parseInt(e.target.value) || 0 })}
-                    className="mt-1 max-w-xs"
+                    id="imageUrl"
+                    type="url"
+                    value={formData.imageUrl}
+                    onChange={(e) => handleFormChange('details', 'imageUrl', e.target.value)}
+                    className="mt-1"
+                    placeholder="https://example.com/image.jpg"
                   />
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
 
-          {/* KM Tab */}
-          <TabsContent value="km">
-            <Card className="border-gray-200">
-              <CardHeader className="bg-gray-50 border-b border-gray-200">
-                <CardTitle className="text-lg text-gray-900 uppercase tracking-[0.5px]">
-                  KM Pricing (Bosnian Mark)
-                </CardTitle>
-                <CardDescription>
-                  Pricing in KM currency for Bosnia market
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-6 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div>
-                    <Label className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-                      B2B Price (KM)
-                    </Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={kmFormData.priceKm}
-                      onChange={(e) => updateKmForm({ priceKm: e.target.value })}
-                      className="mt-1"
+                <div className="md:col-span-2">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="isActive"
+                      checked={formData.isActive}
+                      onChange={(e) => handleFormChange('details', 'isActive', e.target.checked)}
+                      className="rounded border-gray-300"
                     />
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-                      Purchase Price (KM)
+                    <Label htmlFor="isActive" className="text-sm font-medium text-gray-700">
+                      Active (visible to B2B users)
                     </Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={kmFormData.purchasePriceKm}
-                      onChange={(e) => updateKmForm({ purchasePriceKm: e.target.value })}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-                      Reseller Price (KM)
-                    </Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={kmFormData.resellerPriceKm}
-                      onChange={(e) => updateKmForm({ resellerPriceKm: e.target.value })}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-                      Retailer Price (KM)
-                    </Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={kmFormData.retailerPriceKm}
-                      onChange={(e) => updateKmForm({ retailerPriceKm: e.target.value })}
-                      className="mt-1"
-                    />
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+              </div>
+            </div>
+          )}
+
+          {/* EUR Pricing Tab */}
+          {activeTab === 'eur-pricing' && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h2 className="text-lg font-semibold text-[#6E6F71] uppercase tracking-[0.5px] mb-6">
+                EUR Pricing
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <Label htmlFor="price" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                    DISPLAY PRICE (€)
+                  </Label>
+                  <Input
+                    id="price"
+                    type="number"
+                    step="0.01"
+                    value={eurPricing.price}
+                    onChange={(e) => handleFormChange('eur', 'price', e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="stock" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                    STOCK
+                  </Label>
+                  <Input
+                    id="stock"
+                    type="number"
+                    value={eurPricing.stock}
+                    onChange={(e) => handleFormChange('eur', 'stock', e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="purchasePrice" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                    PURCHASE PRICE (€)
+                  </Label>
+                  <Input
+                    id="purchasePrice"
+                    type="number"
+                    step="0.01"
+                    value={eurPricing.purchasePrice}
+                    onChange={(e) => handleFormChange('eur', 'purchasePrice', e.target.value)}
+                    className="mt-1"
+                    placeholder="Optional"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="b2bPrice" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                    B2B PRICE (€)
+                  </Label>
+                  <Input
+                    id="b2bPrice"
+                    type="number"
+                    step="0.01"
+                    value={eurPricing.b2bPrice}
+                    onChange={(e) => handleFormChange('eur', 'b2bPrice', e.target.value)}
+                    className="mt-1"
+                    placeholder="Optional"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="retailPrice" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                    RETAIL PRICE (€)
+                  </Label>
+                  <Input
+                    id="retailPrice"
+                    type="number"
+                    step="0.01"
+                    value={eurPricing.retailPrice}
+                    onChange={(e) => handleFormChange('eur', 'retailPrice', e.target.value)}
+                    className="mt-1"
+                    placeholder="Optional"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* KM Pricing Tab */}
+          {activeTab === 'km-pricing' && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h2 className="text-lg font-semibold text-[#6E6F71] uppercase tracking-[0.5px] mb-6">
+                KM Pricing (Bosnian Mark)
+              </h2>
+              <p className="text-sm text-gray-600 mb-6">
+                For future Bosnian market tenant. Current exchange rate: 1 EUR ≈ 1.96 KM
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <Label htmlFor="priceKm" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                    DISPLAY PRICE (KM)
+                  </Label>
+                  <Input
+                    id="priceKm"
+                    type="number"
+                    step="0.01"
+                    value={kmPricing.priceKm}
+                    onChange={(e) => handleFormChange('km', 'priceKm', e.target.value)}
+                    className="mt-1"
+                    placeholder="Bosnian Mark price"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="purchasePriceKm" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                    PURCHASE PRICE (KM)
+                  </Label>
+                  <Input
+                    id="purchasePriceKm"
+                    type="number"
+                    step="0.01"
+                    value={kmPricing.purchasePriceKm}
+                    onChange={(e) => handleFormChange('km', 'purchasePriceKm', e.target.value)}
+                    className="mt-1"
+                    placeholder="Optional"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="b2bPriceKm" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                    B2B PRICE (KM)
+                  </Label>
+                  <Input
+                    id="b2bPriceKm"
+                    type="number"
+                    step="0.01"
+                    value={kmPricing.b2bPriceKm}
+                    onChange={(e) => handleFormChange('km', 'b2bPriceKm', e.target.value)}
+                    className="mt-1"
+                    placeholder="Optional"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="retailPriceKm" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                    RETAIL PRICE (KM)
+                  </Label>
+                  <Input
+                    id="retailPriceKm"
+                    type="number"
+                    step="0.01"
+                    value={kmPricing.retailPriceKm}
+                    onChange={(e) => handleFormChange('km', 'retailPriceKm', e.target.value)}
+                    className="mt-1"
+                    placeholder="Optional"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* License Keys Tab */}
-          <TabsContent value="keys">
-            <Card className="border-gray-200">
-              <CardHeader className="bg-gray-50 border-b border-gray-200">
-                <CardTitle className="text-lg text-gray-900 uppercase tracking-[0.5px] flex items-center justify-between">
-                  License Keys Management
-                  <Dialog open={showLicenseKeyDialog} onOpenChange={setShowLicenseKeyDialog}>
-                    <DialogTrigger asChild>
-                      <Button size="sm" className="bg-[#FFB20F] hover:bg-[#FFB20F]/90 text-white">
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add Key
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Add License Key</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="licenseKey">License Key</Label>
-                          <Input
-                            id="licenseKey"
-                            value={newLicenseKey}
-                            onChange={(e) => setNewLicenseKey(e.target.value)}
-                            placeholder="Enter license key..."
-                            className="mt-1"
-                          />
-                        </div>
-                        <div className="flex justify-end space-x-2">
-                          <Button
-                            variant="outline"
-                            onClick={() => setShowLicenseKeyDialog(false)}
-                          >
-                            Cancel
-                          </Button>
-                          <Button
-                            onClick={() => addLicenseKeyMutation.mutate(newLicenseKey)}
-                            disabled={!newLicenseKey.trim() || addLicenseKeyMutation.isPending}
-                            className="bg-[#FFB20F] hover:bg-[#FFB20F]/90 text-white"
-                          >
-                            Add Key
-                          </Button>
-                        </div>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                </CardTitle>
-                <CardDescription>
-                  Manage digital license keys for this product
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-6">
-                {!Array.isArray(licenseKeys) || licenseKeys.length === 0 ? (
-                  <div className="text-center py-8">
-                    <FileImage className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500">No license keys added yet</p>
-                    <p className="text-sm text-gray-400 mt-1">Click "Add Key" to get started</p>
+          {activeTab === 'license-keys' && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h2 className="text-lg font-semibold text-[#6E6F71] uppercase tracking-[0.5px] mb-6">
+                License Key Management
+              </h2>
+              
+              {/* Add new keys section */}
+              <div className="mb-8">
+                <h3 className="text-md font-medium text-gray-700 uppercase tracking-[0.5px] mb-4">
+                  Add New License Keys
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="licenseKeys" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                      License Keys (One per line)
+                    </Label>
+                    <Textarea
+                      id="licenseKeys"
+                      value={licenseKeys}
+                      onChange={(e) => setLicenseKeys(e.target.value)}
+                      className="mt-1 font-mono text-sm"
+                      rows={10}
+                      placeholder={`Enter license keys, one per line:
+ABCD1-EFGH2-IJKL3-MNOP4-QRST5
+XYZ12-ABC34-DEF56-GHI78-JKL90
+...`}
+                    />
+                    <p className="mt-2 text-xs text-gray-500">
+                      Format: 3-6 blocks with 5-6 characters each. Spaces between blocks are allowed.
+                    </p>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <div className="text-sm text-gray-600">
+                      {licenseKeys.split('\n').filter(k => k.trim()).length} keys ready to add
+                    </div>
+                    <Button
+                      onClick={() => saveLicenseKeysMutation.mutate()}
+                      disabled={!licenseKeys.trim() || saveLicenseKeysMutation.isPending}
+                      className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      {saveLicenseKeysMutation.isPending ? 'Adding...' : 'Add Keys'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Existing keys section */}
+              <div>
+                <h3 className="text-md font-medium text-gray-700 uppercase tracking-[0.5px] mb-4">
+                  Existing License Keys ({(existingLicenseKeys as any[]).length})
+                </h3>
+                {(existingLicenseKeys as any[]).length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <Key className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                    <p>No license keys added yet</p>
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    {Array.isArray(licenseKeys) && licenseKeys.map((key: any) => (
-                      <div key={key.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg bg-gray-50">
-                        <div className="flex-1">
-                          <div className="font-mono text-sm">{key.keyValue}</div>
-                          <div className="text-xs text-gray-500 mt-1">
-                            Status: {key.isUsed ? 'Used' : 'Available'}
-                            {key.isUsed && key.usedBy && ` • Used by: ${key.usedBy}`}
-                          </div>
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {(existingLicenseKeys as any[]).map((key: any) => (
+                      <div key={key.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <code className="text-sm font-mono bg-white px-2 py-1 rounded border">
+                            {key.keyValue}
+                          </code>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            key.isUsed 
+                              ? 'bg-red-100 text-red-800' 
+                              : 'bg-green-100 text-green-800'
+                          }`}>
+                            {key.isUsed ? 'Used' : 'Available'}
+                          </span>
+                          {key.isUsed && key.usedAt && (
+                            <span className="text-xs text-gray-500">
+                              Used {new Date(key.usedAt).toLocaleDateString()}
+                            </span>
+                          )}
                         </div>
                         <div className="flex items-center space-x-2">
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => {
-                              navigator.clipboard.writeText(key.keyValue);
-                              toast({
-                                title: "Copied",
-                                description: "License key copied to clipboard",
-                              });
-                            }}
-                            className="text-[#6E6F71] border-[#6E6F71] hover:bg-[#6E6F71] hover:text-white"
+                            onClick={() => navigator.clipboard.writeText(key.keyValue)}
                           >
                             <Copy className="w-4 h-4" />
                           </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => deleteLicenseKeyMutation.mutate(key.id)}
-                            disabled={deleteLicenseKeyMutation.isPending}
-                            className="text-red-600 border-red-600 hover:bg-red-600 hover:text-white"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                          {!key.isUsed && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => deleteLicenseKeyMutation.mutate(key.id)}
+                              disabled={deleteLicenseKeyMutation.isPending}
+                              className="text-red-600 border-red-600 hover:bg-red-600 hover:text-white"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
                         </div>
                       </div>
                     ))}
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
