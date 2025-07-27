@@ -20,7 +20,7 @@ export function registerRoutes(app: Express): Server {
   app.get('/health', async (req, res) => {
     try {
       // Check database connection
-      await storage.getProducts({ search: 'health-check', limit: 1 });
+      await storage.getProducts({ search: 'health-check' });
       
       res.status(200).json({
         status: 'healthy',
@@ -41,7 +41,7 @@ export function registerRoutes(app: Express): Server {
   app.get('/ready', async (req, res) => {
     try {
       // More comprehensive readiness check
-      await storage.getProducts({ search: 'readiness-check', limit: 1 });
+      await storage.getProducts({ search: 'readiness-check' });
       
       res.status(200).json({
         status: 'ready',
