@@ -71,9 +71,24 @@ router.post('/',
 );
 
 // Create update schema with flexible price handling
-const updateProductSchema = insertProductSchema.partial().extend({
+const updateProductSchema = z.object({
+  name: z.string().optional(),
+  description: z.string().optional(),
+  htmlDescription: z.string().optional(),
+  warranty: z.string().optional(),
+  categoryId: z.string().optional(),
+  platform: z.string().optional(),
+  region: z.string().optional(),
+  imageUrl: z.string().optional(),
+  isActive: z.boolean().optional(),
   price: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
-});
+  purchasePrice: z.union([z.string(), z.number(), z.literal("")]).transform(val => val === "" ? null : String(val)).optional(),
+  retailPrice: z.union([z.string(), z.number(), z.literal("")]).transform(val => val === "" ? null : String(val)).optional(),
+  priceKm: z.union([z.string(), z.number(), z.literal("")]).transform(val => val === "" ? null : String(val)).optional(),
+  purchasePriceKm: z.union([z.string(), z.number(), z.literal("")]).transform(val => val === "" ? null : String(val)).optional(),
+  retailPriceKm: z.union([z.string(), z.number(), z.literal("")]).transform(val => val === "" ? null : String(val)).optional(),
+  stock: z.union([z.string(), z.number()]).transform(val => Number(val)).optional(),
+}).partial();
 
 // PUT /api/admin/products/:id - Update product
 router.put('/:id',
