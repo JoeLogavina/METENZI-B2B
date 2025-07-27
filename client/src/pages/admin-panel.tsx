@@ -44,8 +44,11 @@ export default function AdminPanel() {
   
   // Check if we're on the edit product page
   const urlParams = new URLSearchParams(window.location.search);
-  const editProductId = urlParams.get('id');
-  const isEditProductPage = window.location.pathname === '/admin/products/edit' && editProductId;
+  const urlEditProductId = urlParams.get('id');
+  const isEditProductPage = window.location.pathname === '/admin/products/edit' && urlEditProductId;
+  
+  // Edit product ID state
+  const [editProductId, setEditProductId] = useState(urlEditProductId);
   
   const [activeSection, setActiveSection] = useState(isEditProductPage ? "edit-product" : "dashboard");
   const [showProductForm, setShowProductForm] = useState(false);
