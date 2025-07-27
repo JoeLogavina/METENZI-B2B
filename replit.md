@@ -22,7 +22,10 @@ This is a full-stack B2B software license management platform built with React, 
   - **CRITICAL FIX**: Resolved wallet balance deduction issue - payments now properly process
   - Fixed WalletService import/export pattern causing "WalletService is not a constructor" error
   - Added sufficient license keys for product testing to prevent "insufficient stock" errors
-  - Wallet balance now correctly deducts from €6522.00 to €6507.48 after €14.52 payment
+  - **PAYMENT PRIORITY LOGIC FIXED**: System now correctly uses deposit balance first, then credit limit only when deposits exhausted
+  - Fixed multiple calculation methods showing incorrect credit usage (€248.53 vs €0.00)
+  - Corrected balance display in all endpoints (/api/wallet, /api/wallet-balance, admin routes)
+  - Wallet balance correctly deducts from deposits: €1273.47 → €1249.39 after €24.08 payment
   - Transaction history properly records payment transactions with order linking
   - Verified full payment flow: cart → checkout → wallet deduction → order completion
 - **ORDERS PAGE ENHANCEMENT**: Moved "Copy All Keys" and "Export to Excel" buttons from global header to individual order sections
