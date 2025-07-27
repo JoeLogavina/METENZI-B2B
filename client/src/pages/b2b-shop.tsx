@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useDebounce } from "use-debounce";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,9 @@ export default function B2BShop() {
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [isCartHovered, setIsCartHovered] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  
+  // Debounce filters to prevent excessive API calls during typing
+  const [debouncedFilters] = useDebounce(filters, 300);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -48,16 +52,16 @@ export default function B2BShop() {
     }
   }, [isAuthenticated, isLoading, toast]);
 
-  // Fetch products
+  // Fetch products with optimized caching and debounced filters
   const { data: products = [], isLoading: productsLoading } = useQuery<ProductWithStock[]>({
-    queryKey: ["/api/products", filters],
+    queryKey: ["/api/products", debouncedFilters],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (filters.region) params.append('region', filters.region);
-      if (filters.platform) params.append('platform', filters.platform);
-      if (filters.search) params.append('search', filters.search);
-      if (filters.priceMin) params.append('priceMin', filters.priceMin);
-      if (filters.priceMax) params.append('priceMax', filters.priceMax);
+      if (debouncedFilters.region) params.append('region', debouncedFilters.region);
+      if (debouncedFilters.platform) params.append('platform', debouncedFilters.platform);
+      if (debouncedFilters.search) params.append('search', debouncedFilters.search);
+      if (debouncedFilters.priceMin) params.append('priceMin', debouncedFilters.priceMin);
+      if (debouncedFilters.priceMax) params.append('priceMax', debouncedFilters.priceMax);
       
       const res = await fetch(`/api/products?${params.toString()}`, {
         credentials: 'include'
@@ -70,8 +74,10 @@ export default function B2BShop() {
       return await res.json();
     },
     enabled: isAuthenticated,
-    staleTime: 0, // Always consider data stale to get fresh data
-    gcTime: 0, // Don't cache in memory
+    staleTime: 5 * 60 * 1000, // 5 minutes fresh data
+    gcTime: 30 * 60 * 1000, // 30 minutes cache retention
+    refetchOnWindowFocus: false, // Prevent excessive refetches
+    placeholderData: (previousData) => previousData, // Keep previous data while loading
   });
 
   // Fetch cart items
@@ -80,19 +86,62 @@ export default function B2BShop() {
     enabled: isAuthenticated,
   });
 
-  // Add to cart mutation
+  // Add to cart mutation with optimistic updates
   const addToCartMutation = useMutation({
-    mutationFn: async ({ productId, quantity }: { productId: string; quantity: number }) => {
-      await apiRequest("POST", "/api/cart", { productId, quantity });
+    mutationFn: async ({ productId, quantity }: { productId, quantity: number }) => {
+      const response = await apiRequest("POST", "/api/cart", { productId, quantity });
+      return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
-      toast({
-        title: "Success",
-        description: "Item added to cart successfully",
-      });
+    onMutate: async ({ productId, quantity }) => {
+      // Cancel any outgoing cart queries to prevent overwriting our optimistic update
+      await queryClient.cancelQueries({ queryKey: ["/api/cart"] });
+      
+      // Snapshot the previous value
+      const previousCart = queryClient.getQueryData(["/api/cart"]);
+      
+      // Find product details for optimistic update
+      const product = products.find(p => p.id === productId);
+      
+      if (product) {
+        // Optimistically update cart
+        queryClient.setQueryData(["/api/cart"], (old: any[]) => {
+          const existingItem = old?.find(item => item.productId === productId);
+          if (existingItem) {
+            // Update quantity if item exists
+            return old.map(item => 
+              item.productId === productId 
+                ? { ...item, quantity: item.quantity + quantity }
+                : item
+            );
+          } else {
+            // Add new item
+            return [...(old || []), {
+              id: `temp-${Date.now()}`,
+              productId,
+              quantity,
+              product,
+              userId: user?.id,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            }];
+          }
+        });
+        
+        // Show success toast immediately
+        toast({
+          title: "Added to Cart",
+          description: `${product.name} added successfully`,
+        });
+      }
+      
+      return { previousCart, productId, quantity };
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
+      // Rollback the optimistic update on error
+      if (context?.previousCart) {
+        queryClient.setQueryData(["/api/cart"], context.previousCart);
+      }
+      
       if (isUnauthorizedError(error)) {
         toast({
           title: "Unauthorized",
@@ -106,9 +155,13 @@ export default function B2BShop() {
       }
       toast({
         title: "Error",
-        description: "Failed to add item to cart",
+        description: "Failed to add item to cart. Please try again.",
         variant: "destructive",
       });
+    },
+    onSettled: () => {
+      // Synchronize with server after mutation
+      queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
     },
   });
 
