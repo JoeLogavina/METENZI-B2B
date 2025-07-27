@@ -5,14 +5,6 @@
 This is a full-stack B2B software license management platform built with React, Express, and PostgreSQL. The application provides enterprise customers with a streamlined interface to browse, purchase, and manage software licenses, while offering administrators comprehensive tools for inventory and user management. The system now uses custom username/password authentication and displays all prices in EUR currency.
 
 ## Recent Changes (January 2025)
-- **EDIT PRODUCT PAGE REDESIGNED** (January 27, 2025):
-  - **URL Structure Fixed**: Changed from `/admin/products/[id]` to `/admin/products/edit?id=xyz` as requested
-  - **Data Fetching Restored**: Product data now properly loads name, description, and all pricing fields
-  - **License Keys Feature Restored**: Complete license key management interface with add/delete functionality
-  - **Clear Save Functionality**: Explicit "Save Changes" button with unsaved changes indicator
-  - **B2B Design Applied**: Consistent styling with Spanish Yellow (#FFB20F) accents and Corporate Gray (#6E6F71)
-  - **Enhanced User Experience**: Better loading states, proper error handling, and intuitive navigation
-  - **Tabbed Interface**: Separate tabs for EUR details, KM pricing, and license keys management
 - **TIER 2 ORDERS PERFORMANCE OPTIMIZATION COMPLETED** (January 27, 2025):
   - **CRITICAL ISSUE RESOLVED**: Orders page first-time loading improved from 732ms → ~100ms (85% improvement)
   - **Enhanced Route Preloading**: Moved Orders from "delayed" to "immediate" priority for instant bundle availability

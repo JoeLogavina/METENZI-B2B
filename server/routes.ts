@@ -17,9 +17,6 @@ import {
 } from "./middleware/cache.middleware";
 import { invalidateOrdersCache } from "./middleware/cache-invalidation.middleware";
 import { cacheHelpers, redisCache } from "./cache/redis";
-import { upload, saveBase64Image, deleteUploadedFile } from "./middleware/upload";
-import express from "express";
-import path from "path";
 
 // Authentication middleware
 const isAuthenticated = (req: any, res: any, next: any) => {
@@ -121,29 +118,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Global rate limiting for API routes (temporarily disabled for debugging)
   // app.use('/api', rateLimit(15 * 60 * 1000, 300)); // 300 requests per 15 minutes
-
-  // Image upload endpoint
-  app.post('/api/admin/products/:id/upload', isAuthenticated, upload.single('image'), async (req: any, res) => {
-    try {
-      const productId = req.params.id;
-      
-      if (!req.file) {
-        return res.status(400).json({ message: 'No image file provided' });
-      }
-
-      // Update product with new image URL
-      const imageUrl = `/uploads/${req.file.filename}`;
-      await storage.updateProduct(productId, { imageUrl });
-
-      res.json({ imageUrl });
-    } catch (error) {
-      console.error('Image upload error:', error);
-      res.status(500).json({ message: 'Failed to upload image' });
-    }
-  });
-
-  // Static file serving for uploads
-  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
   // Debug middleware for admin routes
   app.use('/api/admin', (req, res, next) => {

@@ -62,9 +62,6 @@ export const products = pgTable("products", {
   purchasePrice: decimal("purchase_price", { precision: 10, scale: 2 }),
   b2bPrice: decimal("b2b_price", { precision: 10, scale: 2 }),
   retailPrice: decimal("retail_price", { precision: 10, scale: 2 }),
-  purchasePriceKm: decimal("purchase_price_km", { precision: 10, scale: 2 }),
-  resellerPriceKm: decimal("reseller_price_km", { precision: 10, scale: 2 }),
-  retailerPriceKm: decimal("retailer_price_km", { precision: 10, scale: 2 }),
   categoryId: varchar("category_id").references(() => categories.id),
   region: varchar("region").notNull(), // Global, EU, US, etc.
   platform: varchar("platform").notNull(), // Windows, Mac, Both

@@ -128,4 +128,4 @@ export function convertKmToEur(kmAmount: number): number {
 }
 
 // Legacy compatibility - keep existing EUR-only functions working
-export { formatPrice as formatPriceEur };
+export { formatPrice as formatPriceEur, parsePrice, calculateTotal };
