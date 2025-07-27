@@ -159,7 +159,14 @@ export default function CartPage() {
     clearCartMutation.mutate();
   };
 
-  const totalAmount = cartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+  const totalAmount = cartItems.reduce((sum, item) => {
+    // Add safety check for product and price
+    if (!item.product || typeof item.product.price !== 'number') {
+      console.warn('Cart item missing product or price:', item);
+      return sum;
+    }
+    return sum + (item.product.price * item.quantity);
+  }, 0);
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
   if (isLoading) {
@@ -236,7 +243,14 @@ export default function CartPage() {
                 </Button>
               </div>
 
-              {cartItems.map((item) => (
+              {cartItems.map((item) => {
+                // Add safety check for product data
+                if (!item.product) {
+                  console.warn('Cart item missing product data:', item);
+                  return null;
+                }
+                
+                return (
                 <Card key={item.id} className="bg-white rounded-[8px] shadow-[0_2px_5px_rgba(0,0,0,0.1)] border-[#ddd]">
                   <CardContent className="p-6">
                     <div className="flex items-center space-x-4">
@@ -247,21 +261,21 @@ export default function CartPage() {
 
                       {/* Product Details */}
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-[#4D585A] truncate">{item.product.name}</h3>
-                        <p className="text-sm text-gray-500 truncate">{item.product.description}</p>
+                        <h3 className="font-semibold text-[#4D585A] truncate">{item.product.name || 'Unknown Product'}</h3>
+                        <p className="text-sm text-gray-500 truncate">{item.product.description || 'No description'}</p>
                         <div className="flex items-center space-x-2 mt-2">
                           <Badge variant="outline" className="text-xs border-[#ddd] text-gray-700">
-                            {item.product.region}
+                            {item.product.region || 'Unknown'}
                           </Badge>
                           <span className="text-xs bg-[#4D9DE0] text-white px-2 py-1 rounded-[5px] font-medium">
-                            {item.product.platform}
+                            {item.product.platform || 'Unknown'}
                           </span>
                         </div>
                       </div>
 
                       {/* Price */}
                       <div className="text-right">
-                        <div className="font-mono font-semibold text-[#4D585A]">€{item.product.price}</div>
+                        <div className="font-mono font-semibold text-[#4D585A]">€{(item.product.price || 0).toFixed(2)}</div>
                         <div className="text-xs text-gray-500">per license</div>
                       </div>
 
@@ -291,7 +305,7 @@ export default function CartPage() {
                       {/* Total Price */}
                       <div className="text-right min-w-[80px]">
                         <div className="font-mono font-semibold text-lg text-[#4D585A]">
-                          €{(item.product.price * item.quantity).toFixed(2)}
+                          €{((item.product.price || 0) * item.quantity).toFixed(2)}
                         </div>
                       </div>
 
@@ -308,7 +322,8 @@ export default function CartPage() {
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+                );
+              })}
             </div>
 
             {/* Order Summary */}

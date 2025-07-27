@@ -14,8 +14,11 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  // For GET requests without data, use the request batcher
-  if (method === 'GET' && !data) {
+  // Skip batching for cart API - needs immediate response for UX
+  const skipBatching = url.includes('/api/cart') || url.includes('/api/wallet') || url.includes('/api/orders');
+  
+  // For GET requests without data, use the request batcher (except for cart/wallet/orders)
+  if (method === 'GET' && !data && !skipBatching) {
     try {
       const responseData = await requestBatcher.batchRequest(url, method);
       // Create a mock Response object with the batched data
