@@ -17,8 +17,8 @@ export default function EditProduct() {
   const queryClient = useQueryClient();
   const { isAuthenticated, isLoading } = useAuth();
 
-  // Get product ID from URL params
-  const urlParams = new URLSearchParams(location.split('?')[1]);
+  // Get product ID from URL params using useLocation hook properly
+  const urlParams = new URLSearchParams(window.location.search);
   const productId = urlParams.get('id');
 
   const [activeTab, setActiveTab] = useState('details');

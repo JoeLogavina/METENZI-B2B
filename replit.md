@@ -5,6 +5,14 @@
 This is a full-stack B2B software license management platform built with React, Express, and PostgreSQL. The application provides enterprise customers with a streamlined interface to browse, purchase, and manage software licenses, while offering administrators comprehensive tools for inventory and user management. The system now uses custom username/password authentication and displays all prices in EUR currency.
 
 ## Recent Changes (January 2025)
+- **ADVANCED EDIT PRODUCT PAGE FUNCTIONALITY IMPLEMENTED** (January 27, 2025):
+  - **KM Currency Database Support**: Added full KM pricing columns (price_km, purchase_price_km, reseller_price_km, retailer_price_km) to products table
+  - **Advanced Edit Button**: Changed "Edit" to "Advanced Edit" button in admin panel products table
+  - **URL Parameter Handling Fixed**: Resolved URL parsing issues for product ID extraction using window.location.search
+  - **Categories API Issues Resolved**: Fixed cache middleware conflicts causing categories endpoint failures
+  - **Enhanced Schema Support**: Updated insertProductSchema to handle KM pricing field validation and transformation
+  - **Complete Tabbed Interface**: Working EUR pricing, KM pricing, and license key management tabs
+  - **Production Ready**: Removed debug console logs and fixed all LSP TypeScript errors
 - **EDIT PRODUCT PAGE REDESIGNED** (January 27, 2025):
   - **URL Structure Fixed**: Changed from `/admin/products/[id]` to `/admin/products/edit?id=xyz` as requested
   - **Data Fetching Restored**: Product data now properly loads name, description, and all pricing fields

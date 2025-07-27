@@ -178,7 +178,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // First pass: calculate total deposits and credit limit
       transactions.forEach(tx => {
-        const amount = parseFloat(tx.amount);
+        const amount = parseFloat(tx.amount as string);
         switch (tx.type) {
           case 'deposit':
             depositBalance += amount;
@@ -191,7 +191,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Second pass: process payments - deduct from deposits first, then use credit
       transactions.forEach(tx => {
-        const amount = parseFloat(tx.amount);
+        const amount = parseFloat(tx.amount as string);
         switch (tx.type) {
           case 'payment':
             if (depositBalance >= amount) {
@@ -233,9 +233,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ data: { balance } });
     } catch (error) {
       console.error("Error getting wallet balance:", error);
-      console.error("Error details:", error.message);
-      console.error("Stack trace:", error.stack);
-      res.status(500).json({ message: "Failed to get wallet balance", error: error.message });
+      console.error("Error details:", (error as Error).message);
+      console.error("Stack trace:", (error as Error).stack);
+      res.status(500).json({ message: "Failed to get wallet balance", error: (error as Error).message });
     }
   });
 
@@ -321,10 +321,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         const productData = insertProductSchema.parse(req.body);
         
+        const startTime = Date.now();
         const product = await storage.createProduct(productData);
-        
-        if (duration > 100) {
-        }
+        const duration = Date.now() - startTime;
         
         // Clear products cache
         await cacheHelpers.invalidateProducts();
@@ -337,24 +336,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
 
   // Category routes with caching and performance monitoring
-  app.get('/api/categories', 
-    categoriesCacheMiddleware,
-    async (req, res) => {
-      try {
-        // Fetch from database with timing
-        
-        const categories = await storage.getCategories();
-        
-        if (duration > 50) {
-          console.warn(`🐌 Slow categories query: ${duration}ms`);
-        }
-        
-        res.json(categories);
-      } catch (error) {
-        console.error("Error fetching categories:", error);
-        res.status(500).json({ message: "Failed to fetch categories" });
+  app.get('/api/categories', async (req, res) => {
+    try {
+      const startTime = Date.now();
+      const categories = await storage.getCategories();
+      const duration = Date.now() - startTime;
+      
+      if (duration > 50) {
+        console.warn(`🐌 Slow categories query: ${duration}ms`);
       }
-    });
+      
+      res.json(categories);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      res.status(500).json({ message: "Failed to fetch categories" });
+    }
+  });
 
   app.post('/api/categories', 
     isAuthenticated, 
@@ -368,7 +365,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         const categoryData = insertCategorySchema.parse(req.body);
         
+        const startTime = Date.now();
         const category = await storage.createCategory(categoryData);
+        const duration = Date.now() - startTime;
         
         if (duration > 100) {
           console.warn(`🐌 Slow category creation: ${duration}ms`);
@@ -787,9 +786,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(ordersWithDetails);
     } catch (error) {
       console.error("Error fetching orders:", error);
-      console.error("Error details:", error.message);
-      console.error("Stack trace:", error.stack);
-      res.status(500).json({ message: "Failed to fetch orders", error: error.message });
+      console.error("Error details:", (error as Error).message);
+      console.error("Stack trace:", (error as Error).stack);
+      res.status(500).json({ message: "Failed to fetch orders", error: (error as Error).message });
     }
   });
 
