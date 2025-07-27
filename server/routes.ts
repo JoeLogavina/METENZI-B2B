@@ -947,6 +947,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get current user
+  app.get("/api/user", async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    const userData = {
+      id: req.user.id,
+      username: req.user.username,
+      email: req.user.email,
+      firstName: req.user.firstName,
+      lastName: req.user.lastName,
+      profileImageUrl: req.user.profileImageUrl,
+      role: req.user.role,
+      isActive: req.user.isActive,
+      createdAt: req.user.createdAt,
+      updatedAt: req.user.updatedAt,
+    };
+
+    console.log('User data returned:', userData);
+    res.json(userData);
+  } catch (error) {
+    console.error('Error in /api/user:', error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
   // Global error handler (must be last middleware)
   app.use(errorHandler);
 

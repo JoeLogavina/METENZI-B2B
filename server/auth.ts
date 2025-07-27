@@ -27,7 +27,7 @@ async function comparePasswords(supplied: string, stored: string) {
   if (stored === '$2b$10$8K1p/a0dqbVXYyqfX5V3oOGrHDgKDl2jJ5E6Tq8uGqZvOXqJxr3nO' && supplied === 'Kalendar1') {
     return true;
   }
-  
+
   // Handle scrypt format (hashed.salt)
   if (stored.includes('.')) {
     const parts = stored.split(".");
@@ -38,14 +38,14 @@ async function comparePasswords(supplied: string, stored: string) {
       return timingSafeEqual(hashedBuf, suppliedBuf);
     }
   }
-  
+
   // Fallback to plain text comparison (for development only)
   return supplied === stored;
 }
 
 export function setupAuth(app: Express) {
   const PostgresSessionStore = connectPg(session);
-  
+
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
@@ -71,16 +71,16 @@ export function setupAuth(app: Express) {
       try {
         console.log(`Login attempt for username: ${username}`);
         const user = await storage.getUserByUsername(username);
-        
+
         if (!user) {
           console.log(`User not found: ${username}`);
           return done(null, false);
         }
-        
+
         console.log(`User found: ${user.username}, stored password: ${user.password}`);
         const passwordMatch = await comparePasswords(password, user.password);
         console.log(`Password match result: ${passwordMatch}`);
-        
+
         if (!passwordMatch) {
           return done(null, false);
         } else {
@@ -95,20 +95,21 @@ export function setupAuth(app: Express) {
 
   passport.serializeUser((user, done) => done(null, user.id));
   passport.deserializeUser(async (id: string, done) => {
-    try {
-      console.log(`Deserializing user with ID: ${id}`);
-      const user = await storage.getUser(id);
-      if (!user) {
-        console.log(`User not found during deserialization: ${id}`);
-        return done(null, null);
-      }
+  try {
+    console.log(`Deserializing user with ID: ${id}`);
+    const user = await storage.getUser(id);
+    if (user) {
       console.log(`User deserialized successfully: ${user.username}`);
       done(null, user);
-    } catch (error) {
-      console.error('Deserialization error:', error);
-      done(null, null); // Return null instead of error to prevent session issues
+    } else {
+      console.log(`User not found for ID: ${id}`);
+      done(null, false);
     }
-  });
+  } catch (error) {
+    console.error('Error deserializing user:', error);
+    done(null, false);
+  }
+});
 
   app.post("/api/register", async (req, res, next) => {
     try {

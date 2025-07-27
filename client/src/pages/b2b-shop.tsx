@@ -54,7 +54,7 @@ export default function B2BShop() {
   }
 
   // Redirect if not authenticated
-  if (!isAuthenticated) {
+  if (!isLoading && !isAuthenticated) {
     toast({
       title: "Authentication Required",
       description: "Please log in to access the B2B portal",
@@ -72,7 +72,7 @@ export default function B2BShop() {
   }
 
   // Fetch products with enterprise-grade performance optimization
-  const { data: products = [], isLoading: productsLoading, isFetching: productsIsFetching } = useQuery<ProductWithStock[]>({
+  const { data: products = [], isLoading: productsLoading, isFetching: productsIsFetching, error: productsError } = useQuery<ProductWithStock[]>({
     queryKey: ["/api/products", debouncedFilters],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -82,21 +82,40 @@ export default function B2BShop() {
       if (debouncedFilters.priceMin) params.append('priceMin', debouncedFilters.priceMin);
       if (debouncedFilters.priceMax) params.append('priceMax', debouncedFilters.priceMax);
       
+      console.log('Fetching products with user authenticated:', isAuthenticated);
+      console.log('Filters:', debouncedFilters);
+      
       const res = await fetch(`/api/products?${params.toString()}`, {
-        credentials: 'include'
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
       });
       
+      console.log('Products response status:', res.status);
+      
       if (!res.ok) {
+        if (res.status === 401) {
+          throw new Error('Authentication required');
+        }
         throw new Error(`${res.status}: ${res.statusText}`);
       }
       
-      return await res.json();
+      const data = await res.json();
+      console.log('Products data received:', data?.length || 0, 'items');
+      return data;
     },
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && !isLoading,
     staleTime: 5 * 60 * 1000, // 5 minutes fresh data
     gcTime: 30 * 60 * 1000, // 30 minutes cache retention
     refetchOnWindowFocus: false, // Prevent excessive refetches
-    retry: 2, // Retry failed requests twice
+    retry: (failureCount, error) => {
+      if (error?.message?.includes('Authentication required')) {
+        return false;
+      }
+      return failureCount < 2;
+    },
     placeholderData: (previousData) => previousData, // Keep previous data while loading
   });
 
@@ -592,10 +611,20 @@ export default function B2BShop() {
                           Loading products...
                         </td>
                       </tr>
+                    ) : productsError ? (
+                      <tr>
+                        <td colSpan={9} className="px-4 py-8 text-center text-red-500">
+                          Error loading products: {productsError.message}
+                          <br />
+                          <small>User authenticated: {isAuthenticated ? 'Yes' : 'No'}</small>
+                        </td>
+                      </tr>
                     ) : products.length === 0 ? (
                       <tr>
                         <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
                           No products found
+                          <br />
+                          <small>User authenticated: {isAuthenticated ? 'Yes' : 'No'}</small>
                         </td>
                       </tr>
                     ) : (

@@ -3,36 +3,46 @@ import { apiRequest } from "@/lib/queryClient";
 
 export function useAuth() {
   const queryClient = useQueryClient();
-  
-  const { data: user, isLoading, error } = useQuery({
+
+  const {
+    data: user,
+    error,
+    isLoading,
+  } = useQuery({
     queryKey: ["/api/user"],
     queryFn: async () => {
       try {
-        const res = await fetch("/api/user", {
+        const response = await fetch("/api/user", {
           credentials: "include",
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
         });
-        
-        if (res.status === 401) {
-          return null; // Not authenticated
+        if (!response.ok) {
+          if (response.status === 401) {
+            return null;
+          }
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-        
-        if (!res.ok) {
-          throw new Error(`${res.status}: ${res.statusText}`);
-        }
-        
-        return await res.json();
+        return response.json();
       } catch (error) {
-        console.error("Auth check failed:", error);
-        return null;
+        console.error('Auth query error:', error);
+        if (error.message.includes('401')) {
+          return null;
+        }
+        throw error;
       }
     },
-    retry: false,
-    refetchOnWindowFocus: false,
-    refetchOnMount: true,
-    staleTime: 30000, // 30 seconds
-    gcTime: 60000, // 1 minute
-    refetchInterval: false,
-    refetchIntervalInBackground: false,
+    retry: (failureCount, error) => {
+      // Don't retry on 401 errors
+      if (error?.message?.includes('401')) {
+        return false;
+      }
+      return failureCount < 2;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes
   });
 
   const logoutMutation = useMutation({
