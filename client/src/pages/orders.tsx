@@ -20,16 +20,18 @@ import {
   Key,
   Download,
   Files,
-  PanelLeftClose,
-  PanelLeftOpen,
   Home,
   ShoppingCart,
   Users,
-  Menu
+  Settings,
+  HelpCircle,
+  FileText,
+  Wallet
 } from "lucide-react";
 import { useEffect } from "react";
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+import { useLocation } from "wouter";
 
 interface LicenseKey {
   id: string;
@@ -103,7 +105,7 @@ export default function OrdersPage() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
-  const [sidebarMinimized, setSidebarMinimized] = useState(false);
+  const [location, setLocation] = useLocation();
 
   const {
     data: orders,
@@ -343,75 +345,58 @@ export default function OrdersPage() {
   );
 
   const sidebarItems = [
-    { name: 'B2B SHOP', icon: Home, href: '/', active: false },
-    { name: 'CATALOG', icon: Package, href: '/products', active: false },
-    { name: 'ORDERS', icon: Package, href: '/orders', active: true },
-    { name: 'MY WALLET', icon: CreditCard, href: '/wallet', active: false },
-    ...(user?.role === 'admin' || user?.role === 'super_admin' ? [
-      { name: 'SETTINGS', icon: Users, href: '/admin', active: false }
-    ] : [])
+    { icon: Home, label: 'B2B SHOP', href: '/', active: location === '/' },
+    { icon: Package, label: 'CATALOG', href: '/products', active: location === '/products' },
+    { icon: FileText, label: 'ORDERS', href: '/orders', active: location === '/orders' },
+    { icon: Wallet, label: 'MY WALLET', href: '/wallet', active: location === '/wallet' },
+    { icon: Settings, label: 'SETTINGS', href: '/settings', active: location === '/settings' },
+    { icon: HelpCircle, label: 'SUPPORT', href: '/support', active: location === '/support' },
   ];
 
   return (
-    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-[#f5f6f5] flex font-['Inter',-apple-system,BlinkMacSystemFont,sans-serif]">
       {/* Sidebar */}
-      <div className={`bg-[#4A4A4A] border-r border-gray-600 transition-all duration-300 ${
-        sidebarMinimized ? 'w-16' : 'w-64'
-      }`}>
-        <div className="flex items-center justify-between p-4 border-b border-gray-600">
-          {!sidebarMinimized && (
-            <div className="flex items-center">
-              <div className="w-8 h-8 bg-[#FFB20F] rounded flex items-center justify-center mr-2">
-                <Package className="h-5 w-5 text-black" />
-              </div>
-              <div>
-                <h2 className="text-white font-bold text-sm">B2B PORTAL</h2>
-                <p className="text-gray-300 text-xs">ENTERPRISE</p>
-              </div>
+      <div className="w-64 text-white flex-shrink-0 bg-[#404040]">
+        <div className="p-4 border-b border-[#5a5b5d]">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-[#FFB20F] rounded flex items-center justify-center">
+              <Package className="w-5 h-5" />
             </div>
-          )}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setSidebarMinimized(!sidebarMinimized)}
-            className="p-2 text-white hover:bg-gray-600"
-          >
-            {sidebarMinimized ? (
-              <PanelLeftOpen className="h-4 w-4" />
-            ) : (
-              <PanelLeftClose className="h-4 w-4" />
-            )}
-          </Button>
+            <div>
+              <h2 className="font-semibold text-sm uppercase tracking-[0.5px]">B2B PORTAL</h2>
+              <p className="text-xs text-gray-300 uppercase tracking-[0.5px]">ENTERPRISE</p>
+            </div>
+          </div>
         </div>
-
-        <nav className="p-4">
-          <ul className="space-y-1">
-            {sidebarItems.map((item) => (
-              <li key={item.name}>
-                <a
-                  href={item.href}
-                  className={`flex items-center px-3 py-3 text-sm font-bold transition-colors ${
-                    item.active
-                      ? 'bg-[#FFB20F] text-black'
-                      : 'text-white hover:bg-gray-600'
-                  }`}
-                >
-                  <item.icon className="h-5 w-5 mr-3" />
-                  {!sidebarMinimized && <span>{item.name}</span>}
-                </a>
-              </li>
-            ))}
-          </ul>
+        
+        <nav className="mt-4">
+          {sidebarItems.map((item, index) => (
+            <div
+              key={index}
+              className={`flex items-center px-4 py-3 text-lg transition-colors duration-200 cursor-pointer ${
+                item.active 
+                  ? 'bg-[#FFB20F] text-white border-r-2 border-[#e6a00e]' 
+                  : 'text-white hover:bg-[#7a7b7d]'
+              }`}
+              onClick={() => {
+                console.log('Sidebar item clicked:', item.label, 'href:', item.href);
+                setLocation(item.href);
+              }}
+            >
+              <item.icon className="w-6 h-6 mr-3" />
+              <span className="uppercase tracking-[0.5px] font-medium text-sm">{item.label}</span>
+            </div>
+          ))}
         </nav>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 p-6">
+      <div className="flex-1 p-6 bg-white">
         <div className="max-w-7xl mx-auto">
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">My Orders</h1>
-              <p className="text-muted-foreground">
+              <h1 className="text-3xl font-bold tracking-tight text-gray-900">My Orders</h1>
+              <p className="text-gray-600">
                 View your order history and access your digital license keys
               </p>
             </div>
