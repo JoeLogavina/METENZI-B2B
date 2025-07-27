@@ -453,15 +453,15 @@ export default function B2BShop() {
                 <table className="min-w-full">
                   <thead className="bg-[#6E6F71] text-white">
                     <tr>
-                      <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.5px]">SKU</th>
-                      <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.5px]">IMAGE</th>
+                      <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">SKU</th>
+                      <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">IMAGE</th>
                       <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.5px]">PRODUCT</th>
-                      <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.5px]">PRICE</th>
-                      <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.5px]">REGION</th>
-                      <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.5px]">PLATFORM</th>
-                      <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.5px]">STOCK</th>
-                      <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.5px]">QUANTITY</th>
-                      <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.5px]">ACTION</th>
+                      <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">PRICE</th>
+                      <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">REGION</th>
+                      <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">PLATFORM</th>
+                      <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">STOCK</th>
+                      <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">QUANTITY</th>
+                      <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">ACTION</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-[#e5e5e5]">
@@ -507,11 +507,11 @@ function ProductRow({ product, onAddToCart, isLoading }: {
 
   return (
     <tr className="hover:bg-[#f8f8f8] transition-colors duration-200">
-      <td className="px-3 py-3 whitespace-nowrap text-sm font-mono font-medium text-gray-900">
-        {product.id.slice(0, 8).toUpperCase()}
+      <td className="px-3 py-3 whitespace-nowrap text-center text-sm font-mono font-medium text-gray-900">
+        {product.sku || product.id.slice(0, 8).toUpperCase()}
       </td>
-      <td className="px-3 py-3 whitespace-nowrap">
-        <div className="w-10 h-10 bg-gray-200 rounded-[5px] flex items-center justify-center">
+      <td className="px-3 py-3 whitespace-nowrap text-center">
+        <div className="w-10 h-10 bg-gray-200 rounded-[5px] flex items-center justify-center mx-auto">
           <Package className="w-6 h-6 text-gray-400" />
         </div>
       </td>
@@ -519,39 +519,41 @@ function ProductRow({ product, onAddToCart, isLoading }: {
         <div className="text-sm font-semibold text-gray-900">{product.name}</div>
         <div className="text-sm text-gray-500">{product.description}</div>
       </td>
-      <td className="px-3 py-3 whitespace-nowrap">
-        <div className="text-sm font-mono font-semibold text-gray-900">€{product.price}</div>
+      <td className="px-3 py-3 whitespace-nowrap text-center">
+        <div className="text-sm font-mono font-semibold text-[#FFB20F]">€{product.price}</div>
         <div className="text-xs text-gray-500">per license</div>
       </td>
-      <td className="px-3 py-3 whitespace-nowrap">
+      <td className="px-3 py-3 whitespace-nowrap text-center">
         <Badge variant="outline" className="text-xs border-[#ddd] text-gray-700">
           {product.region}
         </Badge>
       </td>
-      <td className="px-3 py-3 whitespace-nowrap">
-        <div className="flex items-center">
-          {product.platform === 'Windows' && (
-            <span className="text-xs bg-[#4D9DE0] text-white px-2 py-1 rounded-[5px] mr-1 font-medium">Windows</span>
+      <td className="px-3 py-3 whitespace-nowrap text-center">
+        <div className="flex items-center justify-center flex-wrap gap-1">
+          {product.platform?.includes('Windows') && (
+            <span className="text-xs bg-[#4D9DE0] text-white px-2 py-1 rounded-[5px] font-medium">Windows</span>
           )}
-          {product.platform === 'macOS' && (
-            <span className="text-xs bg-gray-500 text-white px-2 py-1 rounded-[5px] mr-1 font-medium">macOS</span>
+          {product.platform?.includes('Mac') && (
+            <span className="text-xs bg-gray-500 text-white px-2 py-1 rounded-[5px] font-medium">Mac</span>
           )}
-          {product.platform === 'Linux' && (
-            <span className="text-xs bg-green-600 text-white px-2 py-1 rounded-[5px] mr-1 font-medium">Linux</span>
+          {product.platform?.includes('Linux') && (
+            <span className="text-xs bg-green-600 text-white px-2 py-1 rounded-[5px] font-medium">Linux</span>
           )}
-          {product.platform === 'Both' && (
-            <>
-              <span className="text-xs bg-[#4D9DE0] text-white px-2 py-1 rounded-[5px] mr-1 font-medium">Windows</span>
-              <span className="text-xs bg-gray-500 text-white px-2 py-1 rounded-[5px] mr-1 font-medium">macOS</span>
-            </>
+          {product.platform?.includes('Web') && (
+            <span className="text-xs bg-purple-600 text-white px-2 py-1 rounded-[5px] font-medium">Web</span>
+          )}
+          {!product.platform?.includes('Windows') && !product.platform?.includes('Mac') && !product.platform?.includes('Linux') && !product.platform?.includes('Web') && (
+            <span className="text-xs bg-gray-400 text-white px-2 py-1 rounded-[5px] font-medium">{product.platform || 'Unknown'}</span>
           )}
         </div>
       </td>
-      <td className="px-3 py-3 whitespace-nowrap text-sm font-mono font-semibold text-gray-900">
-        {product.stockCount || 0}
+      <td className="px-3 py-3 whitespace-nowrap text-center">
+        <div className="text-sm font-mono font-semibold text-gray-900">
+          {product.stockCount || 0}
+        </div>
       </td>
-      <td className="px-3 py-3 whitespace-nowrap">
-        <div className="flex items-center space-x-2">
+      <td className="px-3 py-3 whitespace-nowrap text-center">
+        <div className="flex items-center justify-center space-x-2">
           <Button
             variant="outline"
             size="sm"
@@ -571,12 +573,12 @@ function ProductRow({ product, onAddToCart, isLoading }: {
           </Button>
         </div>
       </td>
-      <td className="px-3 py-3 whitespace-nowrap">
+      <td className="px-3 py-3 whitespace-nowrap text-center">
         <Button
           size="sm"
           onClick={() => onAddToCart(quantity)}
           disabled={isLoading}
-          className="bg-[#4D9DE0] hover:bg-[#3ba3e8] text-white border-0 px-4 py-2 rounded-[5px] font-semibold uppercase tracking-[0.5px] transition-colors duration-200"
+          className="bg-[#FFB20F] hover:bg-[#E69B00] text-white border-0 px-4 py-2 rounded-[5px] font-semibold uppercase tracking-[0.5px] transition-colors duration-200"
         >
           {isLoading ? "..." : "ADD"}
         </Button>
