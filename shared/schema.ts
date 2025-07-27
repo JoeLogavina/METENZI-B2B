@@ -64,6 +64,7 @@ export const products = pgTable("products", {
   categoryId: varchar("category_id").references(() => categories.id),
   region: varchar("region").notNull(), // Global, EU, US, etc.
   platform: varchar("platform").notNull(), // Windows, Mac, Both
+  stockCount: integer("stock_count").default(0).notNull(),
   imageUrl: varchar("image_url"),
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow(),

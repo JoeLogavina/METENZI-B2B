@@ -71,6 +71,13 @@ export class LicenseKeyServiceImpl implements ILicenseKeyService {
           .returning();
         
         added.push(...insertedKeys);
+
+        // Update product stock to reflect available license keys
+        const keyStats = await this.getKeyStats(productId);
+        await db
+          .update(products)
+          .set({ stockCount: keyStats.available })
+          .where(eq(products.id, productId));
       }
       
       return { added, duplicates };

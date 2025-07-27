@@ -337,7 +337,7 @@ export default function AdminPanel() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
-                          {(Array.isArray(users) ? users : users?.data || []).map((userItem: any) => (
+                          {(users || []).map((userItem: any) => (
                             <tr key={userItem.id} className="hover:bg-gray-50">
                               <td className="py-3 px-4">
                                 <div className="flex items-center">
@@ -689,12 +689,13 @@ function ProductForm({
 
       toast({
         title: "Success",
-        description: `Added ${result.data.added.length} license keys`,
+        description: `Added ${result.data.added.length} license keys. Stock updated to ${result.data.stats.available} available keys.`,
         variant: "default",
       });
 
       setLicenseKeys('');
       queryClient.invalidateQueries({ queryKey: [`/api/admin/license-keys/${product.id}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/products"] });
     } catch (error) {
       toast({
         title: "Error",
@@ -725,8 +726,8 @@ function ProductForm({
       }
 
       toast({
-        title: "Success",
-        description: `Added ${result.data.added.length} license keys (${duplicateWarning.length} duplicates ignored)`,
+        title: "Success", 
+        description: `Added ${result.data.added.length} license keys (${duplicateWarning.length} duplicates ignored). Stock updated to ${result.data.stats.available} available keys.`,
         variant: "default",
       });
 
@@ -734,6 +735,7 @@ function ProductForm({
       setDuplicateWarning([]);
       setShowDuplicateDialog(false);
       queryClient.invalidateQueries({ queryKey: [`/api/admin/license-keys/${product.id}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/products"] });
     } catch (error) {
       toast({
         title: "Error",
