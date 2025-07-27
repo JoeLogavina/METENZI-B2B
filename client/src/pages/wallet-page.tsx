@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Wallet, CreditCard, History, DollarSign, TrendingUp, AlertTriangle, Package, Grid, Users, FileText, BarChart3, Settings, HelpCircle, LogOut } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
+import { useWallet } from "@/contexts/WalletContext";
 
 interface WalletBalance {
   depositBalance: string;
@@ -59,10 +59,8 @@ export default function WalletPage() {
     }
   }, [isAuthenticated, authLoading, toast]);
 
-  const { data: walletData, isLoading, error } = useQuery<{ data: WalletData }>({
-    queryKey: ["/api/wallet"],
-    enabled: !!user?.id,
-  });
+  // Use unified wallet system
+  const { walletData, balance, isLoading, error, formatCurrency } = useWallet();
 
   const sidebarItems = [
     { icon: Package, label: "B2B SHOP", active: false, href: "/", allowed: true },
@@ -80,11 +78,7 @@ export default function WalletPage() {
     return null;
   }
 
-  const wallet = walletData?.data;
-
-  const formatCurrency = (amount: string) => {
-    return `€${parseFloat(amount).toFixed(2)}`;
-  };
+  // Remove old code - now using unified wallet system
 
   const getTransactionTypeColor = (type: string) => {
     switch (type) {
@@ -203,7 +197,7 @@ export default function WalletPage() {
               <h2 className="text-xl font-semibold text-gray-800 mb-2">Error Loading Wallet</h2>
               <p className="text-gray-600">Unable to load wallet information. Please try again later.</p>
             </div>
-          ) : !wallet ? (
+          ) : !walletData ? (
             <div className="text-center py-8">
               <Wallet className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h2 className="text-xl font-semibold text-gray-800 mb-2">No Wallet Found</h2>
@@ -246,7 +240,7 @@ export default function WalletPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-green-600">
-                  {formatCurrency(wallet.balance.depositBalance)}
+                  {balance ? formatCurrency(balance.depositBalance) : '€0.00'}
                 </div>
                 <p className="text-xs text-gray-500 mt-1">Available from deposits</p>
               </CardContent>
@@ -259,7 +253,7 @@ export default function WalletPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-blue-600">
-                  {formatCurrency(wallet.balance.creditLimit)}
+                  {balance ? formatCurrency(balance.creditLimit) : '€0.00'}
                 </div>
                 <p className="text-xs text-gray-500 mt-1">Maximum credit allowed</p>
               </CardContent>
@@ -272,7 +266,7 @@ export default function WalletPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-[#FFB20F]">
-                  {formatCurrency(wallet.balance.availableCredit)}
+                  {balance ? formatCurrency(balance.availableCredit) : '€0.00'}
                 </div>
                 <p className="text-xs text-gray-500 mt-1">Credit remaining</p>
               </CardContent>
@@ -285,7 +279,7 @@ export default function WalletPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-[#6E6F71]">
-                  {formatCurrency(wallet.balance.totalAvailable)}
+                  {balance ? formatCurrency(balance.totalAvailable) : '€0.00'}
                 </div>
                 <p className="text-xs text-gray-500 mt-1">Total purchasing power</p>
               </CardContent>
@@ -294,7 +288,7 @@ export default function WalletPage() {
         )}
 
         {/* Credit Status Warning */}
-        {wallet.balance.isOverlimit && (
+        {balance?.isOverlimit && (
           <Card className="border-l-4 border-l-red-500 bg-red-50 mb-6">
             <CardContent className="pt-6">
               <div className="flex items-center">
@@ -302,7 +296,7 @@ export default function WalletPage() {
                 <div>
                   <h3 className="font-semibold text-red-800">Credit Limit Exceeded</h3>
                   <p className="text-red-700">
-                    You have used {formatCurrency(wallet.balance.creditUsed)} of your {formatCurrency(wallet.balance.creditLimit)} credit limit.
+                    You have used {balance ? formatCurrency(balance.creditUsed) : '€0.00'} of your {balance ? formatCurrency(balance.creditLimit) : '€0.00'} credit limit.
                     Please contact your account manager to arrange payment.
                   </p>
                 </div>
@@ -323,7 +317,7 @@ export default function WalletPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {wallet.recentTransactions.length === 0 ? (
+              {!walletData?.recentTransactions || walletData.recentTransactions.length === 0 ? (
                 <div className="text-center py-8">
                   <History className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-gray-800 mb-2">No Transactions</h3>
@@ -341,7 +335,7 @@ export default function WalletPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {wallet.recentTransactions.map((transaction) => (
+                    {walletData?.recentTransactions?.map((transaction: any) => (
                       <TableRow key={transaction.id}>
                         <TableCell className="font-mono text-sm">
                           {new Date(transaction.createdAt).toLocaleDateString('en-GB')}

@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import { useWallet, emitWalletEvent } from "@/contexts/WalletContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -123,19 +124,8 @@ export default function CheckoutPage() {
     enabled: isAuthenticated,
   });
 
-  // Fetch wallet information using direct endpoint (bypass auth issues)
-  const { data: walletData } = useQuery<{ data: any }>({
-    queryKey: ["/api/wallet-balance", user?.id],
-    queryFn: async () => {
-      if (!user?.id) return null;
-      console.log('Fetching wallet balance for user:', user.id, user.username);
-      const response = await fetch(`/api/wallet-balance/${user.id}`);
-      const data = await response.json();
-      console.log('Wallet balance response:', data);
-      return data;
-    },
-    enabled: isAuthenticated && !!user?.id,
-  });
+  // Use unified wallet system
+  const { balance, formatCurrency, hasInsufficientBalance, isLoading: walletLoading } = useWallet();
 
   // Place order mutation
   const placeOrderMutation = useMutation({
@@ -182,7 +172,18 @@ export default function CheckoutPage() {
     onSuccess: (order) => {
       setOrderNumber(order.orderNumber);
       setStep('success');
+      
+      // Invalidate cart and emit wallet events for real-time updates
       queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
+      
+      // Emit order completion event to trigger wallet refresh
+      emitWalletEvent('order:completed', { 
+        orderId: order.id, 
+        orderNumber: order.orderNumber,
+        amount: order.finalAmount,
+        paymentMethod: order.paymentMethod
+      });
+      
       toast({
         title: "Order Placed Successfully",
         description: `Your order #${order.orderNumber} has been placed`,
@@ -222,12 +223,12 @@ export default function CheckoutPage() {
     }
 
     // Check wallet balance if wallet payment is selected
-    if (data.paymentMethod === 'wallet' && walletData?.data?.balance) {
-      const availableBalance = parseFloat(walletData.data.balance.totalAvailable);
-      if (availableBalance < finalAmount) {
+    if (data.paymentMethod === 'wallet') {
+      if (hasInsufficientBalance(finalAmount)) {
+        const availableBalance = balance ? parseFloat(balance.totalAvailable) : 0;
         toast({
           title: "Insufficient Balance",
-          description: `Your wallet balance (€${availableBalance.toFixed(2)}) is insufficient for this order (€${finalAmount.toFixed(2)}). Please add funds or use another payment method.`,
+          description: `Your wallet balance (${formatCurrency(availableBalance)}) is insufficient for this order (${formatCurrency(finalAmount)}). Please add funds or use another payment method.`,
           variant: "destructive",
         });
         return;
@@ -571,8 +572,8 @@ export default function CheckoutPage() {
                                 }`} />
                                 <h3 className="font-semibold text-sm text-gray-800">Wallet</h3>
                                 <p className="text-xs text-gray-600 mt-1">
-                                  {walletData?.data?.balance ? 
-                                    `€${parseFloat(walletData.data.balance.totalAvailable).toFixed(2)} available` :
+                                  {balance ? 
+                                    `${formatCurrency(balance.totalAvailable)} available` :
                                     'Loading...'
                                   }
                                 </p>
@@ -745,25 +746,25 @@ export default function CheckoutPage() {
                           <Wallet className="w-5 h-5 text-[#FFB20F] mr-2" />
                           <strong className="text-sm text-gray-800">Wallet Payment Details:</strong>
                         </div>
-                        {walletData?.data?.balance ? (
+                        {balance ? (
                           <div className="space-y-2">
                             <div className="flex justify-between text-sm">
                               <span className="text-gray-600">Deposit Balance:</span>
-                              <span className="font-semibold text-green-600">€{parseFloat(walletData.data.balance.depositBalance).toFixed(2)}</span>
+                              <span className="font-semibold text-green-600">{formatCurrency(balance.depositBalance)}</span>
                             </div>
                             <div className="flex justify-between text-sm">
                               <span className="text-gray-600">Available Credit:</span>
-                              <span className="font-semibold text-blue-600">€{parseFloat(walletData.data.balance.availableCredit).toFixed(2)}</span>
+                              <span className="font-semibold text-blue-600">{formatCurrency(balance.availableCredit)}</span>
                             </div>
                             <div className="flex justify-between text-sm border-t pt-2">
                               <span className="text-gray-600">Total Available:</span>
-                              <span className="font-semibold text-[#FFB20F]">€{parseFloat(walletData.data.balance.totalAvailable).toFixed(2)}</span>
+                              <span className="font-semibold text-[#FFB20F]">{formatCurrency(balance.totalAvailable)}</span>
                             </div>
                             <div className="flex justify-between text-sm">
                               <span className="text-gray-600">Order Total:</span>
-                              <span className="font-semibold text-gray-800">€{finalAmount.toFixed(2)}</span>
+                              <span className="font-semibold text-gray-800">{formatCurrency(finalAmount)}</span>
                             </div>
-                            {parseFloat(walletData.data.balance.totalAvailable) < finalAmount && (
+                            {hasInsufficientBalance(finalAmount) && (
                               <div className="bg-red-50 border border-red-200 rounded p-2 mt-2">
                                 <p className="text-xs text-red-700">
                                   Insufficient wallet balance. Please add funds or use another payment method.
