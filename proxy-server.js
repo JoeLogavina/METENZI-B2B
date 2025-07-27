@@ -228,26 +228,24 @@ app.get('/', (req, res) => {
     `);
   });
 
-  console.log(`
-  =================================================================
-  🚀 B2B MIKROSERVISI - PROXY SERVER
-  =================================================================
-  
-  Glavna stranica: https://workspace.dinoharbinja.repl.co
-  
-  📍 Servisi dostupni preko:
-     🔧 Admin Portal: /admin
-     🛒 B2B Shop: /shop  
-     ⚙️  Core API: /api
-  
-  👤 Pristupni podaci:
-     - Admin: admin/Kalendar1
-     - B2B: b2buser/Kalendar1
-  
-  =================================================================
-  `);
+console.log(`
+=================================================================
+🚀 B2B MIKROSERVISI - PROXY SERVER
+=================================================================
 
-}, 10000); // Čekaj 10 sekundi da se servisi pokrenu
+Glavna stranica: https://workspace.dinoharbinja.repl.co
+
+📍 Servisi dostupni preko:
+   🔧 Admin Portal: /admin
+   🛒 B2B Shop: /shop  
+   ⚙️  Core API: /api
+
+👤 Pristupni podaci:
+   - Admin: admin/Kalendar1
+   - B2B: b2buser/Kalendar1
+
+=================================================================
+`);
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🌐 Proxy server pokrenut na portu ${PORT}`);
