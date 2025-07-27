@@ -1,0 +1,44 @@
+{
+  "services": {
+    "admin": {
+      "name": "Admin Service",
+      "port": 5001,
+      "host": "localhost",
+      "endpoints": {
+        "auth": "/api/admin/auth",
+        "users": "/api/admin/users",
+        "products": "/api/admin/products",
+        "orders": "/api/admin/orders",
+        "reports": "/api/admin/reports"
+      }
+    },
+    "b2b": {
+      "name": "B2B Service",
+      "port": 5002,
+      "host": "localhost",
+      "endpoints": {
+        "auth": "/api/auth",
+        "products": "/api/products",
+        "cart": "/api/cart",
+        "orders": "/api/orders",
+        "checkout": "/api/checkout"
+      }
+    },
+    "core": {
+      "name": "Core API Service",
+      "port": 5003,
+      "host": "localhost",
+      "endpoints": {
+        "products": "/api/core/products",
+        "users": "/api/core/users",
+        "orders": "/api/core/orders",
+        "licenses": "/api/core/licenses",
+        "categories": "/api/core/categories"
+      }
+    }
+  },
+  "database": {
+    "shared": true,
+    "service": "core"
+  }
+}
