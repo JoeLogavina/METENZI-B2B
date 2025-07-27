@@ -444,29 +444,22 @@ export default function OrdersPage() {
                         </Badge>
                       </div>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right flex items-center gap-3">
                       <div className="text-2xl font-bold text-[#FFB20F]">
                         €{parseFloat(order.totalAmount).toFixed(2)}
                       </div>
-                    </div>
-                  </div>
-                </CardHeader>
-
-                <CardContent>
-                  <div className="mb-4">
-                    <Collapsible open={expandedOrders.has(order.id)} onOpenChange={() => toggleOrderExpansion(order.id)}>
-                      <CollapsibleTrigger asChild>
-                        <Button className="justify-between gap-2 bg-[#6699CC] hover:bg-[#5588BB] text-white px-4 py-2">
-                          <span className="text-sm font-medium">View Order Details</span>
-                          {expandedOrders.has(order.id) ? (
-                            <ChevronDown className="h-4 w-4" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </CollapsibleTrigger>
-
-                <CollapsibleContent className="mt-4">
+                      <Collapsible open={expandedOrders.has(order.id)} onOpenChange={() => toggleOrderExpansion(order.id)}>
+                        <CollapsibleTrigger asChild>
+                          <Button className="gap-2 bg-[#6699CC] hover:bg-[#5588BB] text-white px-3 py-1.5 text-sm">
+                            <span>View Order Details</span>
+                            {expandedOrders.has(order.id) ? (
+                              <ChevronDown className="h-3 w-3" />
+                            ) : (
+                              <ChevronRight className="h-3 w-3" />
+                            )}
+                          </Button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="mt-4">
                   {/* Billing Information */}
                   <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
                     <h4 className="font-semibold mb-2">Billing Information</h4>
@@ -581,9 +574,12 @@ export default function OrdersPage() {
                       </div>
                     </div>
                   </div>
-                    </CollapsibleContent>
-                  </Collapsible>
-                </div>
+                  </CollapsibleContent>
+                      </Collapsible>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
                 </CardContent>
               </Card>
             ))}
