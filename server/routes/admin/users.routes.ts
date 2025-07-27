@@ -99,4 +99,40 @@ router.patch('/:id/reactivate',
   adminUsersController.reactivateUser.bind(adminUsersController)
 );
 
+// PATCH /api/admin/users/:id/status - Update user status
+const updateStatusSchema = z.object({
+  isActive: z.boolean(),
+});
+
+router.patch('/:id/status',
+  authorize(Permissions.USER_UPDATE),
+  validateRequest({ 
+    params: userParamsSchema,
+    body: updateStatusSchema
+  }),
+  auditLog('admin:users:update-status'),
+  adminUsersController.updateUserStatus.bind(adminUsersController)
+);
+
+// PATCH /api/admin/users/:id - Update user
+const updateUserSchema = z.object({
+  username: z.string().min(3, 'Username must be at least 3 characters').optional(),
+  password: z.string().min(6, 'Password must be at least 6 characters').optional(),
+  email: z.string().email().optional(),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  role: z.enum(['b2b_user', 'admin', 'super_admin']).optional(),
+  isActive: z.boolean().optional(),
+});
+
+router.patch('/:id',
+  authorize(Permissions.USER_UPDATE),
+  validateRequest({ 
+    params: userParamsSchema,
+    body: updateUserSchema
+  }),
+  auditLog('admin:users:update'),
+  adminUsersController.updateUser.bind(adminUsersController)
+);
+
 export { router as adminUsersRouter };

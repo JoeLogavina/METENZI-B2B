@@ -233,6 +233,83 @@ export class AdminUsersController {
       });
     }
   }
+
+  // PATCH /api/admin/users/:id/status
+  async updateUserStatus(req: Request, res: Response) {
+    try {
+      const { id } = userParamsSchema.parse(req.params);
+      const { isActive } = z.object({ isActive: z.boolean() }).parse(req.body);
+      
+      // Prevent self-deactivation
+      if (req.user?.id === id && !isActive) {
+        return res.status(400).json({
+          error: 'VALIDATION_ERROR',
+          message: 'Cannot deactivate your own account'
+        });
+      }
+      
+      if (isActive) {
+        await userService.reactivateUser(id);
+      } else {
+        await userService.deactivateUser(id);
+      }
+      
+      res.json({
+        message: `User ${isActive ? 'activated' : 'deactivated'} successfully`
+      });
+    } catch (error) {
+      if (isServiceError(error)) {
+        return res.status(error.statusCode).json(formatErrorResponse(error));
+      }
+      res.status(500).json({
+        error: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to update user status'
+      });
+    }
+  }
+
+  // PATCH /api/admin/users/:id
+  async updateUser(req: Request, res: Response) {
+    try {
+      const { id } = userParamsSchema.parse(req.params);
+      const updateUserSchema = z.object({
+        username: z.string().min(3, 'Username must be at least 3 characters').optional(),
+        password: z.string().min(6, 'Password must be at least 6 characters').optional(),
+        email: z.string().email().optional(),
+        firstName: z.string().optional(),
+        lastName: z.string().optional(),
+        role: z.enum(['b2b_user', 'admin', 'super_admin']).optional(),
+        isActive: z.boolean().optional(),
+      });
+      
+      const updateData = updateUserSchema.parse(req.body);
+      
+      // Prevent self-deactivation
+      if (req.user?.id === id && updateData.isActive === false) {
+        return res.status(400).json({
+          error: 'VALIDATION_ERROR',
+          message: 'Cannot deactivate your own account'
+        });
+      }
+      
+      const user = await userService.updateUser(id, updateData);
+      
+      // Remove password from response
+      const { password, ...safeUser } = user;
+      res.json({
+        data: safeUser,
+        message: 'User updated successfully'
+      });
+    } catch (error) {
+      if (isServiceError(error)) {
+        return res.status(error.statusCode).json(formatErrorResponse(error));
+      }
+      res.status(500).json({
+        error: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to update user'
+      });
+    }
+  }
 }
 
 export const adminUsersController = new AdminUsersController();

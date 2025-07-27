@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,7 @@ import {
   Wallet
 } from "lucide-react";
 import WalletManagement from "@/components/wallet-management";
+import UserForm from "@/components/user-form";
 
 interface DashboardStats {
   totalUsers: number;
@@ -41,6 +43,8 @@ export default function AdminPanel() {
   const [activeSection, setActiveSection] = useState("dashboard");
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [showUserForm, setShowUserForm] = useState(false);
+  const [editingUser, setEditingUser] = useState<any>(null);
 
   // Redirect if not authenticated or not admin
   useEffect(() => {
@@ -116,6 +120,46 @@ export default function AdminPanel() {
         description: "Failed to update product status",
         variant: "destructive",
       });
+    }
+  };
+
+  // Toggle user status function
+  const toggleUserStatus = async (userId: string, isActive: boolean) => {
+    try {
+      const response = await apiRequest('PATCH', `/api/admin/users/${userId}/status`, {
+        isActive
+      });
+
+      toast({
+        title: "Success",
+        description: `User ${isActive ? 'activated' : 'deactivated'} successfully`,
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update user status",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // User form submission function
+  const handleUserSubmit = async (userData: any) => {
+    try {
+      const url = editingUser ? `/api/admin/users/${editingUser.id}` : '/api/admin/users';
+      const method = editingUser ? 'PATCH' : 'POST';
+      
+      await apiRequest(method, url, userData);
+      
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/dashboard"] });
+      
+      setShowUserForm(false);
+      setEditingUser(null);
+    } catch (error: any) {
+      throw new Error(error.message || 'Failed to save user');
     }
   };
 
@@ -318,75 +362,127 @@ export default function AdminPanel() {
             )}
 
             {activeSection === 'users' && user?.role === 'super_admin' && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>User Management</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {usersLoading ? (
-                    <div className="text-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                      <p className="mt-2 text-[#6E6F71]">Loading users...</p>
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-[#6E6F71] uppercase tracking-[0.5px]">USER MANAGEMENT</h3>
+                    <p className="text-[#6E6F71]">Manage B2B users and administrators</p>
+                  </div>
+                  <Button
+                    onClick={() => setShowUserForm(true)}
+                    className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    ADD USER
+                  </Button>
+                </div>
+
+                {/* Users Table */}
+                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                  <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-medium text-[#6E6F71] uppercase tracking-[0.5px]">ALL USERS</h4>
+                      <div className="text-sm text-[#6E6F71]">
+                        {(users?.data || users || []).length} users
+                      </div>
                     </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead className="table-header">
+                  </div>
+                  
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-[#6E6F71]">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">User</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Email</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Role</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Status</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {usersLoading ? (
                           <tr>
-                            <th className="text-left py-3 px-4 text-xs font-medium text-[#6E6F71] uppercase">User</th>
-                            <th className="text-left py-3 px-4 text-xs font-medium text-[#6E6F71] uppercase">Email</th>
-                            <th className="text-left py-3 px-4 text-xs font-medium text-[#6E6F71] uppercase">Role</th>
-                            <th className="text-left py-3 px-4 text-xs font-medium text-[#6E6F71] uppercase">Status</th>
-                            <th className="text-left py-3 px-4 text-xs font-medium text-[#6E6F71] uppercase">Actions</th>
+                            <td colSpan={5} className="px-6 py-12 text-center">
+                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FFB20F] mx-auto"></div>
+                              <p className="mt-2 text-[#6E6F71]">Loading users...</p>
+                            </td>
                           </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200">
-                          {(users || []).map((userItem: any) => (
-                            <tr key={userItem.id} className="hover:bg-gray-50">
-                              <td className="py-3 px-4">
+                        ) : (users?.data || users || []).length === 0 ? (
+                          <tr>
+                            <td colSpan={5} className="px-6 py-12 text-center">
+                              <Users className="mx-auto h-12 w-12 text-gray-400" />
+                              <h3 className="mt-2 text-sm font-medium text-[#6E6F71]">No users found</h3>
+                              <p className="mt-1 text-sm text-[#6E6F71]">Get started by creating a new user account.</p>
+                            </td>
+                          </tr>
+                        ) : (
+                          (users?.data || users || []).map((userData: any) => (
+                            <tr key={userData.id} className="hover:bg-gray-50">
+                              <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="flex items-center">
-                                  <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center mr-3">
-                                    <Users className="h-4 w-4 text-gray-600" />
+                                  <div className="flex-shrink-0 h-10 w-10">
+                                    <div className="h-10 w-10 bg-[#6E6F71] rounded-full flex items-center justify-center">
+                                      <span className="text-white text-sm font-medium">
+                                        {userData.firstName?.charAt(0) || userData.username?.charAt(0) || 'U'}
+                                      </span>
+                                    </div>
                                   </div>
-                                  <span className="text-sm font-medium text-gray-900">
-                                    {userItem.firstName} {userItem.lastName}
-                                  </span>
+                                  <div className="ml-4">
+                                    <div className="text-sm font-medium text-[#6E6F71]">
+                                      {userData.firstName} {userData.lastName}
+                                    </div>
+                                    <div className="text-sm text-gray-500">@{userData.username}</div>
+                                  </div>
                                 </div>
                               </td>
-                              <td className="py-3 px-4 text-sm text-gray-900">{userItem.email}</td>
-                              <td className="py-3 px-4">
-                                <span className={`inline-flex px-2 py-1 text-xs font-medium rounded ${
-                                  userItem.role === 'super_admin' 
-                                    ? 'bg-red-100 text-red-800'
-                                    : userItem.role === 'admin'
-                                    ? 'bg-blue-100 text-blue-800' 
-                                    : 'bg-gray-100 text-gray-800'
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-[#6E6F71]">
+                                {userData.email || 'No email'}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                  userData.role === 'super_admin' ? 'bg-red-100 text-red-800' :
+                                  userData.role === 'admin' ? 'bg-yellow-100 text-yellow-800' :
+                                  'bg-blue-100 text-blue-800'
                                 }`}>
-                                  {userItem.role?.replace('_', ' ')}
+                                  {userData.role?.replace('_', ' ') || 'Unknown'}
                                 </span>
                               </td>
-                              <td className="py-3 px-4">
-                                <span className={`inline-flex px-2 py-1 text-xs font-medium rounded ${
-                                  userItem.isActive 
-                                    ? 'bg-green-100 text-green-800' 
-                                    : 'bg-gray-100 text-gray-800'
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                  userData.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                                 }`}>
-                                  {userItem.isActive ? 'Active' : 'Inactive'}
+                                  {userData.isActive ? 'Active' : 'Inactive'}
                                 </span>
                               </td>
-                              <td className="py-3 px-4">
-                                <Button variant="outline" size="sm">
+                              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setEditingUser(userData);
+                                    setShowUserForm(true);
+                                  }}
+                                  className="text-[#FFB20F] border-[#FFB20F] hover:bg-[#FFB20F] hover:text-white"
+                                >
                                   Edit
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => toggleUserStatus(userData.id, !userData.isActive)}
+                                  className={userData.isActive ? 'text-red-600 border-red-600 hover:bg-red-600 hover:text-white' : 'text-green-600 border-green-600 hover:bg-green-600 hover:text-white'}
+                                >
+                                  {userData.isActive ? 'Deactivate' : 'Activate'}
                                 </Button>
                               </td>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
             )}
 
             {activeSection === 'products' && (
@@ -1120,6 +1216,27 @@ XYZ12-ABC34-DEF56-GHI78-JKL90
                 </Button>
               </div>
             </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* User Form Modal */}
+      {showUserForm && (
+        <Dialog open={showUserForm} onOpenChange={setShowUserForm}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="uppercase tracking-[0.5px]">
+                {editingUser ? 'EDIT USER' : 'ADD NEW USER'}
+              </DialogTitle>
+            </DialogHeader>
+            <UserForm 
+              user={editingUser}
+              onSubmit={handleUserSubmit}
+              onCancel={() => {
+                setShowUserForm(false);
+                setEditingUser(null);
+              }}
+            />
           </DialogContent>
         </Dialog>
       )}

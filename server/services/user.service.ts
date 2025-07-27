@@ -23,6 +23,7 @@ export interface UserService {
   getAllUsers(): Promise<User[]>;
   deactivateUser(id: string): Promise<void>;
   reactivateUser(id: string): Promise<void>;
+  updateUser(id: string, updateData: Partial<UpsertUser>): Promise<User>;
   
   // Analytics methods
   getUserAnalytics(): Promise<any>;
@@ -194,6 +195,38 @@ export class UserServiceImpl implements UserService {
         throw error;
       }
       throw new ServiceError('Failed to reactivate user', error);
+    }
+  }
+
+  async updateUser(id: string, updateData: Partial<UpsertUser>): Promise<User> {
+    if (!id) {
+      throw new ValidationError('User ID is required');
+    }
+
+    try {
+      // Validate that user exists
+      await this.getUserById(id);
+
+      // If password is provided, hash it
+      if (updateData.password) {
+        updateData.password = await this.hashPassword(updateData.password);
+      }
+
+      // If username is being updated, check for conflicts
+      if (updateData.username) {
+        const existingUser = await storage.getUserByUsername(updateData.username);
+        if (existingUser && existingUser.id !== id) {
+          throw new ConflictError('Username already exists');
+        }
+      }
+
+      const updatedUser = await storage.updateUser(id, updateData);
+      return updatedUser;
+    } catch (error) {
+      if (error instanceof ValidationError || error instanceof NotFoundError || error instanceof ConflictError) {
+        throw error;
+      }
+      throw new ServiceError('Failed to update user', error);
     }
   }
 
