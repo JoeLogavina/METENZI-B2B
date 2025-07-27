@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,11 +41,44 @@ export default function AdminPanel() {
   const { user, isLoading, isAuthenticated, logout, isLoggingOut } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [activeSection, setActiveSection] = useState("dashboard");
+  
+  // Check if we're on the edit product page
+  const urlParams = new URLSearchParams(window.location.search);
+  const editProductId = urlParams.get('id');
+  const isEditProductPage = window.location.pathname === '/admin/products/edit' && editProductId;
+  
+  const [activeSection, setActiveSection] = useState(isEditProductPage ? "edit-product" : "dashboard");
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [showUserForm, setShowUserForm] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
+  
+  // Edit product states
+  const [editProductFormData, setEditProductFormData] = useState({
+    name: '',
+    description: '',
+    category: '',
+    platform: '',
+    region: '',
+    imageUrl: '',
+    isActive: true
+  });
+  const [editEurPricing, setEditEurPricing] = useState({
+    price: '',
+    purchasePrice: '',
+    b2bPrice: '',
+    retailPrice: '',
+    stock: ''
+  });
+  const [editKmPricing, setEditKmPricing] = useState({
+    priceKm: '',
+    purchasePriceKm: '',
+    b2bPriceKm: '',
+    retailPriceKm: ''
+  });
+  const [editActiveTab, setEditActiveTab] = useState('details');
+  const [editLicenseKeys, setEditLicenseKeys] = useState('');
+  const [editUnsavedChanges, setEditUnsavedChanges] = useState(false);
 
   // Redirect if not authenticated or not admin
   useEffect(() => {
@@ -96,6 +129,22 @@ export default function AdminPanel() {
     enabled: isAuthenticated && activeSection === 'products',
     staleTime: 0,
     gcTime: 0,
+  });
+
+  // Edit product data queries
+  const { data: editProductData, isLoading: editProductLoading } = useQuery({
+    queryKey: [`/api/admin/products/${editProductId}`],
+    enabled: !!editProductId && isAuthenticated && activeSection === 'edit-product',
+  });
+  
+  const { data: categories = [] } = useQuery({
+    queryKey: ['/api/categories'],
+    enabled: isAuthenticated && (activeSection === 'products' || activeSection === 'edit-product')
+  });
+  
+  const { data: editProductLicenseKeys = [], refetch: refetchEditLicenseKeys } = useQuery({
+    queryKey: [`/api/admin/license-keys/${editProductId}`],
+    enabled: !!editProductId && isAuthenticated && activeSection === 'edit-product'
   });
 
   // Toggle product status function
@@ -189,11 +238,12 @@ export default function AdminPanel() {
     { id: 'dashboard', icon: BarChart3, label: 'Dashboard', allowed: true },
     { id: 'users', icon: Users, label: 'User Management', allowed: (user as any)?.role === 'super_admin' },
     { id: 'products', icon: Package, label: 'Product Management', allowed: true },
+    { id: 'edit-product', icon: Edit, label: 'Edit Product', allowed: true, hidden: !isEditProductPage },
     { id: 'keys', icon: Key, label: 'Key Management', allowed: true },
     { id: 'wallets', icon: Wallet, label: 'Wallet Management', allowed: true },
     { id: 'permissions', icon: Shield, label: 'Permissions', allowed: (user as any)?.role === 'super_admin' },
     { id: 'reports', icon: FileText, label: 'Reports', allowed: true },
-  ].filter(item => item.allowed);
+  ].filter(item => item.allowed && !item.hidden);
 
   return (
     <div className="min-h-screen bg-[#f5f6f5] font-['Inter',-apple-system,BlinkMacSystemFont,sans-serif]">
@@ -627,7 +677,8 @@ export default function AdminPanel() {
                                   size="sm"
                                   variant="outline"
                                   onClick={() => {
-                                    window.location.href = `/admin/products/edit?id=${product.id}`;
+                                    window.history.pushState({}, '', `/admin/products/edit?id=${product.id}`);
+                                    setActiveSection('edit-product');
                                   }}
                                   className="text-[#FFB20F] border-[#FFB20F] hover:bg-[#FFB20F] hover:text-white"
                                 >
@@ -709,6 +760,32 @@ export default function AdminPanel() {
               </Dialog>
             )}
 
+            {activeSection === 'edit-product' && (
+              <EditProductIntegratedSection 
+                editProductId={editProductId}
+                editProductData={editProductData}
+                editProductLoading={editProductLoading}
+                editProductLicenseKeys={editProductLicenseKeys}
+                refetchEditLicenseKeys={refetchEditLicenseKeys}
+                categories={categories}
+                editProductFormData={editProductFormData}
+                setEditProductFormData={setEditProductFormData}
+                editEurPricing={editEurPricing}
+                setEditEurPricing={setEditEurPricing}
+                editKmPricing={editKmPricing}
+                setEditKmPricing={setEditKmPricing}
+                editActiveTab={editActiveTab}
+                setEditActiveTab={setEditActiveTab}
+                editLicenseKeys={editLicenseKeys}
+                setEditLicenseKeys={setEditLicenseKeys}
+                editUnsavedChanges={editUnsavedChanges}
+                setEditUnsavedChanges={setEditUnsavedChanges}
+                setActiveSection={setActiveSection}
+                queryClient={queryClient}
+                toast={toast}
+              />
+            )}
+
             {activeSection === 'wallets' && <WalletManagement />}
 
             {(activeSection === 'keys' || activeSection === 'permissions' || activeSection === 'reports') && (
@@ -752,6 +829,642 @@ export default function AdminPanel() {
                 setEditingUser(null);
               }}
             />
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+
+}
+
+// Edit Product Integrated Section Component
+function EditProductIntegratedSection({
+  editProductId,
+  editProductData,
+  editProductLoading,
+  editProductLicenseKeys,
+  refetchEditLicenseKeys,
+  categories,
+  editProductFormData,
+  setEditProductFormData,
+  editEurPricing,
+  setEditEurPricing,
+  editKmPricing,
+  setEditKmPricing,
+  editActiveTab,
+  setEditActiveTab,
+  editLicenseKeys,
+  setEditLicenseKeys,
+  editUnsavedChanges,
+  setEditUnsavedChanges,
+  setActiveSection,
+  queryClient,
+  toast
+}: any) {
+  const [duplicateWarning, setDuplicateWarning] = useState<string[]>([]);
+  const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
+
+  // Update form data when product loads
+  useEffect(() => {
+    if (editProductData && typeof editProductData === 'object') {
+      const prod = editProductData as any;
+      setEditProductFormData({
+        name: prod.name || '',
+        description: prod.description || '',
+        category: prod.categoryId || '',
+        platform: prod.platform || '',
+        region: prod.region || '',
+        imageUrl: prod.imageUrl || '',
+        isActive: prod.isActive ?? true
+      });
+
+      setEditEurPricing({
+        price: prod.price || '',
+        purchasePrice: prod.purchasePrice || '',
+        b2bPrice: prod.b2bPrice || '',
+        retailPrice: prod.retailPrice || '',
+        stock: prod.stock?.toString() || ''
+      });
+
+      setEditKmPricing({
+        priceKm: prod.priceKm || '',
+        purchasePriceKm: prod.purchasePriceKm || '',
+        b2bPriceKm: prod.b2bPriceKm || '',
+        retailPriceKm: prod.retailPriceKm || ''
+      });
+    }
+  }, [editProductData]);
+
+  // Save product mutation
+  const saveProductMutation = useMutation({
+    mutationFn: async () => {
+      const submitData = {
+        ...editProductFormData,
+        ...editEurPricing,
+        ...editKmPricing,
+        categoryId: editProductFormData.category,
+        stock: editEurPricing.stock ? parseInt(editEurPricing.stock) : undefined
+      };
+
+      const response = await fetch(`/api/admin/products/${editProductId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(submitData)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to save product');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Product updated successfully",
+      });
+      setEditUnsavedChanges(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/products"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/products/${editProductId}`] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save product",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // License keys mutation
+  const saveKeysMutation = useMutation({
+    mutationFn: async (keys: string[]) => {
+      const response = await fetch(`/api/admin/license-keys/${editProductId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ keys })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to save license keys');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "License keys saved successfully",
+      });
+      setEditLicenseKeys('');
+      refetchEditLicenseKeys();
+    },
+    onError: (error: any) => {
+      if (error.message.includes('duplicate')) {
+        const duplicates = error.message.match(/Duplicate keys: (.+)/)?.[1]?.split(', ') || [];
+        setDuplicateWarning(duplicates);
+        setShowDuplicateDialog(true);
+      } else {
+        toast({
+          title: "Error", 
+          description: error.message || "Failed to save license keys",
+          variant: "destructive",
+        });
+      }
+    }
+  });
+
+  const handleSaveProduct = () => {
+    saveProductMutation.mutate();
+  };
+
+  const handleSaveKeys = () => {
+    const keys = editLicenseKeys.split('\n').filter(k => k.trim()).map(k => k.trim());
+    if (keys.length > 0) {
+      saveKeysMutation.mutate(keys);
+    }
+  };
+
+  const handleSaveKeysIgnoreDuplicates = () => {
+    const keys = editLicenseKeys.split('\n').filter(k => k.trim()).map(k => k.trim());
+    // Remove duplicates from the keys array
+    const uniqueKeys = keys.filter(key => !duplicateWarning.includes(key));
+    if (uniqueKeys.length > 0) {
+      saveKeysMutation.mutate(uniqueKeys);
+    }
+    setShowDuplicateDialog(false);
+    setDuplicateWarning([]);
+  };
+
+  const handleGoBack = () => {
+    window.history.pushState({}, '', '/admin-panel');
+    setActiveSection('products');
+  };
+
+  if (editProductLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FFB20F]"></div>
+        <span className="ml-2 text-gray-600">Loading product...</span>
+      </div>
+    );
+  }
+
+  if (!editProductData) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-gray-500">Product not found</p>
+        <Button onClick={handleGoBack} className="mt-4">Go Back</Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <Button
+            variant="outline"
+            onClick={handleGoBack}
+            className="border-[#6E6F71] text-[#6E6F71] hover:bg-[#6E6F71] hover:text-white"
+          >
+            ← Back to Products
+          </Button>
+          <div>
+            <h3 className="text-lg font-semibold text-[#6E6F71] uppercase tracking-[0.5px]">
+              ADVANCED EDIT PRODUCT
+            </h3>
+            <p className="text-[#6E6F71]">Editing: {editProductData?.name}</p>
+          </div>
+        </div>
+        
+        <div className="flex items-center space-x-4">
+          {editUnsavedChanges && (
+            <span className="text-sm text-orange-600 font-medium">
+              Unsaved changes
+            </span>
+          )}
+          <Button
+            onClick={handleSaveProduct}
+            disabled={saveProductMutation.isPending}
+            className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white"
+          >
+            {saveProductMutation.isPending ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+            ) : null}
+            Save Changes
+          </Button>
+        </div>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8">
+              <button
+                type="button"
+                onClick={() => setEditActiveTab('details')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm uppercase tracking-[0.5px] ${
+                  editActiveTab === "details"
+                    ? "border-[#FFB20F] text-[#FFB20F]"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                EUR Details
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditActiveTab('km-pricing')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm uppercase tracking-[0.5px] ${
+                  editActiveTab === "km-pricing"
+                    ? "border-[#FFB20F] text-[#FFB20F]"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                KM Pricing
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditActiveTab('keys')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm uppercase tracking-[0.5px] ${
+                  editActiveTab === "keys"
+                    ? "border-[#FFB20F] text-[#FFB20F]"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                License Keys
+              </button>
+            </nav>
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-6">
+          {/* EUR Details Tab */}
+          {editActiveTab === "details" && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="name" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                    PRODUCT NAME
+                  </Label>
+                  <Input
+                    id="name"
+                    value={editProductFormData.name}
+                    onChange={(e) => {
+                      setEditProductFormData({ ...editProductFormData, name: e.target.value });
+                      setEditUnsavedChanges(true);
+                    }}
+                    className="mt-1"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="category" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                    CATEGORY
+                  </Label>
+                  <Select 
+                    value={editProductFormData.category} 
+                    onValueChange={(value) => {
+                      setEditProductFormData({ ...editProductFormData, category: value });
+                      setEditUnsavedChanges(true);
+                    }}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((cat: any) => (
+                        <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="md:col-span-2">
+                  <Label htmlFor="description" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                    DESCRIPTION
+                  </Label>
+                  <Textarea
+                    id="description"
+                    value={editProductFormData.description}
+                    onChange={(e) => {
+                      setEditProductFormData({ ...editProductFormData, description: e.target.value });
+                      setEditUnsavedChanges(true);
+                    }}
+                    className="mt-1"
+                    rows={3}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="price" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                    DISPLAY PRICE (€)
+                  </Label>
+                  <Input
+                    id="price"
+                    type="number"
+                    step="0.01"
+                    value={editEurPricing.price}
+                    onChange={(e) => {
+                      setEditEurPricing({ ...editEurPricing, price: e.target.value });
+                      setEditUnsavedChanges(true);
+                    }}
+                    className="mt-1"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="stock" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                    STOCK QUANTITY
+                  </Label>
+                  <Input
+                    id="stock"
+                    type="number"
+                    value={editEurPricing.stock}
+                    onChange={(e) => {
+                      setEditEurPricing({ ...editEurPricing, stock: e.target.value });
+                      setEditUnsavedChanges(true);
+                    }}
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="region" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                    REGION
+                  </Label>
+                  <Select 
+                    value={editProductFormData.region} 
+                    onValueChange={(value) => {
+                      setEditProductFormData({ ...editProductFormData, region: value });
+                      setEditUnsavedChanges(true);
+                    }}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select region" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Global">Global</SelectItem>
+                      <SelectItem value="EU">Europe</SelectItem>
+                      <SelectItem value="US">United States</SelectItem>
+                      <SelectItem value="Asia">Asia</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="platform" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                    PLATFORM
+                  </Label>
+                  <Select 
+                    value={editProductFormData.platform} 
+                    onValueChange={(value) => {
+                      setEditProductFormData({ ...editProductFormData, platform: value });
+                      setEditUnsavedChanges(true);
+                    }}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select platform" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Windows">Windows</SelectItem>
+                      <SelectItem value="Mac">Mac</SelectItem>
+                      <SelectItem value="Linux">Linux</SelectItem>
+                      <SelectItem value="Both">Both</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2 pt-4 border-t">
+                <input
+                  type="checkbox"
+                  id="isActive"
+                  checked={editProductFormData.isActive}
+                  onChange={(e) => {
+                    setEditProductFormData({ ...editProductFormData, isActive: e.target.checked });
+                    setEditUnsavedChanges(true);
+                  }}
+                  className="rounded border-gray-300"
+                />
+                <Label htmlFor="isActive" className="text-sm font-medium text-gray-700">
+                  Active (visible to B2B users)
+                </Label>
+              </div>
+            </div>
+          )}
+
+          {/* KM Pricing Tab */}
+          {editActiveTab === "km-pricing" && (
+            <div className="space-y-6">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <h4 className="text-sm font-medium text-blue-800 mb-1">KM Currency Support</h4>
+                <p className="text-sm text-blue-600">
+                  Configure pricing in Bosnian Marks (KM) for future multi-tenant support. 
+                  Exchange rate: 1 EUR ≈ 1.96 KM
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="priceKm" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                    DISPLAY PRICE (KM)
+                  </Label>
+                  <Input
+                    id="priceKm"
+                    type="number"
+                    step="0.01"
+                    value={editKmPricing.priceKm}
+                    onChange={(e) => {
+                      setEditKmPricing({ ...editKmPricing, priceKm: e.target.value });
+                      setEditUnsavedChanges(true);
+                    }}
+                    className="mt-1"
+                    placeholder="Bosnian Mark price"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="purchasePriceKm" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                    PURCHASE PRICE (KM)
+                  </Label>
+                  <Input
+                    id="purchasePriceKm"
+                    type="number"
+                    step="0.01"
+                    value={editKmPricing.purchasePriceKm}
+                    onChange={(e) => {
+                      setEditKmPricing({ ...editKmPricing, purchasePriceKm: e.target.value });
+                      setEditUnsavedChanges(true);
+                    }}
+                    className="mt-1"
+                    placeholder="Optional"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="b2bPriceKm" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                    B2B PRICE (KM)
+                  </Label>
+                  <Input
+                    id="b2bPriceKm"
+                    type="number"
+                    step="0.01"
+                    value={editKmPricing.b2bPriceKm}
+                    onChange={(e) => {
+                      setEditKmPricing({ ...editKmPricing, b2bPriceKm: e.target.value });
+                      setEditUnsavedChanges(true);
+                    }}
+                    className="mt-1"
+                    placeholder="Optional"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="retailPriceKm" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                    RETAIL PRICE (KM)
+                  </Label>
+                  <Input
+                    id="retailPriceKm"
+                    type="number"
+                    step="0.01"
+                    value={editKmPricing.retailPriceKm}
+                    onChange={(e) => {
+                      setEditKmPricing({ ...editKmPricing, retailPriceKm: e.target.value });
+                      setEditUnsavedChanges(true);
+                    }}
+                    className="mt-1"
+                    placeholder="Optional"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* License Keys Tab */}
+          {editActiveTab === "keys" && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-lg font-semibold text-gray-900 uppercase tracking-[0.5px]">
+                    License Key Management
+                  </h4>
+                  <p className="text-sm text-gray-600">
+                    Current keys: {Array.isArray(editProductLicenseKeys) ? editProductLicenseKeys.length : 0}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="licenseKeys" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
+                    Add New License Keys (One per line)
+                  </Label>
+                  <Textarea
+                    id="licenseKeys"
+                    value={editLicenseKeys}
+                    onChange={(e) => setEditLicenseKeys(e.target.value)}
+                    className="mt-1 font-mono text-sm"
+                    rows={10}
+                    placeholder={`Enter license keys, one per line:
+ABCD1-EFGH2-IJKL3-MNOP4-QRST5
+XYZ12-ABC34-DEF56-GHI78-JKL90
+...`}
+                  />
+                  <p className="mt-2 text-xs text-gray-500">
+                    {editLicenseKeys.split('\n').filter(k => k.trim()).length} keys ready to add
+                  </p>
+                </div>
+
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    onClick={handleSaveKeys}
+                    disabled={!editLicenseKeys.trim() || saveKeysMutation.isPending}
+                    className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white"
+                  >
+                    {saveKeysMutation.isPending ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    ) : null}
+                    Save Keys
+                  </Button>
+                </div>
+              </div>
+
+              {/* Existing Keys Display */}
+              {Array.isArray(editProductLicenseKeys) && editProductLicenseKeys.length > 0 && (
+                <div className="border-t pt-6">
+                  <h5 className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px] mb-3">
+                    Existing License Keys
+                  </h5>
+                  <div className="bg-gray-50 rounded-lg p-4 max-h-60 overflow-y-auto">
+                    <div className="space-y-1 font-mono text-xs">
+                      {editProductLicenseKeys.map((key: any, index: number) => (
+                        <div key={index} className="flex items-center justify-between">
+                          <span className="text-gray-800">{key.keyValue}</span>
+                          <span className={`px-2 py-1 rounded text-xs ${
+                            key.isUsed 
+                              ? 'bg-red-100 text-red-800' 
+                              : 'bg-green-100 text-green-800'
+                          }`}>
+                            {key.isUsed ? 'Used' : 'Available'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Duplicate Warning Dialog */}
+      {showDuplicateDialog && (
+        <Dialog open={showDuplicateDialog} onOpenChange={setShowDuplicateDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-red-600 uppercase tracking-[0.5px]">
+                Duplicate Keys Found
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-gray-600 mb-3">
+                  The following keys already exist:
+                </p>
+                <div className="max-h-40 overflow-y-auto bg-gray-50 p-3 rounded-md">
+                  <ul className="text-xs font-mono space-y-1">
+                    {duplicateWarning.map((key, index) => (
+                      <li key={index} className="text-red-600">{key}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+              
+              <div className="flex justify-end space-x-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowDuplicateDialog(false)}
+                  className="px-4"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSaveKeysIgnoreDuplicates}
+                  className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white px-4"
+                >
+                  Save Anyway
+                </Button>
+              </div>
+            </div>
           </DialogContent>
         </Dialog>
       )}
