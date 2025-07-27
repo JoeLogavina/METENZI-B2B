@@ -148,7 +148,7 @@ export default function B2BShop() {
   return (
     <div className="min-h-screen bg-[#f5f6f5] flex font-['Inter',-apple-system,BlinkMacSystemFont,sans-serif]">
       {/* Sidebar */}
-      <div className="w-64 bg-[#6E6F71] text-white flex-shrink-0">
+      <div className="w-64 text-white flex-shrink-0 bg-[#404040]">
         <div className="p-4 border-b border-[#5a5b5d]">
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 bg-[#FFB20F] rounded flex items-center justify-center">
@@ -181,7 +181,6 @@ export default function B2BShop() {
           ))}
         </nav>
       </div>
-
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
@@ -495,8 +494,6 @@ export default function B2BShop() {
           </div>
         </div>
       </div>
-
-
     </div>
   );
 }
