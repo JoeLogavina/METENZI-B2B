@@ -73,6 +73,13 @@ export default function AdminPanel() {
     select: (data) => Array.isArray(data) ? data : (data?.data || []),
   });
 
+  // Fetch wallet data for B2B users
+  const { data: walletData = [], isLoading: walletLoading } = useQuery<any[]>({
+    queryKey: ["/api/admin/wallets"],
+    enabled: isAuthenticated && (user as any)?.role === 'super_admin' && activeSection === 'users',
+    select: (data) => Array.isArray(data) ? data : [],
+  });
+
   const { data: products = [], isLoading: productsLoading, refetch: refetchProducts } = useQuery({
     queryKey: ["/api/admin/products"],
     queryFn: async () => {
@@ -383,7 +390,7 @@ export default function AdminPanel() {
                     <div className="flex items-center justify-between">
                       <h4 className="text-sm font-medium text-[#6E6F71] uppercase tracking-[0.5px]">ALL USERS</h4>
                       <div className="text-sm text-[#6E6F71]">
-                        {(users?.data || users || []).length} users
+                        {(users || []).length} users
                       </div>
                     </div>
                   </div>
@@ -395,6 +402,7 @@ export default function AdminPanel() {
                           <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">User</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Email</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Role</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Wallet Balance</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Status</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Actions</th>
                         </tr>
@@ -402,81 +410,116 @@ export default function AdminPanel() {
                       <tbody className="bg-white divide-y divide-gray-200">
                         {usersLoading ? (
                           <tr>
-                            <td colSpan={5} className="px-6 py-12 text-center">
+                            <td colSpan={6} className="px-6 py-12 text-center">
                               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FFB20F] mx-auto"></div>
                               <p className="mt-2 text-[#6E6F71]">Loading users...</p>
                             </td>
                           </tr>
                         ) : (users?.data || users || []).length === 0 ? (
                           <tr>
-                            <td colSpan={5} className="px-6 py-12 text-center">
+                            <td colSpan={6} className="px-6 py-12 text-center">
                               <Users className="mx-auto h-12 w-12 text-gray-400" />
                               <h3 className="mt-2 text-sm font-medium text-[#6E6F71]">No users found</h3>
                               <p className="mt-1 text-sm text-[#6E6F71]">Get started by creating a new user account.</p>
                             </td>
                           </tr>
                         ) : (
-                          (users?.data || users || []).map((userData: any) => (
-                            <tr key={userData.id} className="hover:bg-gray-50">
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="flex items-center">
-                                  <div className="flex-shrink-0 h-10 w-10">
-                                    <div className="h-10 w-10 bg-[#6E6F71] rounded-full flex items-center justify-center">
-                                      <span className="text-white text-sm font-medium">
-                                        {userData.firstName?.charAt(0) || userData.username?.charAt(0) || 'U'}
-                                      </span>
+                          (users || []).map((userData: any) => {
+                            // Find wallet data for this user
+                            const userWallet = walletData.find((wallet: any) => wallet.id === userData.id);
+                            
+                            return (
+                              <tr key={userData.id} className="hover:bg-gray-50">
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="flex items-center">
+                                    <div className="flex-shrink-0 h-10 w-10">
+                                      <div className="h-10 w-10 bg-[#6E6F71] rounded-full flex items-center justify-center">
+                                        <span className="text-white text-sm font-medium">
+                                          {userData.firstName?.charAt(0) || userData.username?.charAt(0) || 'U'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                    <div className="ml-4">
+                                      <div className="text-sm font-medium text-[#6E6F71]">
+                                        {userData.firstName} {userData.lastName}
+                                      </div>
+                                      <div className="text-sm text-gray-500">@{userData.username}</div>
                                     </div>
                                   </div>
-                                  <div className="ml-4">
-                                    <div className="text-sm font-medium text-[#6E6F71]">
-                                      {userData.firstName} {userData.lastName}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-[#6E6F71]">
+                                  {userData.email || 'No email'}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                    userData.role === 'super_admin' ? 'bg-red-100 text-red-800' :
+                                    userData.role === 'admin' ? 'bg-yellow-100 text-yellow-800' :
+                                    'bg-blue-100 text-blue-800'
+                                  }`}>
+                                    {userData.role?.replace('_', ' ') || 'Unknown'}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  {userData.role === 'b2b_user' && userWallet ? (
+                                    <div className="text-sm">
+                                      <div className="text-[#6E6F71] font-medium">
+                                        €{userWallet.balance.totalAvailable}
+                                      </div>
+                                      <div className="text-xs text-gray-500">
+                                        Deposits: €{userWallet.balance.depositBalance} | Credit: €{userWallet.balance.availableCredit}
+                                      </div>
                                     </div>
-                                    <div className="text-sm text-gray-500">@{userData.username}</div>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-[#6E6F71]">
-                                {userData.email || 'No email'}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                  userData.role === 'super_admin' ? 'bg-red-100 text-red-800' :
-                                  userData.role === 'admin' ? 'bg-yellow-100 text-yellow-800' :
-                                  'bg-blue-100 text-blue-800'
-                                }`}>
-                                  {userData.role?.replace('_', ' ') || 'Unknown'}
-                                </span>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                  userData.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                                }`}>
-                                  {userData.isActive ? 'Active' : 'Inactive'}
-                                </span>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => {
-                                    setEditingUser(userData);
-                                    setShowUserForm(true);
-                                  }}
-                                  className="text-[#FFB20F] border-[#FFB20F] hover:bg-[#FFB20F] hover:text-white"
-                                >
-                                  Edit
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => toggleUserStatus(userData.id, !userData.isActive)}
-                                  className={userData.isActive ? 'text-red-600 border-red-600 hover:bg-red-600 hover:text-white' : 'text-green-600 border-green-600 hover:bg-green-600 hover:text-white'}
-                                >
-                                  {userData.isActive ? 'Deactivate' : 'Activate'}
-                                </Button>
-                              </td>
-                            </tr>
-                          ))
+                                  ) : userData.role === 'b2b_user' ? (
+                                    <div className="text-sm text-gray-500">Loading...</div>
+                                  ) : (
+                                    <div className="text-sm text-gray-400">N/A</div>
+                                  )}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                    userData.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                  }`}>
+                                    {userData.isActive ? 'Active' : 'Inactive'}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      setEditingUser(userData);
+                                      setShowUserForm(true);
+                                    }}
+                                    className="text-[#FFB20F] border-[#FFB20F] hover:bg-[#FFB20F] hover:text-white"
+                                  >
+                                    Edit
+                                  </Button>
+                                  {userData.role === 'b2b_user' && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => {
+                                        setActiveSection('wallet-management');
+                                        // You could also set selected user here
+                                      }}
+                                      className="text-[#6E6F71] border-[#6E6F71] hover:bg-[#6E6F71] hover:text-white"
+                                    >
+                                      <Wallet className="w-4 h-4 mr-1" />
+                                      Wallet
+                                    </Button>
+                                  )}
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => toggleUserStatus(userData.id, !userData.isActive)}
+                                    className={userData.isActive ? 'text-red-600 border-red-600 hover:bg-red-600 hover:text-white' : 'text-green-600 border-green-600 hover:bg-green-600 hover:text-white'}
+                                  >
+                                    {userData.isActive ? 'Deactivate' : 'Activate'}
+                                  </Button>
+                                </td>
+                              </tr>
+                            );
+                          })
                         )}
                       </tbody>
                     </table>
