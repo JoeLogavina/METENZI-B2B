@@ -304,6 +304,9 @@ export const insertProductSchema = createInsertSchema(products).omit({
 }).extend({
   price: z.union([z.string(), z.number()]).transform(val => String(val)),
   priceKm: z.union([z.string(), z.number()]).transform(val => val ? String(val) : null).optional(),
+  purchasePriceKm: z.union([z.string(), z.number()]).transform(val => val ? String(val) : null).optional(),
+  resellerPriceKm: z.union([z.string(), z.number()]).transform(val => val ? String(val) : null).optional(),
+  retailerPriceKm: z.union([z.string(), z.number()]).transform(val => val ? String(val) : null).optional(),
 });
 
 export const insertCategorySchema = createInsertSchema(categories).omit({

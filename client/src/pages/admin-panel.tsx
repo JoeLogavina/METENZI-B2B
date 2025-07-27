@@ -70,7 +70,7 @@ export default function AdminPanel() {
   const { data: users = [], isLoading: usersLoading } = useQuery<any[]>({
     queryKey: ["/api/admin/users"],
     enabled: isAuthenticated && (user as any)?.role === 'super_admin' && activeSection === 'users',
-    select: (data) => Array.isArray(data) ? data : (data?.data || []),
+    select: (data: any) => Array.isArray(data) ? data : (data?.data || []),
   });
 
   // Fetch wallet data for B2B users
@@ -415,7 +415,7 @@ export default function AdminPanel() {
                               <p className="mt-2 text-[#6E6F71]">Loading users...</p>
                             </td>
                           </tr>
-                        ) : (users?.data || users || []).length === 0 ? (
+                        ) : (users || []).length === 0 ? (
                           <tr>
                             <td colSpan={6} className="px-6 py-12 text-center">
                               <Users className="mx-auto h-12 w-12 text-gray-400" />
@@ -631,7 +631,7 @@ export default function AdminPanel() {
                                   }}
                                   className="text-[#FFB20F] border-[#FFB20F] hover:bg-[#FFB20F] hover:text-white"
                                 >
-                                  Edit
+                                  Advanced Edit
                                 </Button>
                                 <Button
                                   size="sm"
