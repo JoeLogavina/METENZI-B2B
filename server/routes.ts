@@ -249,22 +249,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           priceMax: priceMax ? parseFloat(priceMax as string) : undefined,
         };
         
-        // Try cache first
+        // Try cache first for performance
         const cachedProducts = await cacheHelpers.getProducts(filters);
         if (cachedProducts) {
+          res.setHeader('X-Cache', 'HIT');
           return res.json(cachedProducts);
         }
         
-        // Fetch from database with timing
-        
+        // Fetch from database
         const products = await storage.getProducts(filters);
         
-        if (duration > 100) {
-        }
-        
-        // Cache the results
+        // Cache the results for future requests
         await cacheHelpers.setProducts(filters, products);
         
+        res.setHeader('X-Cache', 'MISS');
         res.json(products);
       } catch (error) {
         console.error("Error fetching products:", error);
