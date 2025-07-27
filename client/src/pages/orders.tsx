@@ -347,11 +347,11 @@ export default function OrdersPage() {
         
         {totalKeys > 0 && (
           <div className="flex gap-2">
-            <Button onClick={copyAllKeys} variant="outline" className="gap-2">
+            <Button onClick={copyAllKeys} className="gap-2 bg-[#FFB20F] hover:bg-[#e09d0d] text-black">
               <Files className="h-4 w-4" />
               Copy All Keys ({totalKeys})
             </Button>
-            <Button onClick={exportToExcel} variant="outline" className="gap-2">
+            <Button onClick={exportToExcel} className="gap-2 bg-blue-600 hover:bg-blue-700 text-white">
               <Download className="h-4 w-4" />
               Export to Excel
             </Button>
@@ -399,7 +399,7 @@ export default function OrdersPage() {
             <CardContent>
               <Collapsible open={expandedOrders.has(order.id)} onOpenChange={() => toggleOrderExpansion(order.id)}>
                 <CollapsibleTrigger asChild>
-                  <Button variant="ghost" className="w-full justify-between p-0 h-auto">
+                  <Button className="w-full justify-between bg-blue-600 hover:bg-blue-700 text-white">
                     <span className="text-sm font-medium">View Order Details</span>
                     {expandedOrders.has(order.id) ? (
                       <ChevronDown className="h-4 w-4" />
@@ -443,14 +443,14 @@ export default function OrdersPage() {
                       <table className="w-full text-sm">
                         <thead className="bg-[#6E6F71] text-white">
                           <tr>
-                            <th className="text-left p-3 font-semibold">License Key</th>
-                            <th className="text-left p-3 font-semibold">Product Title</th>
-                            <th className="text-left p-3 font-semibold">Price</th>
-                            <th className="text-left p-3 font-semibold">Order Number</th>
-                            <th className="text-left p-3 font-semibold">Warranty</th>
-                            <th className="text-left p-3 font-semibold">Platform</th>
-                            <th className="text-left p-3 font-semibold">Region</th>
-                            <th className="text-left p-3 font-semibold">Actions</th>
+                            <th className="text-left p-2 font-semibold">License Key</th>
+                            <th className="text-left p-2 font-semibold">Product Title</th>
+                            <th className="text-left p-2 font-semibold">Price</th>
+                            <th className="text-left p-2 font-semibold">Order Number</th>
+                            <th className="text-left p-2 font-semibold">Warranty</th>
+                            <th className="text-left p-2 font-semibold">Platform</th>
+                            <th className="text-left p-2 font-semibold">Region</th>
+                            <th className="text-left p-2 font-semibold">Actions</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -458,33 +458,32 @@ export default function OrdersPage() {
                             .filter(item => item.licenseKey)
                             .map((item, index) => (
                               <tr key={item.id} className={index % 2 === 0 ? 'bg-gray-50 dark:bg-gray-900' : 'bg-white dark:bg-gray-800'}>
-                                <td className="p-3 font-mono text-xs border-r">
+                                <td className="p-2 font-mono text-xs border-r font-bold">
                                   {item.licenseKey!.licenseKey}
                                 </td>
-                                <td className="p-3 border-r">
+                                <td className="p-2 border-r">
                                   {item.product.name}
                                 </td>
-                                <td className="p-3 font-semibold text-[#FFB20F] border-r">
+                                <td className="p-2 font-semibold text-[#FFB20F] border-r">
                                   €{parseFloat(item.unitPrice).toFixed(2)}
                                 </td>
-                                <td className="p-3 border-r">
+                                <td className="p-2 border-r">
                                   {order.orderNumber}
                                 </td>
-                                <td className="p-3 border-r">
+                                <td className="p-2 border-r">
                                   {getWarrantyPeriod(item.licenseKey!.createdAt)}
                                 </td>
-                                <td className="p-3 border-r">
+                                <td className="p-2 border-r">
                                   <Badge variant="secondary">{item.product.platform}</Badge>
                                 </td>
-                                <td className="p-3 border-r">
+                                <td className="p-2 border-r">
                                   <Badge variant="outline">{item.product.region}</Badge>
                                 </td>
-                                <td className="p-3">
+                                <td className="p-2">
                                   <Button
                                     size="sm"
-                                    variant="outline"
                                     onClick={() => copyToClipboard(item.licenseKey!.licenseKey)}
-                                    className="gap-1"
+                                    className="gap-1 bg-[#FFB20F] hover:bg-[#e09d0d] text-black"
                                   >
                                     <Copy className="h-3 w-3" />
                                     Copy
@@ -501,10 +500,20 @@ export default function OrdersPage() {
                   <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
                     <h4 className="font-semibold mb-2">Order Summary</h4>
                     <div className="space-y-2 text-sm">
-                      {order.items.map((item) => (
-                        <div key={item.id} className="flex justify-between">
-                          <span>{item.product.name} (x{item.quantity})</span>
-                          <span className="font-semibold">€{parseFloat(item.totalPrice).toFixed(2)}</span>
+                      {Object.entries(
+                        order.items.reduce((acc, item) => {
+                          const key = item.product.name;
+                          if (!acc[key]) {
+                            acc[key] = { quantity: 0, totalPrice: 0 };
+                          }
+                          acc[key].quantity += item.quantity;
+                          acc[key].totalPrice += parseFloat(item.totalPrice);
+                          return acc;
+                        }, {} as Record<string, { quantity: number; totalPrice: number }>)
+                      ).map(([productName, details]) => (
+                        <div key={productName} className="flex justify-between">
+                          <span>{productName} (x{details.quantity})</span>
+                          <span className="font-semibold">€{details.totalPrice.toFixed(2)}</span>
                         </div>
                       ))}
                       <div className="border-t pt-2 mt-2">
