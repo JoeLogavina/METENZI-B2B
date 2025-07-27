@@ -196,22 +196,21 @@ export default function OrdersPage() {
     }
   };
 
-  const copyAllKeys = async () => {
-    if (!orders) return;
+
+
+  // Order-specific functions
+  const copyOrderKeys = async (order: Order) => {
+    const orderKeys = order.items
+      .filter(item => item.licenseKey)
+      .map(item => item.licenseKey!.licenseKey);
     
-    const allKeys = orders.flatMap(order => 
-      order.items
-        .filter(item => item.licenseKey)
-        .map(item => item.licenseKey!.licenseKey)
-    );
-    
-    const keysText = allKeys.join('\n');
+    const keysText = orderKeys.join('\n');
     
     try {
       await navigator.clipboard.writeText(keysText);
       toast({
-        title: "Copied",
-        description: `${allKeys.length} license keys copied to clipboard`,
+        title: "Keys Copied",
+        description: `${orderKeys.length} license keys from order ${order.orderNumber} copied to clipboard`,
       });
     } catch (err) {
       toast({
@@ -222,27 +221,23 @@ export default function OrdersPage() {
     }
   };
 
-  const exportToExcel = () => {
-    if (!orders) return;
-
+  const exportOrderToExcel = (order: Order) => {
     // Prepare data for Excel export
     const excelData: LicenseKeyTableRow[] = [];
     
-    orders.forEach(order => {
-      order.items.forEach(item => {
-        if (item.licenseKey) {
-          excelData.push({
-            licenseKey: item.licenseKey.licenseKey,
-            productTitle: item.product.name,
-            price: `€${parseFloat(item.unitPrice).toFixed(2)}`,
-            orderNumber: order.orderNumber,
-            warranty: getWarrantyPeriod(item.licenseKey.createdAt),
-            platform: item.product.platform,
-            region: item.product.region,
-            orderDate: formatDate(order.createdAt)
-          });
-        }
-      });
+    order.items.forEach(item => {
+      if (item.licenseKey) {
+        excelData.push({
+          licenseKey: item.licenseKey.licenseKey,
+          productTitle: item.product.name,
+          price: `€${parseFloat(item.unitPrice).toFixed(2)}`,
+          orderNumber: order.orderNumber,
+          warranty: getWarrantyPeriod(item.licenseKey.createdAt),
+          platform: item.product.platform,
+          region: item.product.region,
+          orderDate: formatDate(order.createdAt)
+        });
+      }
     });
 
     // Create worksheet
@@ -269,16 +264,16 @@ export default function OrdersPage() {
 
     // Create workbook and add worksheet
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'License Keys');
+    XLSX.utils.book_append_sheet(workbook, worksheet, `Order ${order.orderNumber}`);
 
     // Export file
     const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
     const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    saveAs(blob, `license-keys-${new Date().toISOString().split('T')[0]}.xlsx`);
+    saveAs(blob, `order-${order.orderNumber}-keys.xlsx`);
 
     toast({
       title: "Export Complete",
-      description: "License keys exported to Excel file",
+      description: `${excelData.length} license keys from order ${order.orderNumber} exported to Excel`,
     });
   };
 
@@ -339,10 +334,7 @@ export default function OrdersPage() {
     );
   }
 
-  // Count total license keys
-  const totalKeys = orders.reduce((total, order) => 
-    total + order.items.filter(item => item.licenseKey).length, 0
-  );
+
 
   const sidebarItems = [
     { icon: Home, label: 'B2B SHOP', href: '/', active: location === '/' },
@@ -401,18 +393,7 @@ export default function OrdersPage() {
               </p>
             </div>
             
-            {totalKeys > 0 && (
-              <div className="flex gap-2">
-                <Button onClick={copyAllKeys} className="gap-2 bg-[#FFB20F] hover:bg-[#e09d0d] text-black">
-                  <Files className="h-4 w-4" />
-                  Copy All Keys ({totalKeys})
-                </Button>
-                <Button onClick={exportToExcel} className="gap-2 bg-[#6699CC] hover:bg-[#5588BB] text-white">
-                  <Download className="h-4 w-4" />
-                  Export to Excel
-                </Button>
-              </div>
-            )}
+
           </div>
 
           <div className="space-y-6">
@@ -491,10 +472,30 @@ export default function OrdersPage() {
 
                   {/* License Keys Table */}
                   <div className="mb-4">
-                    <h4 className="font-semibold mb-3 flex items-center gap-2">
-                      <Key className="h-4 w-4" />
-                      Digital License Keys
-                    </h4>
+                    <div className="flex justify-between items-center mb-3">
+                      <h4 className="font-semibold flex items-center gap-2">
+                        <Key className="h-4 w-4" />
+                        Digital License Keys
+                      </h4>
+                      {order.items.filter(item => item.licenseKey).length > 0 && (
+                        <div className="flex gap-2">
+                          <Button 
+                            onClick={() => copyOrderKeys(order)} 
+                            className="gap-2 bg-[#FFB20F] hover:bg-[#e09d0d] text-black text-xs px-2 py-1 h-auto"
+                          >
+                            <Copy className="h-3 w-3" />
+                            Copy All Keys ({order.items.filter(item => item.licenseKey).length})
+                          </Button>
+                          <Button 
+                            onClick={() => exportOrderToExcel(order)} 
+                            className="gap-2 bg-[#6699CC] hover:bg-[#5588BB] text-white text-xs px-2 py-1 h-auto"
+                          >
+                            <Download className="h-3 w-3" />
+                            Export to Excel
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                     
                     <div className="overflow-x-auto border rounded-lg">
                       <table className="w-full text-sm table-auto border-collapse">
