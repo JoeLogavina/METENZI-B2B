@@ -1,22 +1,10 @@
-# B2B Software License Management Portal - Microservices Architecture
+# B2B Software License Management Portal
 
 ## Overview
 
-This is a full-stack B2B software license management platform using a microservices architecture with three separate services: Admin Service (port 5001), B2B Service (port 5002), and Core API Service (port 5003). The application provides enterprise customers with a streamlined interface to browse, purchase, and manage software licenses, while offering administrators comprehensive tools for inventory and user management through a completely isolated admin portal. The system uses custom username/password authentication and displays all prices in EUR currency.
-
-**IMPORTANT**: The monolithic architecture has been completely removed. Only the microservices architecture exists now.
+This is a full-stack B2B software license management platform built with React, Express, and PostgreSQL. The application provides enterprise customers with a streamlined interface to browse, purchase, and manage software licenses, while offering administrators comprehensive tools for inventory and user management. The system now uses custom username/password authentication and displays all prices in EUR currency.
 
 ## Recent Changes (January 2025)
-- **MAJOR: Completely removed monolithic architecture** - Now only microservices exist
-- **NEW: Implemented Proxy Server Architecture** - All services now accessible via single domain
-- **Running Instructions**: Use `npm run dev` to start proxy server that auto-launches all microservices
-- **Access URLs**: https://workspace.dinoharbinja.repl.co/admin (Admin), /shop (B2B), /api (Core API)
-- Separated Admin Portal (5001) and B2B Portal (5002) with independent authentication
-- Created Core API Service (5003) for shared business logic and database operations
-- Implemented inter-service authentication with secure API keys
-- Separate session stores for admin and B2B portals
-- Independent deployment capability for each service
-- Enhanced security with complete isolation between admin and customer portals
 - Migrated from Replit Auth to custom username/password authentication system
 - Implemented EUR currency display throughout the application (€790, €1,890, €250, etc.)
 - Created admin and B2B user test accounts (admin/Kalendar1, b2buser/Kalendar1)
@@ -33,28 +21,9 @@ This is a full-stack B2B software license management platform using a microservi
 
 Preferred communication style: Simple, everyday language.
 
-## System Architecture - Microservices
+## System Architecture
 
-### Service Architecture
-- **Admin Service (Port 5001)**: Dedicated admin portal with separate authentication
-  - Admin-specific React frontend
-  - Express backend with admin routes
-  - Passport.js local strategy for admin auth
-  - PostgreSQL session store (admin_sessions table)
-  
-- **B2B Service (Port 5002)**: Customer-facing portal
-  - B2B React frontend
-  - Express backend with customer routes
-  - Passport.js local strategy for B2B auth
-  - PostgreSQL session store (b2b_sessions table)
-  
-- **Core API Service (Port 5003)**: Shared business logic
-  - Database operations via Drizzle ORM
-  - Internal API for both portals
-  - Service-to-service authentication
-  - No public access (internal only)
-
-### Frontend Architecture (Both Services)
+### Frontend Architecture
 - **Framework**: React 18 with TypeScript
 - **Routing**: Wouter for client-side routing
 - **State Management**: TanStack Query (React Query) for server state management
@@ -62,17 +31,17 @@ Preferred communication style: Simple, everyday language.
 - **Styling**: Tailwind CSS with custom CSS variables for theming
 - **Build Tool**: Vite for development and production builds
 
-### Backend Architecture (All Services)
+### Backend Architecture
 - **Runtime**: Node.js with Express.js framework
 - **Language**: TypeScript with ES modules
 - **API Style**: RESTful API with Express routes
-- **Session Management**: Separate PostgreSQL stores per service
-- **Authentication**: Custom username/password with Passport.js
+- **Session Management**: Express sessions with PostgreSQL storage
+- **Authentication**: Replit OpenID Connect (OIDC) integration
 
 ### Database Architecture
 - **Database**: PostgreSQL with Neon serverless driver
 - **ORM**: Drizzle ORM for type-safe database operations
-- **Schema**: Centralized in Core API Service
+- **Schema**: Shared schema definitions between client and server
 - **Migrations**: Drizzle Kit for database migrations
 
 ## Key Components
