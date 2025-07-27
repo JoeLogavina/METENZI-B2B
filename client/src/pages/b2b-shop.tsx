@@ -94,12 +94,33 @@ export default function B2BShop() {
       });
       
       console.log('Products response status:', res.status);
+      console.log('Products response headers:', res.headers.get('content-type'));
       
       if (!res.ok) {
         if (res.status === 401) {
           throw new Error('Authentication required');
         }
-        throw new Error(`${res.status}: ${res.statusText}`);
+        
+        // Try to get error message from response
+        const contentType = res.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          try {
+            const errorData = await res.json();
+            throw new Error(errorData.message || `${res.status}: ${res.statusText}`);
+          } catch (jsonError) {
+            throw new Error(`${res.status}: ${res.statusText}`);
+          }
+        } else {
+          // Server returned HTML error page
+          const errorText = await res.text();
+          console.error('Server error response:', errorText);
+          throw new Error(`Server error: ${res.status} ${res.statusText}`);
+        }
+      }
+      
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Server returned non-JSON response');
       }
       
       const data = await res.json();

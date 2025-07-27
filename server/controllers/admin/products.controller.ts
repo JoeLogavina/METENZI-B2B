@@ -30,14 +30,14 @@ export class AdminProductsController {
     try {
       const query = getProductsQuerySchema.parse(req.query);
       const { page, limit, ...filters } = query;
-      
+
       const products = await productService.getAllProducts(filters);
-      
+
       // Implement pagination
       const startIndex = (page - 1) * limit;
       const endIndex = startIndex + limit;
       const paginatedProducts = products.slice(startIndex, endIndex);
-      
+
       res.json({
         data: paginatedProducts,
         pagination: {
@@ -90,7 +90,7 @@ export class AdminProductsController {
     try {
       const productData = insertProductSchema.parse(req.body);
       const product = await productService.createProduct(productData);
-      
+
       res.status(201).json({
         data: product,
         message: 'Product created successfully'
@@ -107,29 +107,29 @@ export class AdminProductsController {
   }
 
   // PUT /api/admin/products/:id
-  async updateProduct(req: Request, res: Response) {
+  async updateProduct(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = productParamsSchema.parse(req.params);
-      console.log('Update product request - ID:', id);
-      console.log('Update product request - Body:', req.body);
-      
-      const updateData = updateProductSchema.parse(req.body);
-      console.log('Parsed update data:', updateData);
-      
-      const product = await productService.updateProduct(id, updateData);
-      
-      res.json({
-        data: product,
-        message: 'Product updated successfully'
-      });
-    } catch (error) {
-      console.error('Product update error:', error);
-      if (isServiceError(error)) {
-        return res.status(error.statusCode).json(formatErrorResponse(error));
+      const { id } = req.params;
+      const updateData = req.body;
+
+      console.log('Updating product:', id, 'with data:', updateData);
+
+      const product = await this.productService.updateProduct(id, updateData);
+
+      if (!product) {
+        res.status(404).json({ message: 'Product not found' });
+        return;
       }
-      res.status(500).json({
-        error: 'INTERNAL_SERVER_ERROR',
-        message: 'Failed to update product'
+
+      res.setHeader('Content-Type', 'application/json');
+      res.json(product);
+    } catch (error) {
+      console.error('Error updating product:', error);
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      res.setHeader('Content-Type', 'application/json');
+      res.status(500).json({ 
+        message: 'Failed to update product',
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   }
@@ -139,7 +139,7 @@ export class AdminProductsController {
     try {
       const { id } = productParamsSchema.parse(req.params);
       await productService.deleteProduct(id);
-      
+
       res.json({
         message: 'Product deleted successfully'
       });
@@ -159,7 +159,7 @@ export class AdminProductsController {
     try {
       const { id } = productParamsSchema.parse(req.params);
       const product = await productService.toggleProductStatus(id);
-      
+
       res.json({
         data: product,
         message: `Product ${product.isActive ? 'activated' : 'deactivated'} successfully`
@@ -180,7 +180,7 @@ export class AdminProductsController {
     try {
       const productId = req.query.productId as string;
       const analytics = await productService.getProductAnalytics(productId);
-      
+
       res.json({
         data: analytics,
         generatedAt: new Date().toISOString()
@@ -201,7 +201,7 @@ export class AdminProductsController {
     try {
       const threshold = req.query.threshold ? parseInt(req.query.threshold as string) : 10;
       const products = await productService.getLowStockProducts(threshold);
-      
+
       res.json({
         data: products,
         count: products.length,
@@ -222,7 +222,7 @@ export class AdminProductsController {
   async uploadProductImage(req: Request, res: Response) {
     try {
       const { id } = productParamsSchema.parse(req.params);
-      
+
       if (!req.file) {
         return res.status(400).json({
           error: 'VALIDATION_ERROR',
@@ -232,7 +232,7 @@ export class AdminProductsController {
 
       // Generate the URL path for the uploaded image
       const imageUrl = `/uploads/products/${req.file.filename}`;
-      
+
       // Update the product with the new image URL
       const updatedProduct = await productService.updateProduct(id, { 
         imageUrl 

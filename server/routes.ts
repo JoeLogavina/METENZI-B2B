@@ -940,10 +940,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const products = await productService.getActiveProducts(filters);
 
       console.log('GET /api/products - returning', products.length, 'products');
+      res.setHeader('Content-Type', 'application/json');
       res.json(products);
     } catch (error) {
       console.error('Error fetching products:', error);
-      res.status(500).json({ error: 'Failed to fetch products' });
+      res.setHeader('Content-Type', 'application/json');
+      res.status(500).json({ 
+        error: 'Failed to fetch products',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
