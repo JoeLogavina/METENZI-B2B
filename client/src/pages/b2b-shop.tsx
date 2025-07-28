@@ -10,13 +10,14 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Search, Filter, Grid, List, Plus, Minus, Package, User, Settings, BarChart3, FileText, Users, CreditCard, HelpCircle, ChevronDown, Calendar, LogOut, Loader2 } from "lucide-react";
+import { ShoppingCart, Search, Filter, Grid, List, Plus, Minus, Package, User, Settings, BarChart3, FileText, Users, CreditCard, HelpCircle, ChevronDown, Calendar, LogOut, Loader2, Eye } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { type ProductWithStock } from "@shared/schema";
 
 // TIER 1 ENTERPRISE OPTIMIZATION: Optimized Components with Memoization
 import ProductCard from "@/components/optimized/ProductCard";
 import ProductFilters from "@/components/optimized/ProductFilters";
+import { ProductDetailModal } from "@/components/ProductDetailModal";
 
 export default function B2BShop() {
   const { user, isLoading, isAuthenticated, logout, isLoggingOut } = useAuth();
@@ -37,6 +38,10 @@ export default function B2BShop() {
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [isCartHovered, setIsCartHovered] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  
+  // Product modal state
+  const [selectedProduct, setSelectedProduct] = useState<ProductWithStock | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   
   // Debounce filters to prevent excessive API calls during typing
   const [debouncedFilters] = useDebounce(filters, 300);
@@ -262,6 +267,17 @@ export default function B2BShop() {
 
   const handleAddToCart = (product: ProductWithStock, quantity: number) => {
     addToCartMutation.mutate({ productId: product.id, quantity });
+  };
+
+  // Modal handlers
+  const handleProductClick = (product: ProductWithStock) => {
+    setSelectedProduct(product);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedProduct(null);
   };
 
   const cartItemCount = cartItems.reduce((sum: number, item: any) => sum + item.quantity, 0);
@@ -654,6 +670,7 @@ export default function B2BShop() {
                           key={product.id}
                           product={product}
                           onAddToCart={(quantity) => addToCartMutation.mutate({ productId: product.id, quantity })}
+                          onProductClick={() => handleProductClick(product)}
                           isLoading={addingProductId === product.id}
                         />
                       ))
@@ -665,13 +682,24 @@ export default function B2BShop() {
           </div>
         </div>
       </div>
+
+      {/* Product Detail Modal */}
+      <ProductDetailModal
+        product={selectedProduct}
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onAddToCart={handleAddToCart}
+        isInCart={cartItems.some(item => item.productId === selectedProduct?.id)}
+        isLoading={addingProductId === selectedProduct?.id}
+      />
     </div>
   );
 }
 
-function ProductRow({ product, onAddToCart, isLoading }: { 
+function ProductRow({ product, onAddToCart, onProductClick, isLoading }: { 
   product: ProductWithStock; 
   onAddToCart: (quantity: number) => void;
+  onProductClick: () => void;
   isLoading: boolean;
 }) {
   const [quantity, setQuantity] = useState(1);
@@ -682,12 +710,28 @@ function ProductRow({ product, onAddToCart, isLoading }: {
         {product.sku || product.id.slice(0, 8).toUpperCase()}
       </td>
       <td className="px-3 py-3 whitespace-nowrap text-center">
-        <div className="w-10 h-10 bg-gray-200 rounded-[5px] flex items-center justify-center mx-auto">
-          <Package className="w-6 h-6 text-gray-400" />
+        <div className="w-10 h-10 bg-gray-200 rounded-[5px] flex items-center justify-center mx-auto overflow-hidden cursor-pointer hover:opacity-80 transition-opacity" onClick={onProductClick}>
+          {product.imageUrl ? (
+            <img
+              src={product.imageUrl}
+              alt={product.name}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+                target.parentElement!.innerHTML = '<div class="w-6 h-6 text-gray-400"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12,2A3,3 0 0,1 15,5V11A3,3 0 0,1 12,14A3,3 0 0,1 9,11V5A3,3 0 0,1 12,2M19,11C19,14.53 16.39,17.44 13,17.93V21H11V17.93C7.61,17.44 5,14.53 5,11H7A5,5 0 0,0 12,16A5,5 0 0,0 17,11H19Z" /></svg></div>';
+              }}
+            />
+          ) : (
+            <Package className="w-6 h-6 text-gray-400" />
+          )}
         </div>
       </td>
-      <td className="px-3 py-3">
-        <div className="text-sm font-semibold text-gray-900">{product.name}</div>
+      <td className="px-3 py-3 cursor-pointer hover:bg-blue-50" onClick={onProductClick}>
+        <div className="text-sm font-semibold text-gray-900 hover:text-blue-600 transition-colors flex items-center">
+          {product.name}
+          <Eye className="w-3 h-3 ml-1 opacity-60" />
+        </div>
         <div className="text-sm text-gray-500">{product.description}</div>
       </td>
       <td className="px-3 py-3 whitespace-nowrap text-center">

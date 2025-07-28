@@ -111,31 +111,17 @@ export class ProductServiceImpl implements ProductService {
     }
 
     try {
-      console.log('ProductService.updateProduct - ID:', id);
-      console.log('ProductService.updateProduct - Data:', updateData);
-      console.log('ProductService.updateProduct - Storage object:', typeof storage, !!storage);
-      console.log('ProductService.updateProduct - Storage.updateProduct method:', typeof storage?.updateProduct);
-      
       // Check if product exists
       await this.getProductById(id);
-      
-      // Skip the schema validation since it's causing issues - we've already validated in the controller
-      console.log('ProductService.updateProduct - Calling storage.updateProduct');
       
       // Business rules validation for updates
       if (updateData.price !== undefined) {
         await this.validatePriceUpdate(id, updateData.price);
       }
       
-      if (!storage || !storage.updateProduct) {
-        throw new Error('Storage or updateProduct method is undefined');
-      }
-      
       const result = await storage.updateProduct(id, updateData);
-      console.log('ProductService.updateProduct - Success:', result);
       return result;
     } catch (error) {
-      console.error('ProductService.updateProduct - Error:', error);
       if (error instanceof ValidationError || error instanceof NotFoundError) {
         throw error;
       }
