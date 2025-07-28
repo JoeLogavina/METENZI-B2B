@@ -68,8 +68,9 @@ export default function CartPage() {
       return response;
     },
     onSuccess: () => {
-      // Invalidate and refetch cart data
+      // Force invalidate and refetch cart data
       queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
+      queryClient.refetchQueries({ queryKey: ["/api/cart"] });
       toast({
         title: "Updated",
         description: "Quantity updated successfully",
@@ -101,8 +102,9 @@ export default function CartPage() {
       return response;
     },
     onSuccess: (response, itemId) => {
-      // Invalidate and refetch cart data
+      // Force invalidate and refetch cart data
       queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
+      queryClient.refetchQueries({ queryKey: ["/api/cart"] });
       toast({
         title: "Removed",
         description: "Item removed from cart",
@@ -134,8 +136,9 @@ export default function CartPage() {
       return response;
     },
     onSuccess: () => {
-      // Invalidate and refetch cart data
+      // Force invalidate and refetch cart data
       queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
+      queryClient.refetchQueries({ queryKey: ["/api/cart"] });
       toast({
         title: "Cart Cleared",
         description: "All items removed from cart",

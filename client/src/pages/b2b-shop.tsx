@@ -24,7 +24,7 @@ export default function B2BShop() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [location, setLocation] = useLocation();
-  
+
   const [filters, setFilters] = useState({
     region: "",
     platform: "",
@@ -38,11 +38,11 @@ export default function B2BShop() {
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [isCartHovered, setIsCartHovered] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-  
+
   // Product modal state
   const [selectedProduct, setSelectedProduct] = useState<ProductWithStock | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
+
   // Debounce filters to prevent excessive API calls during typing
   const [debouncedFilters] = useDebounce(filters, 300);
 
@@ -86,10 +86,10 @@ export default function B2BShop() {
       if (debouncedFilters.search) params.append('search', debouncedFilters.search);
       if (debouncedFilters.priceMin) params.append('priceMin', debouncedFilters.priceMin);
       if (debouncedFilters.priceMax) params.append('priceMax', debouncedFilters.priceMax);
-      
+
       console.log('Fetching products with user authenticated:', isAuthenticated);
       console.log('Filters:', debouncedFilters);
-      
+
       const res = await fetch(`/api/products?${params.toString()}`, {
         credentials: 'include',
         headers: {
@@ -97,15 +97,15 @@ export default function B2BShop() {
           'Content-Type': 'application/json',
         },
       });
-      
+
       console.log('Products response status:', res.status);
       console.log('Products response headers:', res.headers.get('content-type'));
-      
+
       if (!res.ok) {
         if (res.status === 401) {
           throw new Error('Authentication required');
         }
-        
+
         // Try to get error message from response
         const contentType = res.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
@@ -122,12 +122,12 @@ export default function B2BShop() {
           throw new Error(`Server error: ${res.status} ${res.statusText}`);
         }
       }
-      
+
       const contentType = res.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
         throw new Error('Server returned non-JSON response');
       }
-      
+
       const data = await res.json();
       console.log('Products data received:', data?.length || 0, 'items');
       return data;
@@ -163,72 +163,48 @@ export default function B2BShop() {
   // Enterprise-grade optimistic updates with instant UI response
   const addToCartMutation = useMutation({
     mutationFn: async ({ productId, quantity }: { productId: string, quantity: number }) => {
-      // Don't set loading state here - let optimistic update handle UX
+      setAddingProductId(productId);
       const response = await apiRequest("POST", "/api/cart", { productId, quantity });
       return response;
     },
-    onMutate: async ({ productId, quantity }) => {
-      // Instant UI response - set loading state immediately
-      setAddingProductId(productId);
-      
-      // Cancel any outgoing cart queries to prevent overwriting our optimistic update
-      await queryClient.cancelQueries({ queryKey: ["/api/cart"] });
-      
-      // Snapshot the previous value
-      const previousCart = queryClient.getQueryData(["/api/cart"]);
-      
-      // Find product details for optimistic update
-      const product = products.find(p => p.id === productId);
-      
+    onSuccess: (serverResponse, variables, context) => {
+      // Clear loading state immediately
+      setAddingProductId(null);
+
+      // Force refetch cart data from server
+      queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
+      queryClient.refetchQueries({ queryKey: ["/api/cart"] });
+
+      // Find product details for success message
+      const product = products.find(p => p.id === variables.productId);
       if (product) {
-        // Show optimistic feedback without updating cache data structure
-        // This prevents ID conflicts with backend operations
-        console.log(`Optimistically adding ${product.name} to cart`);
-        
-        // Show success toast immediately for better UX
         toast({
           title: "Added to Cart",
           description: `${product.name} added successfully`,
         });
-        
-        // Clear loading state after optimistic update (faster UX)
-        setTimeout(() => setAddingProductId(null), 200);
       }
-      
-      return { previousCart, productId, quantity, product };
-    },
-    onSuccess: (serverResponse, variables, context) => {
-      // Immediately refetch cart to get accurate server state
-      queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
     },
     onError: (error, variables, context) => {
       // Clear loading state
       setAddingProductId(null);
-      
-      // Show error notification
+
+      // Find product for error message
+      const product = products.find(p => p.id === variables.productId);
+
       toast({
         title: "Error",
-        description: context?.product ? 
-          `Failed to add ${context.product.name} to cart. Please try again.` :
+        description: product ? 
+          `Failed to add ${product.name} to cart. Please try again.` :
           "Failed to add item to cart. Please try again.",
         variant: "destructive",
       });
-      
+
       if (isUnauthorizedError(error)) {
         setTimeout(() => {
-          window.location.href = "/api/login";
+          window.location.href = "/auth";
         }, 500);
         return;
       }
-    },
-    onSettled: () => {
-      // Always clear loading state and sync with server
-      setAddingProductId(null);
-      // Gentle background sync without disrupting UX
-      queryClient.invalidateQueries({ 
-        queryKey: ["/api/cart"],
-        refetchType: 'none', // Don't trigger immediate refetch
-      });
     },
   });
 
@@ -292,7 +268,7 @@ export default function B2BShop() {
             </div>
           </div>
         </div>
-        
+
         <nav className="mt-4">
           {sidebarItems.map((item, index) => (
             <div
@@ -368,7 +344,7 @@ export default function B2BShop() {
                     )}
                   </Button>
                 </Link>
-                
+
                 {/* Cart Hover Preview */}
                 {isCartHovered && (
                   <div 
