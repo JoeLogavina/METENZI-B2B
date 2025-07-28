@@ -21,9 +21,12 @@ interface TenantContextType {
 const TenantContextInstance = createContext<TenantContextType | undefined>(undefined);
 
 export function TenantProvider({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
   const [tenant, setTenant] = useState<TenantContext>(() => {
     // Detect tenant from current URL path
     const path = window.location.pathname;
+    
+    console.log('TenantProvider initial setup:', { path, userTenant: user?.tenantId });
     
     if (path.startsWith('/admin')) {
       return {
@@ -49,6 +52,42 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       };
     }
   });
+
+  // Update tenant based on user's tenantId when user data becomes available
+  useEffect(() => {
+    if (user?.tenantId) {
+      console.log('Updating tenant based on user:', { userTenant: user.tenantId, currentPath: window.location.pathname });
+      
+      const path = window.location.pathname;
+      let newTenant: TenantContext;
+      
+      if (path.startsWith('/admin')) {
+        newTenant = {
+          type: 'admin',
+          currency: user.tenantId === 'km' ? 'KM' : 'EUR',
+          isAdmin: true,
+          isShop: false
+        };
+      } else if (user.tenantId === 'km') {
+        newTenant = {
+          type: 'km-shop',
+          currency: 'KM',
+          isAdmin: false,
+          isShop: true
+        };
+      } else {
+        newTenant = {
+          type: 'eur-shop',
+          currency: 'EUR',
+          isAdmin: false,
+          isShop: true
+        };
+      }
+      
+      console.log('Setting new tenant context:', newTenant);
+      setTenant(newTenant);
+    }
+  }, [user?.tenantId]);
 
   // Update tenant context when route changes
   useEffect(() => {
@@ -80,6 +119,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         };
       }
       
+      console.log('Route change detected, setting new tenant:', newTenant);
       setTenant(newTenant);
     };
 

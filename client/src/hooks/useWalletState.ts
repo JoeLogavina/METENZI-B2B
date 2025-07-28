@@ -244,7 +244,13 @@ export function useWalletState() {
     eventBus: walletEventBus,
     
     // Utilities
-    formatCurrency: (amount: string | number) => `€${parseFloat(amount.toString()).toFixed(2)}`,
+    formatCurrency: (amount: string | number) => {
+      const numAmount = parseFloat(amount.toString());
+      if (user?.tenantId === 'km') {
+        return `${numAmount.toFixed(2)} KM`;
+      }
+      return `€${numAmount.toFixed(2)}`;
+    },
     hasInsufficientBalance: (requiredAmount: number) => {
       if (!walletData?.data?.balance) return true;
       return parseFloat(walletData.data.balance.totalAvailable) < requiredAmount;
