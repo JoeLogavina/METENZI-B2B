@@ -172,8 +172,16 @@ export default function B2BShop() {
       setAddingProductId(null);
 
       // Force refetch cart data from server
+      queryClient.removeQueries({ queryKey: ["/api/cart"] });
       queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
-      queryClient.refetchQueries({ queryKey: ["/api/cart"] });
+
+      // Force an immediate fresh fetch with refresh parameter
+      setTimeout(() => {
+        queryClient.refetchQueries({ 
+          queryKey: ["/api/cart"],
+          type: 'active'
+        });
+      }, 100);
 
       // Find product details for success message
       const product = products.find(p => p.id === variables.productId);
@@ -666,6 +674,7 @@ function ProductRow({ product, onAddToCart, onProductClick, isLoading }: {
               }}
             />
           ) : (
+            ```text
             <Package className="w-6 h-6 text-gray-400" />
           )}
         </div>

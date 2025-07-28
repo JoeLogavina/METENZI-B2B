@@ -440,23 +440,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Check for force refresh parameter
         const forceRefresh = req.query.refresh === 'true';
 
-        // Check cache first (unless forced refresh)
+        // Check cache first (unless forced refresh or recent cart modification)
         let cachedCart = null;
         if (!forceRefresh) {
           cachedCart = await redisCache.get(cacheKey);
+          
+          // Additional check: if cache is empty but we recently added items, force refresh
+          if (Array.isArray(cachedCart) && cachedCart.length === 0) {
+            const recentActivityKey = `cart:activity:${userId}`;
+            const recentActivity = await redisCache.get(recentActivityKey);
+            if (recentActivity) {
+              console.log(`🛒 API DEBUG: Recent cart activity detected, forcing refresh despite cache`);
+              cachedCart = null; // Force database fetch
+            }
+          }
         }
 
-        if (cachedCart && !forceRefresh) {
-          console.log(`🛒 API DEBUG: Cache HIT - returning ${Array.isArray(cachedCart) ? cachedCart.length : 'non-array'} items`);
+        if (cachedCart && !forceRefresh && Array.isArray(cachedCart) && cachedCart.length > 0) {
+          console.log(`🛒 API DEBUG: Cache HIT - returning ${cachedCart.length} items`);
           
-          // CACHE DEBUGGING - validate cached data
-          if (Array.isArray(cachedCart)) {
-            console.log(`🛒🔍 CACHE DEBUG: Cached items:`, cachedCart.map(item => ({ 
-              id: item.id, 
-              quantity: item.quantity,
-              productName: item.product?.name 
-            })));
-          }
+          console.log(`🛒🔍 CACHE DEBUG: Cached items:`, cachedCart.map(item => ({ 
+            id: item.id, 
+            quantity: item.quantity,
+            productName: item.product?.name 
+          })));
           
           res.setHeader('X-Cache', 'HIT');
           return res.json(cachedCart);
@@ -518,14 +525,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         console.log(`🛒 API DEBUG: Item added successfully:`, cartItem);
 
-        // ENHANCED CACHE INVALIDATION - Multiple approaches
+        // ENHANCED CACHE INVALIDATION - Multiple approaches with verification
         try {
-          await Promise.all([
-            redisCache.del(cacheKey),
-            redisCache.del(`cart:summary:${userId}`),
-            // Force clear any wildcard patterns
-            redisCache.del(`cart:*${userId}*`)
-          ]);
+          // Clear cache keys
+          await redisCache.del(cacheKey);
+          await redisCache.del(`cart:summary:${userId}`);
+          
+          // Set activity marker to force fresh data on next request
+          const activityKey = `cart:activity:${userId}`;
+          await redisCache.set(activityKey, Date.now(), 10); // 10 second marker
+          
+          // Verify cache is cleared
+          const cacheCheck = await redisCache.get(cacheKey);
+          console.log(`🛒 API DEBUG: Cache cleared, verification check:`, cacheCheck);
+          
           console.log(`🛒 API DEBUG: Enhanced cache invalidation completed for user ${userId}`);
         } catch (cacheError) {
           console.warn(`🛒⚠️ Cache invalidation warning:`, cacheError.message);
