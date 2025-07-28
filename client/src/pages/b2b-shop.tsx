@@ -143,56 +143,98 @@ export default function B2BShop() {
     placeholderData: (previousData) => previousData, // Keep previous data while loading
   });
 
-  // Fetch cart items with enterprise caching strategy
+  // Fetch cart items with optimized caching for instant updates
   const { data: cartItems = [], isLoading: cartLoading } = useQuery<any[]>({
     queryKey: ["/api/cart"],
     enabled: isAuthenticated,
-    staleTime: 2 * 60 * 1000, // 2 minutes fresh data (cart changes frequently)
-    gcTime: 10 * 60 * 1000, // 10 minutes cache retention
+    staleTime: 30 * 1000, // 30 seconds fresh data (allow optimistic updates to work)
+    gcTime: 5 * 60 * 1000, // 5 minutes cache retention
     refetchOnWindowFocus: false, // Don't refetch when user returns to tab
     refetchOnReconnect: true, // Refetch when connection restored
-    retry: 2, // Retry failed requests twice
+    retry: 1, // Reduce retries for faster failure handling
     placeholderData: (previousData) => previousData, // Keep previous data while loading
   });
 
   // Track which product is currently being added to cart
   const [addingProductId, setAddingProductId] = useState<string | null>(null);
 
-  // Enterprise-grade optimistic updates with instant UI response
+  // Optimized cart mutation with instant UI feedback  
   const addToCartMutation = useMutation({
     mutationFn: async ({ productId, quantity }: { productId: string, quantity: number }) => {
-      setAddingProductId(productId);
       const response = await apiRequest("POST", "/api/cart", { productId, quantity });
       return response;
     },
-    onSuccess: (serverResponse, variables, context) => {
-      // Clear loading state immediately
-      setAddingProductId(null);
-
-      // Force refetch cart data from server
-      queryClient.removeQueries({ queryKey: ["/api/cart"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
-
-      // Force an immediate fresh fetch with refresh parameter
-      setTimeout(() => {
-        queryClient.refetchQueries({ 
-          queryKey: ["/api/cart"],
-          type: 'active'
-        });
-      }, 100);
-
-      // Find product details for success message
+    onMutate: async (variables) => {
+      // Set loading state for UI feedback
+      setAddingProductId(variables.productId);
+      
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["/api/cart"] });
+      
+      // Snapshot previous cart data
+      const previousCart = queryClient.getQueryData(["/api/cart"]);
+      
+      // Find the product being added
       const product = products.find(p => p.id === variables.productId);
-      if (product) {
+      
+      if (product && Array.isArray(previousCart)) {
+        // Create optimistic cart item
+        const optimisticItem = {
+          id: `temp-${Date.now()}-${variables.productId}`,
+          userId: user?.id,
+          productId: variables.productId,
+          quantity: variables.quantity,
+          createdAt: new Date().toISOString(),
+          product: product
+        };
+        
+        // Check if item already exists
+        const existingItemIndex = previousCart.findIndex(
+          (item: any) => item.productId === variables.productId
+        );
+        
+        let optimisticCart;
+        if (existingItemIndex >= 0) {
+          // Update existing item quantity
+          optimisticCart = [...previousCart];
+          optimisticCart[existingItemIndex] = {
+            ...optimisticCart[existingItemIndex],
+            quantity: optimisticCart[existingItemIndex].quantity + variables.quantity
+          };
+        } else {
+          // Add new item
+          optimisticCart = [...previousCart, optimisticItem];
+        }
+        
+        // Immediately update cart UI
+        queryClient.setQueryData(["/api/cart"], optimisticCart);
+        
+        // Show instant success toast
         toast({
           title: "Added to Cart",
           description: `${product.name} added successfully`,
         });
       }
+      
+      return { previousCart };
+    },
+    onSuccess: (serverResponse, variables) => {
+      // Clear loading state
+      setAddingProductId(null);
+      
+      // Silently sync with server in background (don't block UI)
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
+      }, 50);
     },
     onError: (error, variables, context) => {
       // Clear loading state
       setAddingProductId(null);
+      
+      // Rollback optimistic update
+      if (context?.previousCart) {
+        queryClient.setQueryData(["/api/cart"], context.previousCart);
+      }
 
       // Find product for error message
       const product = products.find(p => p.id === variables.productId);

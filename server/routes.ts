@@ -413,6 +413,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId 
         });
 
+        // Set response headers early for faster response
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Cache-Control', 'no-cache');
+        
+        // Execute cart addition with minimal processing
         const cartItem = await storage.addToCart(cartData);
         res.status(201).json(cartItem);
       } catch (error) {
