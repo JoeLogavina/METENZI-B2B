@@ -258,8 +258,8 @@ export default function PriceManagementPage() {
         ...prev,
         [productId]: {
           costPrice: product.purchasePrice || '0',
-          resellerPrice: product.b2bPrice || '0',
-          retailPrice: product.retailPrice || '0',
+          resellerPrice: product.resellerPrice || '0',
+          retailPrice: product.retailerPrice || '0',
           ...margins
         }
       }));
@@ -645,7 +645,7 @@ export default function PriceManagementPage() {
                           <Input
                             type="number"
                             step="0.01"
-                            value={data.costPrice || product.purchasePrice || '0'}
+                            value={data.costPrice || '0'}
                             onChange={(e) => handlePriceChange(product.id, 'costPrice', e.target.value)}
                             className="w-24"
                           />
@@ -658,12 +658,12 @@ export default function PriceManagementPage() {
                           <Input
                             type="number"
                             step="0.01"
-                            value={data.resellerPrice || product.b2bPrice || '0'}
+                            value={data.resellerPrice || '0'}
                             onChange={(e) => handlePriceChange(product.id, 'resellerPrice', e.target.value)}
                             className="w-24"
                           />
                         ) : (
-                          <span className="font-mono">€{product.b2bPrice || '0'}</span>
+                          <span className="font-mono">€{product.resellerPrice || '0'}</span>
                         )}
                       </td>
                       <td className="p-4">
@@ -689,12 +689,12 @@ export default function PriceManagementPage() {
                           <Input
                             type="number"
                             step="0.01"
-                            value={data.retailPrice || product.retailPrice || '0'}
+                            value={data.retailPrice || '0'}
                             onChange={(e) => handlePriceChange(product.id, 'retailPrice', e.target.value)}
                             className="w-24"
                           />
                         ) : (
-                          <span className="font-mono">€{product.retailPrice || '0'}</span>
+                          <span className="font-mono">€{product.retailerPrice || '0'}</span>
                         )}
                       </td>
                       <td className="p-4">
