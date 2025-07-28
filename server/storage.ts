@@ -305,15 +305,31 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createLicenseKey(key: InsertLicenseKey): Promise<LicenseKey> {
-    const [newKey] = await db.insert(licenseKeys).values(key).returning();
+    // Ensure tenant ID is set for new license keys
+    const keyWithTenant = {
+      ...key,
+      tenantId: key.tenantId || 'eur' // Default to EUR if not specified
+    };
+    
+    const [newKey] = await db.insert(licenseKeys).values(keyWithTenant).returning();
     return newKey;
   }
 
-  async getAvailableKey(productId: string): Promise<LicenseKey | undefined> {
+  async getAvailableKey(productId: string, tenantId?: string): Promise<LicenseKey | undefined> {
+    const whereConditions = [
+      eq(licenseKeys.productId, productId),
+      eq(licenseKeys.isUsed, false)
+    ];
+    
+    // Add tenant filter for license key isolation
+    if (tenantId) {
+      whereConditions.push(eq(licenseKeys.tenantId, tenantId));
+    }
+    
     const [key] = await db
       .select()
       .from(licenseKeys)
-      .where(and(eq(licenseKeys.productId, productId), eq(licenseKeys.isUsed, false)))
+      .where(and(...whereConditions))
       .limit(1);
     return key;
   }
@@ -337,11 +353,21 @@ export class DatabaseStorage implements IStorage {
       .where(eq(licenseKeys.id, keyId));
   }
 
-  async getProductStock(productId: string): Promise<number> {
+  async getProductStock(productId: string, tenantId?: string): Promise<number> {
+    const whereConditions = [
+      eq(licenseKeys.productId, productId),
+      eq(licenseKeys.isUsed, false)
+    ];
+    
+    // Add tenant filter for accurate stock count per tenant
+    if (tenantId) {
+      whereConditions.push(eq(licenseKeys.tenantId, tenantId));
+    }
+    
     const [result] = await db
       .select({ count: count() })
       .from(licenseKeys)
-      .where(and(eq(licenseKeys.productId, productId), eq(licenseKeys.isUsed, false)));
+      .where(and(...whereConditions));
     return result.count;
   }
 

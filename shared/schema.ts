@@ -82,6 +82,7 @@ export const products = pgTable("products", {
 export const licenseKeys = pgTable("license_keys", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   productId: varchar("product_id").references(() => products.id).notNull(),
+  tenantId: varchar("tenant_id").notNull().default("eur"), // EUR or KM tenant
   keyValue: text("key_value").notNull().unique(),
   isUsed: boolean("is_used").default(false).notNull(),
   usedBy: varchar("used_by").references(() => users.id),

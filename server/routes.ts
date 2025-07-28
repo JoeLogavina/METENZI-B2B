@@ -22,6 +22,7 @@ import { upload, saveBase64Image, deleteUploadedFile } from "./middleware/upload
 import { tenantResolutionMiddleware, requireTenantType } from './middleware/tenant.middleware';
 import type { Currency } from './middleware/tenant.middleware';
 import { tenantAuthMiddleware } from './middleware/tenant-auth.middleware';
+import { TenantContextService } from './services/tenant-context.service';
 import express from "express";
 import path from "path";
 
@@ -229,6 +230,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Get user's tenant or determine from request
       const tenantId = user.tenantId || 'eur';
+      const userRole = user.role || 'b2b_user';
+      
+      // Set tenant context for RLS policies
+      await TenantContextService.setContext(userId, tenantId, userRole);
+      
       const cartItems = await storage.getCartItems(userId, tenantId);
       return res.json(cartItems);
     } catch (error) {
@@ -255,6 +261,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get user's tenant ID for proper data isolation
       const tenantId = user.tenantId || 'eur';
+      const userRole = user.role || 'b2b_user';
+      
+      // Set tenant context for RLS policies
+      await TenantContextService.setContext(userId, tenantId, userRole);
+      
       const cartData = insertCartItemSchema.parse({ productId, quantity, userId, tenantId });
       const cartItem = await storage.addToCart(cartData);
       
@@ -520,6 +531,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = req.user as any;
       const tenantId = user.tenantId || 'eur';
 
+      // Set tenant context for RLS policies
+      await TenantContextService.setContext(userId, tenantId, user.role || 'b2b_user');
+
       // Get cart items with tenant isolation
       const cartItems = await storage.getCartItems(userId, tenantId);
       if (!cartItems || cartItems.length === 0) {
@@ -555,10 +569,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const transactionCartItems = [];
       for (const cartItem of cartItems) {
         for (let i = 0; i < cartItem.quantity; i++) {
-          // Get available license key
-          const licenseKey = await storage.getAvailableKey(cartItem.productId);
+          // Get available license key with tenant isolation
+          const licenseKey = await storage.getAvailableKey(cartItem.productId, tenantId);
           if (!licenseKey) {
-            throw new Error(`No license keys available for product: ${cartItem.product.name}`);
+            throw new Error(`No license keys available for product: ${cartItem.product.name} in ${tenantId.toUpperCase()} tenant`);
           }
 
           // Use tenant-specific pricing for the transaction
