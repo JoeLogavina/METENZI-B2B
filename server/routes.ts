@@ -22,8 +22,6 @@ import { upload, saveBase64Image, deleteUploadedFile } from "./middleware/upload
 import { tenantResolutionMiddleware, requireTenantType } from './middleware/tenant.middleware';
 import type { Currency } from './middleware/tenant.middleware';
 import { tenantAuthMiddleware } from './middleware/tenant-auth.middleware';
-import { rlsContextMiddleware } from './middleware/rls-context.middleware';
-import { TenantContextService } from './services/tenant-context.service';
 import express from "express";
 import path from "path";
 
@@ -121,9 +119,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication
   setupAuth(app);
 
-  // RLS context middleware disabled - using application-level tenant filtering instead
-  // Neon serverless connection pooling clears session variables, making RLS unreliable
-  // app.use('/api', rlsContextMiddleware);
+  // Using application-level tenant filtering for security instead of RLS
 
   // Rate limiting disabled for simplicity
 
@@ -233,12 +229,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const userId = req.user.id;
     const user = req.user as any;
     try {
-      // Get user's tenant or determine from request
+      // Get user's tenant for application-level filtering
       const tenantId = user.tenantId || 'eur';
-      const userRole = user.role || 'b2b_user';
-      
-      // Set tenant context for RLS policies
-      await TenantContextService.setContext(userId, tenantId, userRole);
       
       const cartItems = await storage.getCartItems(userId, tenantId);
       return res.json(cartItems);
@@ -264,12 +256,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Get user's tenant ID for proper data isolation
+      // Get user's tenant ID for application-level filtering
       const tenantId = user.tenantId || 'eur';
-      const userRole = user.role || 'b2b_user';
-      
-      // Set tenant context for RLS policies
-      await TenantContextService.setContext(userId, tenantId, userRole);
       
       const cartData = insertCartItemSchema.parse({ productId, quantity, userId, tenantId });
       const cartItem = await storage.addToCart(cartData);
@@ -536,10 +524,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = req.user as any;
       const tenantId = user.tenantId || 'eur';
 
-      // Set tenant context for RLS policies
-      await TenantContextService.setContext(userId, tenantId, user.role || 'b2b_user');
-
-      // Get cart items with tenant isolation
+      // Get cart items with application-level tenant filtering
       const cartItems = await storage.getCartItems(userId, tenantId);
       if (!cartItems || cartItems.length === 0) {
         return res.status(400).json({ message: "Cart is empty" });
