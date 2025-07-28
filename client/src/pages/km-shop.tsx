@@ -26,6 +26,9 @@ import {
   ChevronDown,
   ChevronUp,
   Loader2,
+  List,
+  Minus,
+  Plus
 } from "lucide-react";
 import ProductCard from "@/components/optimized/ProductCard";
 import type { ProductWithStock } from "@shared/schema";
@@ -421,65 +424,160 @@ export default function KMShop() {
             )}
           </div>
 
-          {/* Products Grid */}
-          <div className="bg-white rounded-[8px] shadow-[0_2px_10px_rgba(0,0,0,0.1)] p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold text-[#6E6F71]">
-                KM Products ({products.length})
-              </h2>
-              <div className="flex items-center space-x-2">
-                <Badge variant="secondary">KM Currency</Badge>
-              </div>
+          {/* Products Section */}
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-gray-700">Found {products.length} KM products</h3>
+            <div className="text-sm text-gray-500 flex items-center">
+              <List className="w-4 h-4 mr-1" />
+              List View
             </div>
+          </div>
 
-            {productsLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-[#FFB20F]" />
-                <span className="ml-2 text-gray-600">Loading KM products...</span>
-              </div>
-            ) : products.length === 0 ? (
-              <div className="text-center py-12">
-                <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-600 mb-2">No KM products found</h3>
-                <p className="text-gray-500">Try adjusting your filters to see more products.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {products.map((product: ProductWithStock) => (
-                  <div key={product.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                    <div className="flex justify-between items-start mb-3">
-                      <h3 className="font-semibold text-gray-900 text-sm line-clamp-2">{product.name}</h3>
-                      <Badge variant={product.stockCount > 0 ? "default" : "destructive"} className="text-xs">
-                        {product.stockCount > 0 ? `${product.stockCount} in stock` : 'Out of stock'}
-                      </Badge>
-                    </div>
-                    
-                    <p className="text-gray-600 text-sm mb-3 line-clamp-2">{product.description}</p>
-                    
-                    <div className="flex justify-between items-center">
-                      <div className="text-lg font-bold text-[#FFB20F]">
-                        {formatKMPrice(product.priceKm || product.price)}
-                      </div>
-                      <Button
-                        size="sm"
-                        onClick={() => handleAddToCart(product)}
-                        disabled={product.stockCount === 0 || addingProductId === product.id}
-                        className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white"
-                      >
-                        {addingProductId === product.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <ShoppingCart className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+          {/* Product Table */}
+          <div className="bg-white rounded-[8px] shadow-[0_2px_5px_rgba(0,0,0,0.1)] overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full">
+                <thead className="bg-[#6E6F71] text-white">
+                  <tr>
+                    <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">SKU</th>
+                    <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">IMAGE</th>
+                    <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.5px]">PRODUCT</th>
+                    <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">PRICE (KM)</th>
+                    <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">REGION</th>
+                    <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">PLATFORM</th>
+                    <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">STOCK</th>
+                    <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">QUANTITY</th>
+                    <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">ACTION</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-[#e5e5e5]">
+                  {productsLoading ? (
+                    <tr>
+                      <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
+                        Loading KM products...
+                      </td>
+                    </tr>
+                  ) : products.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
+                        No KM products found
+                      </td>
+                    </tr>
+                  ) : (
+                    products.map((product: ProductWithStock) => (
+                      <KMProductRow
+                        key={product.id}
+                        product={product}
+                        onAddToCart={handleAddToCart}
+                        isLoading={addingProductId === product.id}
+                      />
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
     </div>
+  );
+}
+
+function KMProductRow({ product, onAddToCart, isLoading }: { 
+  product: ProductWithStock; 
+  onAddToCart: (product: ProductWithStock) => void;
+  isLoading: boolean;
+}) {
+  const [quantity, setQuantity] = useState(1);
+  const { formatPrice } = useTenant();
+
+  return (
+    <tr className="hover:bg-[#f8f8f8] transition-colors duration-200">
+      <td className="px-3 py-3 whitespace-nowrap text-center text-sm font-mono font-medium text-gray-900">
+        {product.sku || product.id.slice(0, 8).toUpperCase()}
+      </td>
+      <td className="px-3 py-3 whitespace-nowrap text-center">
+        <div className="w-10 h-10 bg-gray-200 rounded-[5px] flex items-center justify-center mx-auto overflow-hidden">
+          <Package className="w-6 h-6 text-gray-400" />
+        </div>
+      </td>
+      <td className="px-3 py-3">
+        <div className="text-sm font-semibold text-gray-900">
+          {product.name}
+        </div>
+        <div className="text-sm text-gray-500">{product.description}</div>
+      </td>
+      <td className="px-3 py-3 whitespace-nowrap text-center">
+        <div className="text-sm font-mono font-semibold text-[#FFB20F]">
+          {formatPrice(product.priceKm || product.price)}
+        </div>
+        <div className="text-xs text-gray-500">per license</div>
+      </td>
+      <td className="px-3 py-3 whitespace-nowrap text-center">
+        <Badge variant="outline" className="text-xs border-[#ddd] text-gray-700">
+          {product.region}
+        </Badge>
+      </td>
+      <td className="px-3 py-3 whitespace-nowrap text-center">
+        <div className="flex items-center justify-center flex-wrap gap-1">
+          {product.platform?.includes('Windows') && (
+            <span className="text-xs bg-[#4D9DE0] text-white px-2 py-1 rounded-[5px] font-medium">Windows</span>
+          )}
+          {product.platform?.includes('Mac') && (
+            <span className="text-xs bg-gray-500 text-white px-2 py-1 rounded-[5px] font-medium">Mac</span>
+          )}
+          {product.platform?.includes('Linux') && (
+            <span className="text-xs bg-green-600 text-white px-2 py-1 rounded-[5px] font-medium">Linux</span>
+          )}
+          {product.platform?.includes('Web') && (
+            <span className="text-xs bg-purple-600 text-white px-2 py-1 rounded-[5px] font-medium">Web</span>
+          )}
+          {!product.platform?.includes('Windows') && !product.platform?.includes('Mac') && !product.platform?.includes('Linux') && !product.platform?.includes('Web') && (
+            <span className="text-xs bg-gray-400 text-white px-2 py-1 rounded-[5px] font-medium">{product.platform || 'Unknown'}</span>
+          )}
+        </div>
+      </td>
+      <td className="px-3 py-3 whitespace-nowrap text-center">
+        <div className="text-sm font-mono font-semibold text-gray-900">
+          {product.stockCount || 0}
+        </div>
+      </td>
+      <td className="px-3 py-3 whitespace-nowrap text-center">
+        <div className="flex items-center justify-center space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setQuantity(Math.max(1, quantity - 1))}
+            className="w-8 h-8 p-0 border-[#ddd] rounded-[5px] hover:bg-[#f8f8f8] transition-colors duration-200"
+          >
+            <Minus className="w-3 h-3" />
+          </Button>
+          <span className="w-8 text-center text-sm font-mono font-semibold">{quantity}</span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setQuantity(quantity + 1)}
+            className="w-8 h-8 p-0 border-[#ddd] rounded-[5px] hover:bg-[#f8f8f8] transition-colors duration-200"
+          >
+            <Plus className="w-3 h-3" />
+          </Button>
+        </div>
+      </td>
+      <td className="px-3 py-3 whitespace-nowrap text-center">
+        <Button
+          size="sm"
+          onClick={() => onAddToCart(product)}
+          disabled={isLoading || product.stockCount === 0}
+          className="bg-[#FFB20F] hover:bg-[#E69B00] text-white border-0 px-4 py-2 rounded-[5px] font-semibold uppercase tracking-[0.5px] transition-colors duration-200 disabled:opacity-50"
+        >
+          {isLoading ? (
+            <div className="flex items-center">
+              <Loader2 className="w-3 h-3 animate-spin mr-1" />
+              Adding...
+            </div>
+          ) : product.stockCount === 0 ? "OUT OF STOCK" : "ADD"}
+        </Button>
+      </td>
+    </tr>
   );
 }
