@@ -56,23 +56,21 @@ export class CartEventSourcingService {
         unitPrice: product.price,
       };
 
-      // Execute event append and view update in parallel
-      const [event] = await Promise.all([
-        // Append event (very fast - just an insert)
-        this.appendEvent({
-          userId,
-          eventType: 'ITEM_ADDED',
-          productId,
-          quantity,
-          eventData,
-          sequenceNumber,
-        }),
-        // Update materialized view asynchronously (non-blocking)
-        this.updateMaterializedView(userId, productId, quantity, 'ADD')
-      ]);
+      // First append the event
+      const event = await this.appendEvent({
+        userId,
+        eventType: 'ITEM_ADDED',
+        productId,
+        quantity,
+        eventData,
+        sequenceNumber,
+      });
+
+      // Then update materialized view with event reference
+      await this.updateMaterializedView(userId, productId, quantity, 'ADD', event.id);
 
       const totalTime = Date.now() - startTime;
-      console.log(`🚀 Event sourcing cart add completed in ${totalTime}ms`);
+      console.log(`🚀 Event sourcing cart add completed in ${totalTime}ms - Event ID: ${event.id}`);
 
       // Return optimized cart item structure
       return {
@@ -156,17 +154,16 @@ export class CartEventSourcingService {
       previousQuantity,
     };
 
-    await Promise.all([
-      this.appendEvent({
-        userId,
-        eventType: 'ITEM_UPDATED',
-        productId,
-        quantity: newQuantity,
-        eventData,
-        sequenceNumber,
-      }),
-      this.updateMaterializedView(userId, productId, newQuantity, 'UPDATE')
-    ]);
+    const event = await this.appendEvent({
+      userId,
+      eventType: 'ITEM_UPDATED',
+      productId,
+      quantity: newQuantity,
+      eventData,
+      sequenceNumber,
+    });
+
+    await this.updateMaterializedView(userId, productId, newQuantity, 'UPDATE', event.id);
   }
 
   /**
@@ -175,17 +172,16 @@ export class CartEventSourcingService {
   async removeCartItem(userId: string, productId: string): Promise<void> {
     const sequenceNumber = await this.getNextSequenceNumber(userId);
     
-    await Promise.all([
-      this.appendEvent({
-        userId,
-        eventType: 'ITEM_REMOVED',
-        productId,
-        quantity: 0,
-        eventData: {},
-        sequenceNumber,
-      }),
-      this.removeMaterializedViewItem(userId, productId)
-    ]);
+    await this.appendEvent({
+      userId,
+      eventType: 'ITEM_REMOVED',
+      productId,
+      quantity: 0,
+      eventData: {},
+      sequenceNumber,
+    });
+
+    await this.removeMaterializedViewItem(userId, productId);
   }
 
   /**
@@ -198,17 +194,16 @@ export class CartEventSourcingService {
     const items = await this.getCartItems(userId);
     const itemCount = items.length;
 
-    await Promise.all([
-      this.appendEvent({
-        userId,
-        eventType: 'CART_CLEARED',
-        productId: null,
-        quantity: null,
-        eventData: { itemCount },
-        sequenceNumber,
-      }),
-      this.clearMaterializedView(userId)
-    ]);
+    await this.appendEvent({
+      userId,
+      eventType: 'CART_CLEARED',
+      productId: null,
+      quantity: null,
+      eventData: { itemCount },
+      sequenceNumber,
+    });
+
+    await this.clearMaterializedView(userId);
 
     return itemCount;
   }
@@ -266,7 +261,8 @@ export class CartEventSourcingService {
     userId: string, 
     productId: string, 
     quantity: number, 
-    operation: 'ADD' | 'UPDATE'
+    operation: 'ADD' | 'UPDATE',
+    eventId?: string
   ): Promise<void> {
     const existingItem = await this.getCurrentCartItem(userId, productId);
     
@@ -296,7 +292,7 @@ export class CartEventSourcingService {
           userId,
           productId,
           quantity,
-          lastEventId: event.id, // Reference to the triggering event
+          lastEventId: eventId || crypto.randomUUID(), // Reference to the triggering event
         });
     }
   }
