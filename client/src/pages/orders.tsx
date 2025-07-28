@@ -83,9 +83,12 @@ interface OrderItem {
 interface Order {
   id: string;
   userId: string;
+  tenantId: string;
   orderNumber: string;
   status: string;
   totalAmount: string;
+  taxAmount: string;
+  finalAmount: string;
   paymentMethod: string;
   paymentStatus: string;
   billingInfo: {
@@ -126,6 +129,16 @@ export default function OrdersPage() {
     gcTime: 5 * 60 * 1000, // 5 minutes cache retention
     refetchOnWindowFocus: true, // Refetch when window gains focus to catch new orders
     refetchOnMount: 'always', // Always refetch to ensure fresh data
+  });
+
+  // Debug logging
+  console.log('Orders query state:', { 
+    orders: orders?.length, 
+    error: error?.message, 
+    ordersLoading, 
+    isAuthenticated,
+    user: user?.username,
+    firstOrder: orders?.[0]
   });
 
   useEffect(() => {
@@ -451,7 +464,7 @@ export default function OrdersPage() {
                     </div>
                     <div className="text-right flex items-center gap-3">
                       <div className="text-2xl font-bold text-[#FFB20F]">
-{formatPrice(parseFloat(order.totalAmount))}
+                        {formatPrice(parseFloat(order.finalAmount || order.totalAmount))}
                       </div>
                       <Collapsible open={expandedOrders.has(order.id)} onOpenChange={() => toggleOrderExpansion(order.id)}>
                         <CollapsibleTrigger asChild>
