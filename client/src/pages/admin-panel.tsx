@@ -251,7 +251,7 @@ export default function AdminPanel() {
   return (
     <div className="min-h-screen bg-[#f5f6f5] font-['Inter',-apple-system,BlinkMacSystemFont,sans-serif]">
       {/* Admin Header */}
-      <header className="bg-[#6E6F71] border-b border-[#5a5b5d] px-6 py-4 shadow-[0_2px_5px_rgba(0,0,0,0.1)]">
+      <header className="border-b border-[#5a5b5d] px-6 py-4 shadow-[0_2px_5px_rgba(0,0,0,0.1)] bg-[#343d3f]">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <div className="w-8 h-8 bg-[#FFB20F] rounded flex items-center justify-center">
