@@ -22,8 +22,12 @@ export function cacheMiddleware(options: CacheOptions = {}) {
       return next();
     }
 
-    // Generate cache key from URL and query parameters
-    const cacheKey = generateCacheKey(keyPrefix, req.originalUrl, req.query);
+    // Extract tenant context for cache key generation
+    const user = req.user as any;
+    const tenantId = user?.tenantId || 'eur';
+
+    // Generate tenant-aware cache key
+    const cacheKey = generateCacheKey(keyPrefix, req.originalUrl, req.query, tenantId);
     
     try {
       // Try to get cached response
@@ -104,13 +108,18 @@ export const productsCacheMiddleware = cacheMiddleware({
   keyPrefix: 'products',
   skipCacheCondition: (req) => {
     // Skip cache if user is admin (they might see different data)
-    return (req.user as any)?.role === 'admin' || (req.user as any)?.role === 'super_admin';
+    // Also skip temporarily to ensure tenant pricing works correctly
+    return true; // Temporarily disabled for tenant-aware pricing
   }
 });
 
 export const walletCacheMiddleware = cacheMiddleware({
   ttl: 120, // 2 minutes for financial data
-  keyPrefix: 'wallet'
+  keyPrefix: 'wallet',
+  skipCacheCondition: (req) => {
+    // CRITICAL: Disable wallet cache to ensure tenant financial isolation
+    return true;
+  }
 });
 
 export const userCacheMiddleware = cacheMiddleware({
