@@ -112,7 +112,7 @@ export default function OrdersPage() {
   // TIER 2 OPTIMIZATION: Aggressive data preloading for orders
   useOrdersPreload();
 
-  // TIER 2 OPTIMIZATION: Enhanced caching with stale-while-revalidate
+  // ENTERPRISE ORDERS QUERY WITH FRESH DATA PRIORITY
   const {
     data: orders,
     error,
@@ -120,9 +120,9 @@ export default function OrdersPage() {
   } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
     enabled: isAuthenticated,
-    staleTime: 2 * 60 * 1000, // 2 minutes - show cached data immediately
-    gcTime: 15 * 60 * 1000, // 15 minutes - keep in cache longer
-    refetchOnWindowFocus: false, // Prevent unnecessary refetches
+    staleTime: 10 * 1000, // 10 seconds - ensure recent orders appear quickly
+    gcTime: 5 * 60 * 1000, // 5 minutes cache retention
+    refetchOnWindowFocus: true, // Refetch when window gains focus to catch new orders
     refetchOnMount: 'always', // Always refetch to ensure fresh data
   });
 

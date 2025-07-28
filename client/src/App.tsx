@@ -102,10 +102,11 @@ function Router() {
           )} />
 
           <Route path="/admin" component={() => <Redirect to="/admin-panel" />} />
-          <Route path="/auth" component={() => <Redirect to="/" />} />
           <Route path="/admin-login" component={() => <Redirect to="/admin-panel" />} />
+          <Route path="/auth" component={() => <Redirect to="/" />} />
         </>
       )}
+      {/* Fallback for any unmatched routes */}
       <Route component={NotFound} />
     </Switch>
   );

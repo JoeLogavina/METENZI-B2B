@@ -61,47 +61,21 @@ export default function CartPage() {
     },
   });
 
-  // ENTERPRISE UPDATE QUANTITY WITH OPTIMISTIC UPDATES
+  // ENTERPRISE UPDATE QUANTITY - SIMPLIFIED SERVER-FIRST APPROACH
   const updateQuantityMutation = useMutation({
     mutationFn: async ({ itemId, quantity }: { itemId: string; quantity: number }) => {
       const response = await apiRequest("PATCH", `/api/cart/${itemId}`, { quantity });
       return response;
     },
-    onMutate: async ({ itemId, quantity }) => {
-      // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ["/api/cart"] });
-      
-      // Snapshot previous value
-      const previousCart = queryClient.getQueryData(["/api/cart"]);
-      
-      // Optimistically update cart
-      queryClient.setQueryData(["/api/cart"], (old: CartItem[]) => {
-        return old?.map(item => 
-          item.id === itemId ? { ...item, quantity } : item
-        ) || [];
-      });
-      
-      return { previousCart, itemId, quantity };
-    },
-    onSuccess: (response, variables) => {
-      // Update with server response
-      queryClient.setQueryData(["/api/cart"], (old: CartItem[]) => {
-        return old?.map(item => 
-          item.id === variables.itemId ? { ...item, quantity: variables.quantity } : item
-        ) || [];
-      });
-      
+    onSuccess: () => {
+      // Invalidate and refetch cart data
+      queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
       toast({
         title: "Updated",
         description: "Quantity updated successfully",
       });
     },
-    onError: (error, variables, context) => {
-      // Rollback optimistic update
-      if (context?.previousCart) {
-        queryClient.setQueryData(["/api/cart"], context.previousCart);
-      }
-      
+    onError: (error) => {
       if (isUnauthorizedError(error)) {
         toast({
           title: "Unauthorized",
@@ -120,46 +94,24 @@ export default function CartPage() {
     },
   });
 
-  // ENTERPRISE REMOVE ITEM WITH OPTIMISTIC UPDATES
+  // ENTERPRISE REMOVE ITEM - SIMPLIFIED SERVER-FIRST APPROACH
   const removeItemMutation = useMutation({
     mutationFn: async (itemId: string) => {
       const response = await apiRequest("DELETE", `/api/cart/${itemId}`);
       return response;
     },
-    onMutate: async (itemId) => {
-      // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ["/api/cart"] });
-      
-      // Snapshot previous value
-      const previousCart = queryClient.getQueryData(["/api/cart"]);
-      
-      // Find item being removed for better UX
-      const removedItem = (previousCart as CartItem[])?.find(item => item.id === itemId);
-      
-      // Optimistically remove item
-      queryClient.setQueryData(["/api/cart"], (old: CartItem[]) => {
-        return old?.filter(item => item.id !== itemId) || [];
+    onSuccess: (response, itemId) => {
+      // Invalidate and refetch cart data
+      queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
+      toast({
+        title: "Removed",
+        description: "Item removed from cart",
       });
-      
-      // Show immediate feedback
-      if (removedItem) {
-        toast({
-          title: "Removed",
-          description: `${removedItem.product.name} removed from cart`,
-        });
-      }
-      
-      return { previousCart, itemId, removedItem };
     },
-    onError: (error, variables, context) => {
-      // Rollback optimistic update
-      if (context?.previousCart) {
-        queryClient.setQueryData(["/api/cart"], context.previousCart);
-      }
-      
+    onError: (error) => {
       if (isUnauthorizedError(error)) {
         toast({
-          title: "Unauthorized",
+          title: "Unauthorized", 
           description: "You are logged out. Logging in again...",
           variant: "destructive",
         });
@@ -175,37 +127,21 @@ export default function CartPage() {
     },
   });
 
-  // ENTERPRISE CLEAR CART WITH OPTIMISTIC UPDATES
+  // ENTERPRISE CLEAR CART - SIMPLIFIED SERVER-FIRST APPROACH
   const clearCartMutation = useMutation({
     mutationFn: async () => {
       const response = await apiRequest("DELETE", "/api/cart");
       return response;
     },
-    onMutate: async () => {
-      // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ["/api/cart"] });
-      
-      // Snapshot previous value
-      const previousCart = queryClient.getQueryData(["/api/cart"]);
-      const itemCount = (previousCart as CartItem[])?.length || 0;
-      
-      // Optimistically clear cart
-      queryClient.setQueryData(["/api/cart"], []);
-      
-      // Show immediate feedback
+    onSuccess: () => {
+      // Invalidate and refetch cart data
+      queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
       toast({
         title: "Cart Cleared",
-        description: `${itemCount} items removed from cart`,
+        description: "All items removed from cart",
       });
-      
-      return { previousCart, itemCount };
     },
-    onError: (error, variables, context) => {
-      // Rollback optimistic update
-      if (context?.previousCart) {
-        queryClient.setQueryData(["/api/cart"], context.previousCart);
-      }
-      
+    onError: (error) => {
       if (isUnauthorizedError(error)) {
         toast({
           title: "Unauthorized",
@@ -221,10 +157,6 @@ export default function CartPage() {
         description: "Failed to clear cart. Please try again.",
         variant: "destructive",
       });
-    },
-    onSuccess: (response, variables, context) => {
-      // Success is already handled in onMutate, so just confirm
-      console.log("Cart cleared successfully on server");
     },
   });
 
