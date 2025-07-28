@@ -197,7 +197,7 @@ export default function CartPage() {
 
   const handleRemoveItem = (itemId: string) => {
     // Check if item still exists in current cart
-    const currentItem = cartItems.find(item => item.id === itemId);
+    const currentItem = cartItems.find(item => item.productId === itemId);
     if (!currentItem) {
       toast({
         title: "Error",
@@ -352,7 +352,7 @@ export default function CartPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
+                          onClick={() => handleQuantityChange(item.productId, item.quantity - 1)}
                           disabled={item.quantity <= 1 || updateQuantityMutation.isPending}
                           className="w-8 h-8 p-0 border-[#ddd] rounded-[5px] hover:bg-[#f8f8f8] transition-colors duration-200"
                         >
@@ -362,7 +362,7 @@ export default function CartPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                          onClick={() => handleQuantityChange(item.productId, item.quantity + 1)}
                           disabled={updateQuantityMutation.isPending}
                           className="w-8 h-8 p-0 border-[#ddd] rounded-[5px] hover:bg-[#f8f8f8] transition-colors duration-200"
                         >
@@ -381,7 +381,7 @@ export default function CartPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleRemoveItem(item.id)}
+                        onClick={() => handleRemoveItem(item.productId)}
                         disabled={removeItemMutation.isPending}
                         className="text-[#E15554] hover:bg-[#f8f8f8] rounded-[5px] transition-colors duration-200"
                       >

@@ -56,18 +56,18 @@ export class CartEventSourcingService {
         unitPrice: product.price,
       };
 
-      // First append the event
-      const event = await this.appendEvent({
-        userId,
-        eventType: 'ITEM_ADDED',
-        productId,
-        quantity,
-        eventData,
-        sequenceNumber,
-      });
-
-      // Then update materialized view with event reference
-      await this.updateMaterializedView(userId, productId, quantity, 'ADD', event.id);
+      // ULTRA-FAST PARALLEL EXECUTION: Execute both operations simultaneously
+      const [event] = await Promise.all([
+        this.appendEvent({
+          userId,
+          eventType: 'ITEM_ADDED',
+          productId,
+          quantity,
+          eventData,
+          sequenceNumber,
+        }),
+        this.updateMaterializedView(userId, productId, quantity, 'ADD')
+      ]);
 
       const totalTime = Date.now() - startTime;
       console.log(`🚀 Event sourcing cart add completed in ${totalTime}ms - Event ID: ${event.id}`);
@@ -154,16 +154,17 @@ export class CartEventSourcingService {
       previousQuantity,
     };
 
-    const event = await this.appendEvent({
-      userId,
-      eventType: 'ITEM_UPDATED',
-      productId,
-      quantity: newQuantity,
-      eventData,
-      sequenceNumber,
-    });
-
-    await this.updateMaterializedView(userId, productId, newQuantity, 'UPDATE', event.id);
+    await Promise.all([
+      this.appendEvent({
+        userId,
+        eventType: 'ITEM_UPDATED',
+        productId,
+        quantity: newQuantity,
+        eventData,
+        sequenceNumber,
+      }),
+      this.updateMaterializedView(userId, productId, newQuantity, 'UPDATE')
+    ]);
   }
 
   /**
@@ -261,8 +262,7 @@ export class CartEventSourcingService {
     userId: string, 
     productId: string, 
     quantity: number, 
-    operation: 'ADD' | 'UPDATE',
-    eventId?: string
+    operation: 'ADD' | 'UPDATE'
   ): Promise<void> {
     const existingItem = await this.getCurrentCartItem(userId, productId);
     
@@ -292,7 +292,7 @@ export class CartEventSourcingService {
           userId,
           productId,
           quantity,
-          lastEventId: eventId || crypto.randomUUID(), // Reference to the triggering event
+          lastEventId: crypto.randomUUID(), // Generate temporary event ID
         });
     }
   }
