@@ -293,10 +293,9 @@ export default function AdminPanel() {
           </div>
         </div>
       </header>
-
       <div className="flex h-[calc(100vh-80px)]">
         {/* Admin Sidebar */}
-        <div className="w-64 bg-[#6E6F71] text-white flex-shrink-0">
+        <div className="w-64 text-white flex-shrink-0 bg-[#23252f]">
           <div className="p-4 border-b border-[#5a5b5d]">
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 bg-[#FFB20F] rounded flex items-center justify-center">
@@ -815,7 +814,6 @@ export default function AdminPanel() {
           </div>
         </div>
       </div>
-
       {/* User Form Modal */}
       {showUserForm && (
         <Dialog open={showUserForm} onOpenChange={setShowUserForm}>
