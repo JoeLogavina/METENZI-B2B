@@ -64,16 +64,20 @@ export function cacheInvalidationMiddleware(options: CacheInvalidationOptions) {
                               (!isSuccessful && options.onError === true);
       
       if (shouldInvalidate) {
+        console.log(`🔄 Cache invalidation triggered for patterns: ${options.patterns.join(', ')}`);
         // Perform cache invalidation asynchronously
         Promise.all(
           options.patterns.map(async (pattern) => {
             try {
               if (pattern.includes('orders')) {
                 const userId = (req as any).user?.id;
+                console.log(`📧 Invalidating orders cache for user: ${userId}`);
                 await cacheHelpers.invalidateOrdersData(userId);
+                console.log(`✅ Orders cache invalidated successfully for user: ${userId}`);
               } else if (pattern.includes('wallet')) {
                 const userId = (req as any).user?.id;
                 if (userId) {
+                  console.log(`💰 Invalidating wallet cache for user: ${userId}`);
                   await cacheHelpers.invalidateWalletData(userId);
                 }
               } else if (pattern.includes('products')) {
@@ -83,6 +87,7 @@ export function cacheInvalidationMiddleware(options: CacheInvalidationOptions) {
               } else if (pattern.includes('cart')) {
                 const userId = (req as any).user?.id;
                 if (userId) {
+                  console.log(`🛒 Invalidating cart cache for user: ${userId}`);
                   await cacheHelpers.invalidateCartData(userId);
                 }
               }
