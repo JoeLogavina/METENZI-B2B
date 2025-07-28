@@ -55,35 +55,13 @@ export interface OrderItem {
 }
 
 export class OrderService {
-  private static tenantContextCache = new Map<string, { tenantId: string; userRole: string; setAt: number }>();
-  private static CONTEXT_CACHE_TTL = 60000; // 1 minute
 
-  /**
-   * Set tenant context for RLS policies with caching optimization
-   */
-  private async setTenantContext(tenantId: string, userRole: string = 'b2b_user'): Promise<void> {
-    const cacheKey = `${tenantId}:${userRole}`;
-    const cached = OrderService.tenantContextCache.get(cacheKey);
-    
-    if (cached && (Date.now() - cached.setAt) < OrderService.CONTEXT_CACHE_TTL) {
-      return;
-    }
 
-    await db.execute(sql`SELECT set_tenant_context(${tenantId}, ${userRole})`);
-    
-    OrderService.tenantContextCache.set(cacheKey, {
-      tenantId,
-      userRole,
-      setAt: Date.now()
-    });
-  }
 
   /**
    * Get orders for a specific user with proper tenant isolation
    */
   async getUserOrders(userId: string, tenantId: string): Promise<OrderData[]> {
-    await this.setTenantContext(tenantId);
-
     // Enterprise-level tenant isolation at application level 
     const userOrders = await db
       .select()
@@ -323,7 +301,6 @@ export class OrderService {
     // Start database transaction for bulletproof consistency
     return await db.transaction(async (tx) => {
       // Set tenant context within transaction
-      await tx.execute(sql`SELECT set_tenant_context(${orderData.tenantId}, 'b2b_user')`);
 
       // Create the order
       const [newOrder] = await tx
@@ -452,7 +429,6 @@ export class OrderService {
     // Start complete transaction for entire order process
     return await db.transaction(async (tx) => {
       // Set tenant context within transaction
-      await tx.execute(sql`SELECT set_tenant_context(${orderData.tenantId}, 'b2b_user')`);
 
       // Create the order with verification
       const [newOrder] = await tx

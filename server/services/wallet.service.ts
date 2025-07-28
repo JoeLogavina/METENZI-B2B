@@ -33,38 +33,24 @@ export interface WalletTransaction {
 }
 
 export class WalletService {
-  private static tenantContextCache = new Map<string, { tenantId: string; userRole: string; setAt: number }>();
-  private static CONTEXT_CACHE_TTL = 60000; // 1 minute
 
   /**
-   * Set tenant context for RLS policies with caching optimization
+   * Application-level tenant validation (RLS functions removed)
    */
-  private async setTenantContext(tenantId: string, userRole: string = 'b2b_user'): Promise<void> {
-    const cacheKey = `${tenantId}:${userRole}`;
-    const cached = WalletService.tenantContextCache.get(cacheKey);
-    
-    // Skip database call if context was recently set
-    if (cached && (Date.now() - cached.setAt) < WalletService.CONTEXT_CACHE_TTL) {
-      return;
+  private validateTenantAccess(requestedTenantId: string, userTenantId: string, userRole: string): boolean {
+    // Admin users can access all tenants
+    if (userRole === 'admin' || userRole === 'super_admin') {
+      return true;
     }
-
-    await db.execute(sql`SELECT set_tenant_context(${tenantId}, ${userRole})`);
-    
-    // Cache the context setting
-    WalletService.tenantContextCache.set(cacheKey, {
-      tenantId,
-      userRole,
-      setAt: Date.now()
-    });
+    // Regular users can only access their own tenant
+    return requestedTenantId === userTenantId;
   }
 
   /**
    * Initialize wallet for user if it doesn't exist
    */
   async initializeWallet(userId: string, tenantId: string): Promise<string> {
-    await this.setTenantContext(tenantId);
-    
-    // Check if wallet exists
+    // Check if wallet exists with explicit tenant filtering
     const [existingWallet] = await db
       .select({ id: wallets.id })
       .from(wallets)
@@ -77,20 +63,27 @@ export class WalletService {
       return existingWallet.id;
     }
 
-    // Create wallet using stored procedure
-    const result = await db.execute(
-      sql`SELECT initialize_user_wallet(${userId}, ${tenantId}, 5000.00, 5000.00) as wallet_id`
-    );
+    // Create wallet directly using Drizzle (no stored procedures)
+    const [newWallet] = await db
+      .insert(wallets)
+      .values({
+        id: crypto.randomUUID(),
+        userId,
+        tenantId,
+        depositBalance: '5000.00',
+        creditLimit: '5000.00',
+        creditUsed: '0.00',
+        isActive: true
+      })
+      .returning({ id: wallets.id });
     
-    return result.rows[0]?.wallet_id as string;
+    return newWallet.id;
   }
 
   /**
    * Get wallet data with proper tenant isolation
    */
   async getWallet(userId: string, tenantId: string): Promise<WalletData> {
-    await this.setTenantContext(tenantId);
-    
     // Initialize wallet if it doesn't exist
     await this.initializeWallet(userId, tenantId);
 
@@ -137,9 +130,7 @@ export class WalletService {
    * Get wallet transactions with proper tenant isolation
    */
   async getWalletTransactions(userId: string, tenantId: string): Promise<WalletTransaction[]> {
-    await this.setTenantContext(tenantId);
-    
-    // Get wallet ID
+    // Get wallet ID with explicit tenant filtering
     const [wallet] = await db
       .select({ id: wallets.id })
       .from(wallets)
@@ -189,8 +180,6 @@ export class WalletService {
     orderId: string,
     description: string
   ): Promise<{ success: boolean; newBalance: number; error?: string }> {
-    await this.setTenantContext(tenantId);
-
     return await db.transaction(async (tx) => {
       // Get current wallet
       const [wallet] = await tx
@@ -269,8 +258,6 @@ export class WalletService {
     adminId: string,
     description: string
   ): Promise<{ success: boolean; newBalance: number; error?: string }> {
-    await this.setTenantContext(tenantId, 'admin');
-
     return await db.transaction(async (tx) => {
       // Get wallet
       const [wallet] = await tx
@@ -318,8 +305,7 @@ export class WalletService {
    * Get all wallets for admin (cross-tenant view)
    */
   async getAllWallets(adminRole: string): Promise<WalletData[]> {
-    await this.setTenantContext('admin', adminRole);
-
+    // Admin access to all wallets across tenants
     const allWallets = await db
       .select({
         id: wallets.id,
