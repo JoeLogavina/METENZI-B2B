@@ -451,20 +451,20 @@ export class DatabaseStorage implements IStorage {
       });
     } catch (error) {
       console.error('Error adding to cart:', error);
-      throw new Error(`Failed to add item to cart: ${error.message}`);
+      throw new Error(`Failed to add item to cart: ${(error as Error).message}`);
     }
   }
 
   /**
    * Update cart item quantity with validation
    */
-  async updateCartItem(id: string, quantity: number): Promise<CartItem> {
+  async updateCartItem(id: string, quantity: number): Promise<void> {
     try {
       if (quantity < 1) {
         throw new Error('Quantity must be at least 1');
       }
 
-      return await db.transaction(async (tx) => {
+      await db.transaction(async (tx) => {
         // Verify cart item exists and belongs to user
         const [existingItem] = await tx
           .select()
@@ -476,75 +476,48 @@ export class DatabaseStorage implements IStorage {
         }
 
         // Update quantity
-        const [updatedItem] = await tx
+        await tx
           .update(cartItems)
           .set({ quantity })
-          .where(eq(cartItems.id, id))
-          .returning();
-
-        return updatedItem;
+          .where(eq(cartItems.id, id));
       });
     } catch (error) {
       console.error('Error updating cart item:', error);
-      throw new Error(`Failed to update cart item: ${error.message}`);
+      throw new Error(`Failed to update cart item: ${(error as Error).message}`);
     }
   }
 
   /**
    * Remove specific item from cart
    */
-  async removeFromCart(id: string): Promise<boolean> {
+  async removeFromCart(id: string): Promise<void> {
     try {
-      return await db.transaction(async (tx) => {
-        // Verify item exists before deletion
-        const [existingItem] = await tx
-          .select()
-          .from(cartItems)
-          .where(eq(cartItems.id, id));
-
-        if (!existingItem) {
-          return false; // Item doesn't exist, consider it removed
-        }
-
-        // Delete the item
+      await db.transaction(async (tx) => {
+        // Delete the item (if it doesn't exist, that's fine)
         await tx
           .delete(cartItems)
           .where(eq(cartItems.id, id));
-
-        return true;
       });
     } catch (error) {
       console.error('Error removing from cart:', error);
-      throw new Error(`Failed to remove item from cart: ${error.message}`);
+      throw new Error(`Failed to remove item from cart: ${(error as Error).message}`);
     }
   }
 
   /**
    * Clear entire cart for user with atomic operation
    */
-  async clearCart(userId: string): Promise<number> {
+  async clearCart(userId: string): Promise<void> {
     try {
-      return await db.transaction(async (tx) => {
-        // Count items before deletion for confirmation
-        const [countResult] = await tx
-          .select({ count: count() })
-          .from(cartItems)
+      await db.transaction(async (tx) => {
+        // Delete all cart items for user
+        await tx
+          .delete(cartItems)
           .where(eq(cartItems.userId, userId));
-
-        const itemCount = countResult.count;
-
-        if (itemCount > 0) {
-          // Delete all cart items for user
-          await tx
-            .delete(cartItems)
-            .where(eq(cartItems.userId, userId));
-        }
-
-        return itemCount;
       });
     } catch (error) {
       console.error('Error clearing cart:', error);
-      throw new Error(`Failed to clear cart: ${error.message}`);
+      throw new Error(`Failed to clear cart: ${(error as Error).message}`);
     }
   }
 

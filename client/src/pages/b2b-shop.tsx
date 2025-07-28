@@ -181,29 +181,9 @@ export default function B2BShop() {
       const product = products.find(p => p.id === productId);
       
       if (product) {
-        // Optimistically update cart immediately
-        queryClient.setQueryData(["/api/cart"], (old: any[]) => {
-          const existingItem = old?.find(item => item.productId === productId);
-          if (existingItem) {
-            // Update quantity if item exists
-            return old.map(item => 
-              item.productId === productId 
-                ? { ...item, quantity: item.quantity + quantity }
-                : item
-            );
-          } else {
-            // Add new item with optimistic data
-            return [...(old || []), {
-              id: `optimistic-${productId}-${Date.now()}`,
-              productId,
-              quantity,
-              product,
-              userId: user?.id,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            }];
-          }
-        });
+        // Show optimistic feedback without updating cache data structure
+        // This prevents ID conflicts with backend operations
+        console.log(`Optimistically adding ${product.name} to cart`);
         
         // Show success toast immediately for better UX
         toast({
@@ -218,27 +198,14 @@ export default function B2BShop() {
       return { previousCart, productId, quantity, product };
     },
     onSuccess: (serverResponse, variables, context) => {
-      // Replace optimistic data with server response
-      queryClient.setQueryData(["/api/cart"], (old: any[]) => {
-        if (!old) return [serverResponse];
-        
-        // Replace optimistic item with server response
-        const optimisticId = `optimistic-${variables.productId}-`;
-        return old.map(item => 
-          item.id.startsWith(optimisticId) ? serverResponse : item
-        );
-      });
+      // Immediately refetch cart to get accurate server state
+      queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
     },
     onError: (error, variables, context) => {
       // Clear loading state
       setAddingProductId(null);
       
-      // Rollback the optimistic update on error
-      if (context?.previousCart) {
-        queryClient.setQueryData(["/api/cart"], context.previousCart);
-      }
-      
-      // Show error notification (overrides success toast)
+      // Show error notification
       toast({
         title: "Error",
         description: context?.product ? 

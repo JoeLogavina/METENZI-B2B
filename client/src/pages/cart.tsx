@@ -243,11 +243,27 @@ export default function CartPage() {
   };
 
   const totalAmount = cartItems.reduce((sum, item) => {
-    // Add safety check for product and price using utility function
-    if (!item.product) {
+    // Add comprehensive safety checks for product and price
+    if (!item.product || !item.product.price) {
+      console.warn('Cart item missing product data:', item);
       return sum;
     }
-    return sum + calculateTotal(item.product.price, item.quantity);
+    
+    // Parse price safely and validate
+    const price = parsePrice(item.product.price);
+    if (isNaN(price) || price < 0) {
+      console.warn('Invalid price for cart item:', item.product.price, item);
+      return sum;
+    }
+    
+    // Validate quantity
+    const quantity = item.quantity || 0;
+    if (quantity <= 0) {
+      console.warn('Invalid quantity for cart item:', quantity, item);
+      return sum;
+    }
+    
+    return sum + calculateTotal(price, quantity);
   }, 0);
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
