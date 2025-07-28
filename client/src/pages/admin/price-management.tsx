@@ -1,24 +1,40 @@
-import { useState, useEffect, useCallback } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
+import React, { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useDebounce } from 'use-debounce';
 import { 
-  Calculator, 
-  Save,
-  RefreshCw,
+  Card, 
+  CardContent, 
+  CardHeader, 
+  CardTitle 
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { useToast } from '@/hooks/use-toast';
+import { 
+  Search, 
+  Filter, 
+  RefreshCw, 
+  Edit2, 
+  Save, 
+  X, 
+  ChevronDown,
   TrendingUp,
+  TrendingDown,
+  Minus,
+  Package,
   DollarSign,
-  Percent,
-  Edit,
-  Check,
-  X
-} from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+  BarChart3,
+  Target
+} from 'lucide-react';
 
 interface Product {
   id: string;
@@ -28,43 +44,24 @@ interface Product {
   purchasePrice: string;
   resellerPrice: string;
   retailerPrice: string;
-  categoryId: string;
   categoryName?: string;
+  stock: number;
 }
 
 interface PriceUpdate {
   productId: string;
-  price: number;
-  purchasePrice: number;
+  costPrice: number;
   resellerPrice: number;
-  retailerPrice: number;
+  retailPrice: number;
 }
 
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'EUR',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }).format(amount);
-};
-
-const formatPercentage = (value: number) => {
-  const color = value >= 50 ? 'text-green-600' : value >= 20 ? 'text-yellow-600' : 'text-red-600';
-  return (
-    <span className={`font-semibold ${color}`}>
-      {value.toFixed(1)}%
-    </span>
-  );
-};
-
 export default function PriceManagementPage() {
+  const queryClient = useQueryClient();
   const [editingProduct, setEditingProduct] = useState<string | null>(null);
   const [priceData, setPriceData] = useState<Record<string, {
-    price: string;
-    purchasePrice: string;
+    costPrice: string;
     resellerPrice: string;
-    retailerPrice: string;
+    retailPrice: string;
     retailPriceWithVat: number;
     b2bMargin: number;
     b2cMargin: number;
@@ -93,7 +90,7 @@ export default function PriceManagementPage() {
   }, [searchTerm]);
 
   const { data: products, isLoading } = useQuery({
-    queryKey: ["/api/admin/products", { 
+    queryKey: ["/api/products", { 
       search: debouncedSearchTerm || undefined, 
       categoryId: categoryFilter === 'all' ? undefined : categoryFilter 
     }],
@@ -111,10 +108,9 @@ export default function PriceManagementPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          price: data.price,
-          purchasePrice: data.purchasePrice,
+          costPrice: data.costPrice,
           resellerPrice: data.resellerPrice,
-          retailerPrice: data.retailerPrice
+          retailPrice: data.retailPrice
         })
       });
       
@@ -130,9 +126,12 @@ export default function PriceManagementPage() {
         description: "Product pricing synchronized across all platform systems" 
       });
       // Invalidate all pricing-related queries to ensure synchronization
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/products"] });
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
-      queryClient.invalidateQueries({ queryKey: [`/api/admin/products/${updatedProduct.id}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/retail/product-offers"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/products/${updatedProduct.id}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/retail/product-offers/${updatedProduct.id}`] });
+      // Invalidate search results and category listings
+      queryClient.invalidateQueries({ queryKey: ["/api/retail/products"] });
       setEditingProduct(null);
     },
     onError: () => {
@@ -140,10 +139,10 @@ export default function PriceManagementPage() {
     },
   });
 
-  const calculateMargins = (purchasePrice: string, resellerPrice: string, retailerPrice: string, fees: string = '0') => {
-    const cost = parseFloat(purchasePrice) || 0;
+  const calculateMargins = (costPrice: string, resellerPrice: string, retailPrice: string, fees: string = '0') => {
+    const cost = parseFloat(costPrice) || 0;
     const b2bPrice = parseFloat(resellerPrice) || 0;
-    const b2cPrice = parseFloat(retailerPrice) || 0;
+    const b2cPrice = parseFloat(retailPrice) || 0;
     const additionalFees = parseFloat(fees) || 0;
     const vatRate = 0.21; // 21% VAT rate
     
@@ -167,8 +166,8 @@ export default function PriceManagementPage() {
     };
   };
 
-  const calculatePriceFromMargin = (purchasePrice: string, margin: string, fees: string = '0') => {
-    const cost = parseFloat(purchasePrice) || 0;
+  const calculatePriceFromMargin = (costPrice: string, margin: string, fees: string = '0') => {
+    const cost = parseFloat(costPrice) || 0;
     const marginPercent = parseFloat(margin) || 0;
     const additionalFees = parseFloat(fees) || 0;
     const totalCost = cost + additionalFees;
@@ -178,136 +177,136 @@ export default function PriceManagementPage() {
     return Math.round(calculatedPrice * 100) / 100;
   };
 
-  useEffect(() => {
-    if (products) {
-      const initialData: Record<string, any> = {};
-      (products as Product[]).forEach(product => {
-        const margins = calculateMargins(
-          product.purchasePrice || '0',
-          product.resellerPrice || '0',
-          product.retailerPrice || '0'
-        );
-        initialData[product.id] = {
-          price: product.price || '0',
-          purchasePrice: product.purchasePrice || '0',
-          resellerPrice: product.resellerPrice || '0',
-          retailerPrice: product.retailerPrice || '0',
-          ...margins
-        };
-      });
-      setPriceData(initialData);
-    }
-  }, [products]);
-
   const handlePriceChange = (productId: string, field: string, value: string) => {
     setPriceData(prev => {
       const current = prev[productId] || {};
-      let updated = { ...current, [field]: value };
+      const updated = { ...current, [field]: value };
       
-      // If changing margin, calculate new price
-      if (field === 'b2bMargin') {
-        const newB2BPrice = calculatePriceFromMargin(
-          updated.purchasePrice || '0',
-          value,
-          updated.fees?.toString() || '0'
+      // Recalculate margins when any price changes
+      if (field === 'costPrice' || field === 'resellerPrice' || field === 'retailPrice') {
+        const margins = calculateMargins(
+          updated.costPrice || '0',
+          updated.resellerPrice || '0', 
+          updated.retailPrice || '0'
         );
-        updated.resellerPrice = newB2BPrice.toString();
-      } else if (field === 'b2cMargin') {
-        const newB2CPrice = calculatePriceFromMargin(
-          updated.purchasePrice || '0',
-          value,
-          updated.fees?.toString() || '0'
-        );
-        updated.retailerPrice = newB2CPrice.toString();
+        Object.assign(updated, margins);
       }
       
-      // Recalculate all margins and profits
-      const margins = calculateMargins(
-        updated.purchasePrice || '0',
-        updated.resellerPrice || '0',
-        updated.retailerPrice || '0',
-        updated.fees?.toString() || '0'
-      );
-
-      return {
-        ...prev,
-        [productId]: {
-          ...updated,
-          ...margins
-        }
-      };
+      return { ...prev, [productId]: updated };
     });
   };
 
-  const handleSave = (product: Product) => {
-    const data = priceData[product.id];
+  const handleMarginChange = (productId: string, marginType: 'b2bMargin' | 'b2cMargin', value: string) => {
+    setPriceData(prev => {
+      const current = prev[productId] || {};
+      const costPrice = current.costPrice || '0';
+      
+      if (marginType === 'b2bMargin') {
+        const newPrice = calculatePriceFromMargin(costPrice, value);
+        const updated = { ...current, resellerPrice: newPrice.toString() };
+        const margins = calculateMargins(
+          updated.costPrice || '0',
+          updated.resellerPrice || '0',
+          updated.retailPrice || '0'
+        );
+        Object.assign(updated, margins);
+        return { ...prev, [productId]: updated };
+      } else {
+        const newPrice = calculatePriceFromMargin(costPrice, value);
+        const updated = { ...current, retailPrice: newPrice.toString() };
+        const margins = calculateMargins(
+          updated.costPrice || '0',
+          updated.resellerPrice || '0',
+          updated.retailPrice || '0'
+        );
+        Object.assign(updated, margins);
+        return { ...prev, [productId]: updated };
+      }
+    });
+  };
+
+  const handleEdit = (productId: string) => {
+    setEditingProduct(productId);
+    const product = (products as Product[])?.find(p => p.id === productId);
+    if (product && !priceData[productId]) {
+      const margins = calculateMargins(
+        product.purchasePrice || '0',
+        product.resellerPrice || '0',
+        product.retailerPrice || '0'
+      );
+      setPriceData(prev => ({
+        ...prev,
+        [productId]: {
+          costPrice: product.purchasePrice || '0',
+          resellerPrice: product.resellerPrice || '0',
+          retailPrice: product.retailerPrice || '0',
+          ...margins
+        }
+      }));
+    }
+  };
+
+  const handleSave = async (productId: string) => {
+    const data = priceData[productId];
     if (data) {
-      updatePriceMutation.mutate({
-        productId: product.id,
-        price: parseFloat(data.price),
-        purchasePrice: parseFloat(data.purchasePrice),
+      await updatePriceMutation.mutateAsync({
+        productId,
+        costPrice: parseFloat(data.costPrice),
         resellerPrice: parseFloat(data.resellerPrice),
-        retailerPrice: parseFloat(data.retailerPrice)
+        retailPrice: parseFloat(data.retailPrice)
       });
     }
   };
 
-  const handleCancel = (product: Product) => {
-    const margins = calculateMargins(
-      product.purchasePrice || '0',
-      product.resellerPrice || '0',
-      product.retailerPrice || '0'
-    );
-    setPriceData(prev => ({
-      ...prev,
-      [product.id]: {
-        price: product.price || '0',
-        purchasePrice: product.purchasePrice || '0',
-        resellerPrice: product.resellerPrice || '0',
-        retailerPrice: product.retailerPrice || '0',
-        ...margins
-      }
-    }));
+  const handleCancel = (productId: string) => {
     setEditingProduct(null);
+    setPriceData(prev => {
+      const newData = { ...prev };
+      delete newData[productId];
+      return newData;
+    });
   };
 
   const handleCheckboxChange = (productId: string, index: number, event: React.MouseEvent) => {
-    const isShiftPressed = event.shiftKey;
+    const isChecked = selectedProducts.has(productId);
     
-    setSelectedProducts(prev => {
-      const newSelected = new Set(prev);
+    if (event.shiftKey && lastSelectedIndex !== null) {
+      // Handle shift+click for range selection
+      const start = Math.min(lastSelectedIndex, index);
+      const end = Math.max(lastSelectedIndex, index);
+      const newSelection = new Set(selectedProducts);
       
-      if (isShiftPressed && lastSelectedIndex !== null) {
-        // Range selection with shift
-        const start = Math.min(lastSelectedIndex, index);
-        const end = Math.max(lastSelectedIndex, index);
-        const productList = products as Product[];
-        
-        for (let i = start; i <= end; i++) {
-          if (productList[i]) {
-            newSelected.add(productList[i].id);
+      for (let i = start; i <= end; i++) {
+        const currentProduct = (products as Product[])?.[i];
+        if (currentProduct) {
+          if (isChecked) {
+            newSelection.delete(currentProduct.id);
+          } else {
+            newSelection.add(currentProduct.id);
           }
         }
-      } else {
-        // Single selection
-        if (newSelected.has(productId)) {
-          newSelected.delete(productId);
-        } else {
-          newSelected.add(productId);
-        }
       }
-      
-      return newSelected;
-    });
-    
+      setSelectedProducts(newSelection);
+    } else {
+      // Handle normal click
+      if (isChecked) {
+        setSelectedProducts(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(productId);
+          return newSet;
+        });
+      } else {
+        setSelectedProducts(prev => new Set(Array.from(prev).concat(productId)));
+      }
+    }
     setLastSelectedIndex(index);
   };
 
-  const handleSelectAll = () => {
-    if (selectedProducts.size === (products as Product[])?.length) {
-      setSelectedProducts(new Set());
-    } else {
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
       setSelectedProducts(new Set((products as Product[])?.map(p => p.id) || []));
+    } else {
+      setSelectedProducts(new Set());
     }
   };
 
@@ -325,10 +324,9 @@ export default function PriceManagementPage() {
         setPriceData(prev => ({
           ...prev,
           [productId]: {
-            price: product.price || '0',
-            purchasePrice: product.purchasePrice || '0',
+            costPrice: product.purchasePrice || '0',
             resellerPrice: product.resellerPrice || '0',
-            retailerPrice: product.retailerPrice || '0',
+            retailPrice: product.retailerPrice || '0',
             ...margins
           }
         }));
@@ -341,10 +339,9 @@ export default function PriceManagementPage() {
       const data = priceData[productId];
       return {
         productId,
-        price: parseFloat(data.price),
-        purchasePrice: parseFloat(data.purchasePrice),
+        costPrice: parseFloat(data.costPrice),
         resellerPrice: parseFloat(data.resellerPrice),
-        retailerPrice: parseFloat(data.retailerPrice)
+        retailPrice: parseFloat(data.retailPrice)
       };
     });
 
@@ -406,74 +403,150 @@ export default function PriceManagementPage() {
             Comprehensive pricing control for all products across B2B and B2C channels
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/admin/products"] })}
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className="h-4 w-4" />
-            Refresh
-          </Button>
-          {selectedProducts.size > 0 && (
-            <>
-              {!bulkEditMode ? (
-                <Button onClick={handleBulkEdit} className="flex items-center gap-2">
-                  <Edit className="h-4 w-4" />
-                  Bulk Edit ({selectedProducts.size})
-                </Button>
-              ) : (
-                <div className="flex gap-2">
-                  <Button onClick={handleBulkSave} className="flex items-center gap-2">
-                    <Check className="h-4 w-4" />
-                    Save All
-                  </Button>
-                  <Button variant="outline" onClick={handleBulkCancel} className="flex items-center gap-2">
-                    <X className="h-4 w-4" />
-                    Cancel
-                  </Button>
-                </div>
-              )}
-            </>
-          )}
-        </div>
+        <Button variant="outline" size="sm">
+          <RefreshCw className="w-4 h-4 mr-2" />
+          Refresh
+        </Button>
       </div>
 
       {/* Search and Filters */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="flex-1">
+          <div className="flex flex-col lg:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
               <Input
                 placeholder="Search products by name or description..."
                 value={searchTerm}
                 onChange={handleSearchInputChange}
-                className="max-w-md"
+                className="pl-10"
               />
+              {searchTerm && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClearSearch}
+                  className="absolute right-1 top-1/2 transform -translate-y-1/2"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              )}
             </div>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="All Categories" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {(categories as any[])?.map((category: any) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {category.name}
-                  </SelectItem>
-                )) || []}
-              </SelectContent>
-            </Select>
-            {(searchTerm || categoryFilter !== 'all') && (
-              <Button variant="outline" onClick={handleClearSearch}>
-                Clear Filters
+            
+            <div className="flex gap-2">
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="All Categories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {(categories as any[])?.map((category: any) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  )) || []}
+                </SelectContent>
+              </Select>
+              
+              <Button
+                variant="outline"
+                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+              >
+                <Filter className="w-4 h-4 mr-2" />
+                Filters
+                <ChevronDown className="w-4 h-4 ml-2" />
               </Button>
-            )}
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Products Table */}
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Total Products</p>
+                <p className="text-2xl font-bold">{(products as Product[])?.length || 0}</p>
+              </div>
+              <Package className="h-8 w-8 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Avg B2B Margin</p>
+                <p className="text-2xl font-bold">NaN%</p>
+              </div>
+              <TrendingUp className="h-8 w-8 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Avg B2C Margin</p>
+                <p className="text-2xl font-bold">NaN%</p>
+              </div>
+              <BarChart3 className="h-8 w-8 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Selected</p>
+                <p className="text-2xl font-bold">{selectedProducts.size}</p>
+              </div>
+              <Target className="h-8 w-8 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Bulk Actions */}
+      {selectedProducts.size > 0 && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                {selectedProducts.size} product{selectedProducts.size !== 1 ? 's' : ''} selected
+              </p>
+              <div className="flex gap-2">
+                {!bulkEditMode ? (
+                  <>
+                    <Button variant="outline" size="sm" onClick={handleBulkEdit}>
+                      <Edit2 className="w-4 h-4 mr-2" />
+                      Bulk Edit
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button size="sm" onClick={handleBulkSave}>
+                      <Save className="w-4 h-4 mr-2" />
+                      Save All
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleBulkCancel}>
+                      <X className="w-4 h-4 mr-2" />
+                      Cancel
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Product Pricing Matrix */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -483,15 +556,15 @@ export default function PriceManagementPage() {
                 checked={selectedProducts.size === (products as Product[])?.length && (products as Product[])?.length > 0}
                 onCheckedChange={handleSelectAll}
               />
-              <Label>Select All</Label>
+              <span className="text-sm text-muted-foreground">Select All</span>
             </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead>
-                <tr className="border-b bg-muted/50">
+              <thead className="bg-muted/50 border-b">
+                <tr>
                   <th className="text-left p-4 w-12">
                     <div className="flex items-center justify-center">
                       <Checkbox
@@ -552,12 +625,12 @@ export default function PriceManagementPage() {
                           <Input
                             type="number"
                             step="0.01"
-                            value={data.purchasePrice || '0'}
-                            onChange={(e) => handlePriceChange(product.id, 'purchasePrice', e.target.value)}
+                            value={data.costPrice || '0'}
+                            onChange={(e) => handlePriceChange(product.id, 'costPrice', e.target.value)}
                             className="w-24"
                           />
                         ) : (
-                          <span className="font-mono">{formatCurrency(parseFloat(data.purchasePrice || '0'))}</span>
+                          <span className="font-mono">€{product.purchasePrice || '0'}</span>
                         )}
                       </td>
                       <td className="p-4">
@@ -570,21 +643,25 @@ export default function PriceManagementPage() {
                             className="w-24"
                           />
                         ) : (
-                          <span className="font-mono">{formatCurrency(parseFloat(data.resellerPrice || '0'))}</span>
+                          <span className="font-mono">€{product.resellerPrice || '0'}</span>
                         )}
                       </td>
                       <td className="p-4">
                         {isEditing ? (
-                          <Input
-                            type="number"
-                            step="0.1"
-                            value={data.b2bMargin?.toFixed(1) || '0.0'}
-                            onChange={(e) => handlePriceChange(product.id, 'b2bMargin', e.target.value)}
-                            className="w-20"
-                            placeholder="%"
-                          />
+                          <div className="flex items-center gap-1">
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={data.b2bMargin || '0'}
+                              onChange={(e) => handleMarginChange(product.id, 'b2bMargin', e.target.value)}
+                              className="w-20"
+                            />
+                            <span className="text-sm">%</span>
+                          </div>
                         ) : (
-                          formatPercentage(data.b2bMargin || 0)
+                          <Badge variant={data.b2bMargin > 20 ? "default" : data.b2bMargin > 10 ? "secondary" : "destructive"}>
+                            {data.b2bMargin ? `${data.b2bMargin}%` : 'N/A'}
+                          </Badge>
                         )}
                       </td>
                       <td className="p-4">
@@ -592,61 +669,47 @@ export default function PriceManagementPage() {
                           <Input
                             type="number"
                             step="0.01"
-                            value={data.retailerPrice || '0'}
-                            onChange={(e) => handlePriceChange(product.id, 'retailerPrice', e.target.value)}
+                            value={data.retailPrice || '0'}
+                            onChange={(e) => handlePriceChange(product.id, 'retailPrice', e.target.value)}
                             className="w-24"
                           />
                         ) : (
-                          <span className="font-mono">{formatCurrency(parseFloat(data.retailerPrice || '0'))}</span>
+                          <span className="font-mono">€{product.retailerPrice || '0'}</span>
                         )}
                       </td>
                       <td className="p-4">
                         {isEditing ? (
-                          <Input
-                            type="number"
-                            step="0.1"
-                            value={data.b2cMargin?.toFixed(1) || '0.0'}
-                            onChange={(e) => handlePriceChange(product.id, 'b2cMargin', e.target.value)}
-                            className="w-20"
-                            placeholder="%"
-                          />
+                          <div className="flex items-center gap-1">
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={data.b2cMargin || '0'}
+                              onChange={(e) => handleMarginChange(product.id, 'b2cMargin', e.target.value)}
+                              className="w-20"
+                            />
+                            <span className="text-sm">%</span>
+                          </div>
                         ) : (
-                          formatPercentage(data.b2cMargin || 0)
+                          <Badge variant={data.b2cMargin > 30 ? "default" : data.b2cMargin > 15 ? "secondary" : "destructive"}>
+                            {data.b2cMargin ? `${data.b2cMargin}%` : 'N/A'}
+                          </Badge>
                         )}
                       </td>
                       <td className="p-4">
                         {!bulkEditMode && (
-                          <div className="flex items-center gap-2">
-                            {editingProduct === product.id ? (
+                          <div className="flex gap-1">
+                            {isEditing ? (
                               <>
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleSave(product)}
-                                  disabled={updatePriceMutation.isPending}
-                                  className="flex items-center gap-1"
-                                >
-                                  <Check className="h-3 w-3" />
-                                  Save
+                                <Button size="sm" onClick={() => handleSave(product.id)}>
+                                  <Save className="w-4 h-4" />
                                 </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleCancel(product)}
-                                  className="flex items-center gap-1"
-                                >
-                                  <X className="h-3 w-3" />
-                                  Cancel
+                                <Button size="sm" variant="outline" onClick={() => handleCancel(product.id)}>
+                                  <X className="w-4 h-4" />
                                 </Button>
                               </>
                             ) : (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => setEditingProduct(product.id)}
-                                className="flex items-center gap-1"
-                              >
-                                <Edit className="h-3 w-3" />
-                                Edit
+                              <Button size="sm" variant="outline" onClick={() => handleEdit(product.id)}>
+                                <Edit2 className="w-4 h-4" />
                               </Button>
                             )}
                           </div>
@@ -655,69 +718,21 @@ export default function PriceManagementPage() {
                     </tr>
                   );
                 })}
+                
+                {(products as Product[])?.length === 0 && (
+                  <tr>
+                    <td colSpan={9} className="p-8 text-center text-muted-foreground">
+                      <Package className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p>No products found matching your criteria</p>
+                      <p className="text-sm">Try adjusting your search or filters</p>
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
         </CardContent>
       </Card>
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-green-600" />
-              <div>
-                <p className="text-sm font-medium">Total Products</p>
-                <p className="text-2xl font-bold">{(products as Product[])?.length || 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-blue-600" />
-              <div>
-                <p className="text-sm font-medium">Avg B2B Margin</p>
-                <p className="text-2xl font-bold">
-                  {((products as Product[])?.reduce((acc, product) => {
-                    const data = priceData[product.id];
-                    return acc + (data?.b2bMargin || 0);
-                  }, 0) / ((products as Product[])?.length || 1))?.toFixed(1)}%
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Percent className="h-5 w-5 text-purple-600" />
-              <div>
-                <p className="text-sm font-medium">Avg B2C Margin</p>
-                <p className="text-2xl font-bold">
-                  {((products as Product[])?.reduce((acc, product) => {
-                    const data = priceData[product.id];
-                    return acc + (data?.b2cMargin || 0);
-                  }, 0) / ((products as Product[])?.length || 1))?.toFixed(1)}%
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Calculator className="h-5 w-5 text-orange-600" />
-              <div>
-                <p className="text-sm font-medium">Selected</p>
-                <p className="text-2xl font-bold">{selectedProducts.size}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 }

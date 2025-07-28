@@ -181,9 +181,15 @@ export class AdminProductsController {
   async updateProductPricing(req: Request, res: Response) {
     try {
       const { id } = productParamsSchema.parse(req.params);
-      const pricingData = req.body;
+      const { costPrice, resellerPrice, retailPrice } = req.body;
 
-      const updatedProduct = await productService.updateProduct(id, pricingData);
+      // Map to correct field names
+      const updateData: any = {};
+      if (costPrice !== undefined) updateData.purchasePrice = costPrice;
+      if (resellerPrice !== undefined) updateData.resellerPrice = resellerPrice;
+      if (retailPrice !== undefined) updateData.retailerPrice = retailPrice;
+
+      const updatedProduct = await productService.updateProduct(id, updateData);
 
       res.json({
         data: updatedProduct,
