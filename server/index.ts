@@ -4,7 +4,6 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { initializeDatabase } from "./startup/database-init";
 import path from 'path';
-import path from 'path';
 
 const app = express();
 
@@ -62,15 +61,15 @@ app.use((req, res, next) => {
   next();
 });
 
-registerRoutes(app);
+const httpServer = await registerRoutes(app);
 
 if (process.env.NODE_ENV === "production") {
   serveStatic(app);
 } else {
-  setupVite(app, app as any);
+  await setupVite(app, httpServer);
 }
 
 const port = 5000;
-app.listen(port, "0.0.0.0", () => {
+httpServer.listen(port, "0.0.0.0", () => {
   log(`serving on port ${port}`);
 });

@@ -5,6 +5,13 @@
 This is a full-stack B2B software license management platform built with React, Express, and PostgreSQL. The application provides enterprise customers with a streamlined interface to browse, purchase, and manage software licenses, while offering administrators comprehensive tools for inventory and user management. The system now uses custom username/password authentication and displays all prices in EUR currency.
 
 ## Recent Changes (January 2025)
+- **CRITICAL API ROUTING ISSUE RESOLVED** (January 28, 2025):
+  - **Root Cause Identified**: Vite middleware catch-all route (`app.use("*", ...)`) was intercepting API requests before reaching route handlers
+  - **Fix Applied**: Ensured `registerRoutes(app)` executes before `setupVite()` middleware to prioritize API routes
+  - **Impact**: All APIs now working correctly - B2B shop, wallet, orders, and admin panels fully operational
+  - **Evidence**: Server logs now show proper route execution with JSON responses instead of HTML
+  - **Database Connection**: Confirmed working with 3 active products accessible via API
+  - **User Authentication**: Working correctly (b2buser authenticated and authorized)
 - **ADVANCED EDIT PRODUCT PAGE FUNCTIONALITY IMPLEMENTED** (January 27, 2025):
   - **KM Currency Database Support**: Added full KM pricing columns (price_km, purchase_price_km, reseller_price_km, retailer_price_km) to products table
   - **Advanced Edit Button**: Changed "Edit" to "Advanced Edit" button in admin panel products table
