@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { useOrdersPreload } from "@/hooks/useDataPreload";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import { useTenant } from "@/contexts/TenantContext";
 import { CacheDebugPanel } from "@/components/cache-debug-panel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -106,6 +107,7 @@ interface Order {
 export default function OrdersPage() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
+  const { formatPrice } = useTenant();
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
   const [location, setLocation] = useLocation();
 
@@ -240,7 +242,7 @@ export default function OrdersPage() {
         excelData.push({
           licenseKey: item.licenseKey.licenseKey,
           productTitle: item.product.name,
-          price: `€${parseFloat(item.unitPrice).toFixed(2)}`,
+          price: formatPrice(parseFloat(item.unitPrice)),
           orderNumber: order.orderNumber,
           warranty: getWarrantyPeriod(item.licenseKey.createdAt),
           platform: item.product.platform,
@@ -449,7 +451,7 @@ export default function OrdersPage() {
                     </div>
                     <div className="text-right flex items-center gap-3">
                       <div className="text-2xl font-bold text-[#FFB20F]">
-                        €{parseFloat(order.totalAmount).toFixed(2)}
+{formatPrice(parseFloat(order.totalAmount))}
                       </div>
                       <Collapsible open={expandedOrders.has(order.id)} onOpenChange={() => toggleOrderExpansion(order.id)}>
                         <CollapsibleTrigger asChild>
@@ -545,7 +547,7 @@ export default function OrdersPage() {
                                   {item.product.name}
                                 </td>
                                 <td className="p-2 font-semibold text-[#FFB20F] border-r">
-                                  €{parseFloat(item.unitPrice).toFixed(2)}
+{formatPrice(parseFloat(item.unitPrice))}
                                 </td>
                                 <td className="p-2 border-r">
                                   {order.orderNumber}
@@ -596,13 +598,13 @@ export default function OrdersPage() {
                       ).map(([productName, details]) => (
                         <div key={productName} className="flex justify-between">
                           <span>{productName} (x{details.quantity})</span>
-                          <span className="font-semibold">€{details.totalPrice.toFixed(2)}</span>
+                          <span className="font-semibold">{formatPrice(details.totalPrice)}</span>
                         </div>
                       ))}
                       <div className="border-t pt-2 mt-2">
                         <div className="flex justify-between font-bold text-lg">
                           <span>Total</span>
-                          <span className="text-[#FFB20F]">€{parseFloat(order.totalAmount).toFixed(2)}</span>
+                          <span className="text-[#FFB20F]">{formatPrice(parseFloat(order.totalAmount))}</span>
                         </div>
                       </div>
                     </div>
