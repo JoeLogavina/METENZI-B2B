@@ -389,7 +389,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
 
       try {
-        const cartItems = await storage.getCartItems(userId);
+        // ENTERPRISE EVENT SOURCING: Instant cart reads from materialized view
+        const { cartEventSourcingService } = await import('./services/cart-event-sourcing.service');
+        const cartItems = await cartEventSourcingService.getCartItems(userId);
+        
+        res.setHeader('X-Cart-Mode', 'event-sourcing');
+        res.setHeader('X-Performance', 'optimized');
         res.json(cartItems);
       } catch (error) {
         console.error("Cart fetch error:", error);
@@ -408,29 +413,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
 
       try {
-        const cartData = insertCartItemSchema.parse({ 
-          ...req.body, 
-          userId 
-        });
-
-        // Set response headers early for faster response
-        res.setHeader('Content-Type', 'application/json');
-        res.setHeader('Cache-Control', 'no-cache');
+        const { productId, quantity } = req.body;
         
-        // Execute cart addition with minimal processing
-        const cartItem = await storage.addToCart(cartData);
-        res.status(201).json(cartItem);
-      } catch (error) {
-        console.error("Cart add error:", error);
-
-        // Handle validation errors specifically
-        if (error.name === 'ZodError') {
+        if (!productId || !quantity || quantity < 1) {
           return res.status(400).json({ 
-            message: "Invalid cart data", 
-            errors: error.errors 
+            message: "Invalid cart data: productId and quantity (>0) required" 
           });
         }
 
+        // Set response headers for optimal performance
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('X-Cart-Mode', 'event-sourcing');
+        
+        // ENTERPRISE EVENT SOURCING: Ultra-fast cart operations
+        const { cartEventSourcingService } = await import('./services/cart-event-sourcing.service');
+        const cartItem = await cartEventSourcingService.addToCart(userId, productId, quantity);
+        
+        res.status(201).json(cartItem);
+      } catch (error) {
+        console.error("Cart add error:", error);
         res.status(500).json({ 
           message: "Failed to add to cart", 
           error: error.message,
@@ -440,11 +442,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
 
 
-  app.patch('/api/cart/:id', 
+  app.patch('/api/cart/:productId', 
     isAuthenticated, 
     async (req: any, res) => {
       const userId = req.user.id;
-      const itemId = req.params.id;
+      const productId = req.params.productId;
       try {
         const { quantity } = req.body;
 
@@ -454,11 +456,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
 
-        const updatedItem = await storage.updateCartItem(itemId, quantity);
+        // ENTERPRISE EVENT SOURCING: Ultra-fast cart updates
+        const { cartEventSourcingService } = await import('./services/cart-event-sourcing.service');
+        await cartEventSourcingService.updateCartItem(userId, productId, quantity);
 
+        res.setHeader('X-Cart-Mode', 'event-sourcing');
         res.json({ 
           success: true, 
-          item: updatedItem,
           message: "Cart item updated successfully"
         });
       } catch (error) {
@@ -472,25 +476,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
 
 
-  app.delete('/api/cart/:id', 
+  app.delete('/api/cart/:productId', 
     isAuthenticated, 
     async (req: any, res) => {
       const userId = req.user.id;
-      const itemId = req.params.id;
+      const productId = req.params.productId;
       try {
-        const wasRemoved = await storage.removeFromCart(itemId);
+        // ENTERPRISE EVENT SOURCING: Ultra-fast cart item removal
+        const { cartEventSourcingService } = await import('./services/cart-event-sourcing.service');
+        await cartEventSourcingService.removeCartItem(userId, productId);
 
-        if (wasRemoved) {
-          res.json({ 
-            success: true, 
-            message: "Item removed from cart"
-          });
-        } else {
-          res.status(404).json({ 
-            success: false, 
-            message: "Cart item not found"
-          });
-        }
+        res.setHeader('X-Cart-Mode', 'event-sourcing');
+        res.json({ 
+          success: true, 
+          message: "Item removed from cart"
+        });
       } catch (error) {
         console.error("Cart remove error:", error);
         res.status(500).json({ 
@@ -508,9 +508,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
 
       try {
+        // ENTERPRISE EVENT SOURCING: Ultra-fast cart clear
+        const { cartEventSourcingService } = await import('./services/cart-event-sourcing.service');
+        const itemsRemoved = await cartEventSourcingService.clearCart(userId);
 
-        const itemsRemoved = await storage.clearCart(userId);
-
+        res.setHeader('X-Cart-Mode', 'event-sourcing');
         res.json({ 
           success: true, 
           itemsRemoved,

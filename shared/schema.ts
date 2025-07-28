@@ -139,6 +139,35 @@ export const cartItems = pgTable("cart_items", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Event sourcing: Cart events table
+export const cartEvents = pgTable("cart_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  eventType: varchar("event_type").notNull(), // 'ITEM_ADDED', 'ITEM_UPDATED', 'ITEM_REMOVED', 'CART_CLEARED'
+  productId: varchar("product_id").references(() => products.id),
+  quantity: integer("quantity"),
+  eventData: jsonb("event_data"), // Additional event metadata
+  timestamp: timestamp("timestamp").defaultNow(),
+  sequenceNumber: integer("sequence_number").notNull(), // For ordering events
+}, (table) => [
+  index("idx_cart_events_user_sequence").on(table.userId, table.sequenceNumber),
+  index("idx_cart_events_timestamp").on(table.timestamp),
+  index("idx_cart_events_user_timestamp").on(table.userId, table.timestamp),
+]);
+
+// Materialized cart view for instant reads
+export const cartView = pgTable("cart_view", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  productId: varchar("product_id").notNull().references(() => products.id),
+  quantity: integer("quantity").notNull(),
+  lastEventId: varchar("last_event_id").notNull().references(() => cartEvents.id),
+  lastUpdated: timestamp("last_updated").defaultNow(),
+}, (table) => [
+  index("idx_cart_view_user").on(table.userId),
+  index("idx_cart_view_user_product").on(table.userId, table.productId),
+]);
+
 // Admin permissions table
 export const adminPermissions = pgTable("admin_permissions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -342,6 +371,18 @@ export const insertCartItemSchema = createInsertSchema(cartItems).omit({
   createdAt: true,
 });
 
+// Event sourcing schemas
+export const insertCartEventSchema = createInsertSchema(cartEvents).omit({
+  id: true,
+  timestamp: true,
+  sequenceNumber: true,
+});
+
+export const insertCartViewSchema = createInsertSchema(cartView).omit({
+  id: true,
+  lastUpdated: true,
+});
+
 export const insertAdminPermissionsSchema = createInsertSchema(adminPermissions).omit({
   id: true,
   createdAt: true,
@@ -380,6 +421,12 @@ export type WalletTransaction = typeof walletTransactions.$inferSelect;
 export type InsertWalletTransaction = typeof walletTransactions.$inferInsert;
 export type AdminPermissions = typeof adminPermissions.$inferSelect;
 export type InsertAdminPermissions = z.infer<typeof insertAdminPermissionsSchema>;
+
+// Event sourcing types
+export type CartEvent = typeof cartEvents.$inferSelect;
+export type InsertCartEvent = z.infer<typeof insertCartEventSchema>;
+export type CartView = typeof cartView.$inferSelect;
+export type InsertCartView = z.infer<typeof insertCartViewSchema>;
 
 // Extend product with stock count
 export type ProductWithStock = Product & {
