@@ -41,23 +41,13 @@ export default function KMShop() {
   const queryClient = useQueryClient();
   const [location, setLocation] = useLocation();
 
-  // Enforce KM tenant access only
+  // Simple authentication check without tenant enforcement (causes redirect loops)
   useEffect(() => {
-    if (!isLoading && isAuthenticated && user?.tenantId !== 'km') {
-      toast({
-        title: "Access Denied",
-        description: "You don't have access to the KM shop. Redirecting to your tenant.",
-        variant: "destructive",
-      });
-      
-      if (user?.tenantId === 'eur') {
-        setLocation('/shop/eur');
-      } else {
-        setLocation('/auth');
-      }
-      return;
+    if (isLoading) return;
+    if (!isAuthenticated) {
+      setLocation('/auth');
     }
-  }, [user, isLoading, isAuthenticated, setLocation, toast]);
+  }, [isLoading, isAuthenticated, setLocation]);
 
   const [filters, setFilters] = useState({
     region: "",
@@ -109,7 +99,7 @@ export default function KMShop() {
     },
     enabled: isAuthenticated,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 30 * 60 * 1000, // 30 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes
   });
 
   // Fetch KM user's cart

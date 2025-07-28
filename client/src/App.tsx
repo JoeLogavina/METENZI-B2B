@@ -63,12 +63,24 @@ function Router() {
         </>
       ) : (
         <>
-          {/* Default route */}
-          <Route path="/" component={() => (
-            <Suspense fallback={<ShopLoadingFallback />}>
-              <B2BShop />
-            </Suspense>
-          )} />
+          {/* Default route - redirect to tenant shop */}
+          <Route path="/" component={() => {
+            const { user } = useAuth();
+            
+            if (user?.tenantId === 'km') {
+              return (
+                <Suspense fallback={<ShopLoadingFallback />}>
+                  <KMShop />
+                </Suspense>
+              );
+            } else {
+              return (
+                <Suspense fallback={<ShopLoadingFallback />}>
+                  <EURShop />
+                </Suspense>
+              );
+            }
+          }} />
           
           {/* Tenant-specific B2B Shop Routes */}
           <Route path="/shop/eur" component={() => (

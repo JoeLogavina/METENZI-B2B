@@ -27,8 +27,7 @@ export function useAuth() {
         }
         return response.json();
       } catch (error) {
-        console.error('Auth query error:', error);
-        if (error.message.includes('401')) {
+        if (error instanceof Error && error.message.includes('401')) {
           return null;
         }
         throw error;
@@ -36,13 +35,15 @@ export function useAuth() {
     },
     retry: (failureCount, error) => {
       // Don't retry on 401 errors
-      if (error?.message?.includes('401')) {
+      if (error instanceof Error && error.message?.includes('401')) {
         return false;
       }
       return failureCount < 2;
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 10 * 60 * 1000, // 10 minutes - longer to prevent frequent checks
     gcTime: 30 * 60 * 1000, // 30 minutes
+    refetchOnWindowFocus: false, // Prevent refetch on window focus
+    refetchOnMount: false, // Prevent refetch on component mount if data exists
   });
 
   const logoutMutation = useMutation({
