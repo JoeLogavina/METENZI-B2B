@@ -22,6 +22,7 @@ import { upload, saveBase64Image, deleteUploadedFile } from "./middleware/upload
 import { tenantResolutionMiddleware, requireTenantType } from './middleware/tenant.middleware';
 import type { Currency } from './middleware/tenant.middleware';
 import { tenantAuthMiddleware } from './middleware/tenant-auth.middleware';
+import { rlsContextMiddleware } from './middleware/rls-context.middleware';
 import { TenantContextService } from './services/tenant-context.service';
 import express from "express";
 import path from "path";
@@ -119,6 +120,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Set up authentication
   setupAuth(app);
+
+  // RLS context middleware disabled - using application-level tenant filtering instead
+  // Neon serverless connection pooling clears session variables, making RLS unreliable
+  // app.use('/api', rlsContextMiddleware);
 
   // Rate limiting disabled for simplicity
 
