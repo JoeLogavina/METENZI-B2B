@@ -113,7 +113,27 @@ function Router() {
               <WalletPage />
             </Suspense>
           )} />
+          <Route path="/km/wallet" component={() => (
+            <Suspense fallback={<WalletLoadingFallback />}>
+              <WalletPage />
+            </Suspense>
+          )} />
+          <Route path="/eur/wallet" component={() => (
+            <Suspense fallback={<WalletLoadingFallback />}>
+              <WalletPage />
+            </Suspense>
+          )} />
           <Route path="/orders" component={() => (
+            <Suspense fallback={<OrdersLoadingFallback />}>
+              <OrdersPage />
+            </Suspense>
+          )} />
+          <Route path="/km/orders" component={() => (
+            <Suspense fallback={<OrdersLoadingFallback />}>
+              <OrdersPage />
+            </Suspense>
+          )} />
+          <Route path="/eur/orders" component={() => (
             <Suspense fallback={<OrdersLoadingFallback />}>
               <OrdersPage />
             </Suspense>

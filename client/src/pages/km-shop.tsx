@@ -87,10 +87,9 @@ export default function KMShop() {
     queryKey: ["/api/products", "km", debouncedFilters],
     queryFn: async () => {
       const params = new URLSearchParams();
-      params.append('tenant', 'km'); // Force KM tenant
       
       Object.entries(debouncedFilters).forEach(([key, value]) => {
-        if (value) {
+        if (value && value !== "all") {
           params.append(key, value);
         }
       });
@@ -98,15 +97,19 @@ export default function KMShop() {
       const res = await apiRequest("GET", `/api/products?${params.toString()}`);
       const data = await res.json();
       
-      // Ensure we're getting KM pricing
-      return data.map((product: any) => ({
-        ...product,
-        // Use KM price as primary price for KM shop
-        displayPrice: product.priceKm || product.price,
-        currency: 'KM'
-      }));
+      // Filter and transform for KM pricing
+      return data
+        .filter((product: any) => product.priceKm && product.priceKm > 0) // Only products with KM pricing
+        .map((product: any) => ({
+          ...product,
+          price: parseFloat(product.priceKm), // Use KM price as primary price
+          displayPrice: parseFloat(product.priceKm),
+          currency: 'KM'
+        }));
     },
-    enabled: isAuthenticated && user?.tenantId === 'km',
+    enabled: isAuthenticated,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 30 * 60 * 1000, // 30 minutes
   });
 
   // Fetch KM user's cart
@@ -114,12 +117,12 @@ export default function KMShop() {
     data: cartItems = [],
     isLoading: cartLoading,
   } = useQuery({
-    queryKey: ["/api/cart", "km"],
+    queryKey: ["/api/cart"],
     queryFn: async () => {
       const res = await apiRequest("GET", "/api/cart");
       return await res.json();
     },
-    enabled: isAuthenticated && user?.tenantId === 'km',
+    enabled: isAuthenticated,
   });
 
   // Categories query for filters
@@ -211,11 +214,11 @@ export default function KMShop() {
 
   const sidebarItems = [
     { icon: Package, label: "KM SHOP", active: true, href: "/shop/km", allowed: true },
-    { icon: Grid, label: "CATALOG", active: false, href: "/km/catalog", allowed: true },
+    { icon: Grid, label: "CATALOG", active: false, href: "/shop/km", allowed: true },
     { icon: FileText, label: "ORDERS", active: false, href: "/km/orders", allowed: true },
     { icon: CreditCard, label: "MY WALLET", active: false, href: "/km/wallet", allowed: true },
-    { icon: Settings, label: "SETTINGS", active: false, href: "/km/settings", allowed: true },
-    { icon: HelpCircle, label: "SUPPORT", active: false, href: "/km/support", allowed: true },
+    { icon: Settings, label: "SETTINGS", active: false, href: "/shop/km", allowed: true },
+    { icon: HelpCircle, label: "SUPPORT", active: false, href: "/shop/km", allowed: true },
   ].filter(item => item.allowed);
 
   const formatKMPrice = (amount: number | string): string => {
@@ -293,7 +296,7 @@ export default function KMShop() {
                   size="sm"
                   onMouseEnter={() => setIsCartHovered(true)}
                   onMouseLeave={() => setIsCartHovered(false)}
-                  onClick={() => setLocation('/km/cart')}
+                  onClick={() => setLocation('/cart')}
                   className="relative bg-[#FFB20F] hover:bg-[#e6a00e] text-white border-0 px-5 py-2 rounded-[5px] font-medium transition-colors duration-200"
                 >
                   <ShoppingCart className="h-4 w-4" />
