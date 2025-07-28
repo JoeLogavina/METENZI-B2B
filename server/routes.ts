@@ -480,6 +480,108 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Order creation endpoint
+  app.post('/api/orders', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { billingInfo, paymentMethod, paymentDetails } = req.body;
+
+      // Get cart items
+      const cartItems = await storage.getCartItems(userId);
+      if (!cartItems || cartItems.length === 0) {
+        return res.status(400).json({ message: "Cart is empty" });
+      }
+
+      // Calculate totals
+      const subtotal = cartItems.reduce((sum, item) => 
+        sum + (parseFloat(item.product.price) * item.quantity), 0
+      );
+      const taxRate = 0.21; // 21% VAT
+      const taxAmount = subtotal * taxRate;
+      const finalAmount = subtotal + taxAmount;
+
+      // Generate order number
+      const timestamp = Date.now();
+      const randomSuffix = Math.random().toString(36).substring(2, 7).toUpperCase();
+      const orderNumber = `ORD-${timestamp}-${randomSuffix}`;
+
+      // Create order
+      const order = await storage.createOrder({
+        userId,
+        orderNumber,
+        status: 'completed',
+        totalAmount: subtotal.toFixed(2),
+        taxAmount: taxAmount.toFixed(2),
+        finalAmount: finalAmount.toFixed(2),
+        paymentMethod: paymentMethod || 'wallet',
+        paymentStatus: 'paid',
+        companyName: billingInfo?.companyName || '',
+        firstName: billingInfo?.firstName || '',
+        lastName: billingInfo?.lastName || '',
+        email: billingInfo?.email || req.user.email,
+        phone: billingInfo?.phone || '',
+        address: billingInfo?.address || '',
+        city: billingInfo?.city || '',
+        postalCode: billingInfo?.postalCode || '',
+        country: billingInfo?.country || ''
+      });
+
+      // Create order items and assign license keys
+      const orderItems = [];
+      for (const cartItem of cartItems) {
+        for (let i = 0; i < cartItem.quantity; i++) {
+          // Get available license key
+          const licenseKey = await storage.getAvailableKey(cartItem.productId);
+          if (!licenseKey) {
+            throw new Error(`No license keys available for product: ${cartItem.product.name}`);
+          }
+
+          // Mark key as used
+          await storage.markKeyAsUsed(licenseKey.id, userId);
+
+          // Create order item
+          const orderItem = await storage.createOrderItem({
+            orderId: order.id,
+            productId: cartItem.productId,
+            licenseKeyId: licenseKey.id,
+            quantity: 1,
+            unitPrice: cartItem.product.price,
+            totalPrice: cartItem.product.price
+          });
+
+          orderItems.push({
+            ...orderItem,
+            product: cartItem.product,
+            licenseKey
+          });
+        }
+      }
+
+      // Clear cart
+      await storage.clearCart(userId);
+
+      // Return complete order data
+      res.status(201).json({
+        id: order.id,
+        orderNumber: order.orderNumber,
+        status: order.status,
+        totalAmount: order.totalAmount,
+        taxAmount: order.taxAmount,
+        finalAmount: order.finalAmount,
+        paymentMethod: order.paymentMethod,
+        paymentStatus: order.paymentStatus,
+        createdAt: order.createdAt,
+        items: orderItems
+      });
+    } catch (error) {
+      console.error('Error creating order:', error);
+      res.status(500).json({ 
+        message: 'Failed to create order',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // Wallet routes with real data
   app.get('/api/wallet', isAuthenticated, async (req: any, res) => {
     try {

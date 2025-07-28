@@ -484,7 +484,7 @@ export class DatabaseStorage implements IStorage {
   /**
    * Remove specific item from cart
    */
-  async removeFromCart(id: string): Promise<boolean> {
+  async removeFromCart(id: string): Promise<void> {
     try {
       return await db.transaction(async (tx) => {
         // Delete the item and get the affected rows count
@@ -493,7 +493,7 @@ export class DatabaseStorage implements IStorage {
           .where(eq(cartItems.id, id))
           .returning({ id: cartItems.id });
         
-        return result.length > 0;
+        // Return void as per interface
       });
     } catch (error) {
       console.error('Error removing from cart:', error);
@@ -504,7 +504,7 @@ export class DatabaseStorage implements IStorage {
   /**
    * Clear entire cart for user with atomic operation
    */
-  async clearCart(userId: string): Promise<number> {
+  async clearCart(userId: string): Promise<void> {
     try {
       return await db.transaction(async (tx) => {
         // Delete all cart items for user and return count
@@ -513,7 +513,7 @@ export class DatabaseStorage implements IStorage {
           .where(eq(cartItems.userId, userId))
           .returning({ id: cartItems.id });
         
-        return result.length;
+        // Return void as per interface
       });
     } catch (error) {
       console.error('Error clearing cart:', error);
@@ -825,7 +825,7 @@ export class DatabaseStorage implements IStorage {
         type: "purchase",
         amount: `-${parseFloat(order.totalAmount).toFixed(2)}`,
         description: `Order ${order.orderNumber}`,
-        createdAt: order.createdAt.toISOString(),
+        createdAt: order.createdAt ? order.createdAt.toISOString() : new Date().toISOString(),
         balanceAfter: "0.00" // Simplified for now
       }));
 
