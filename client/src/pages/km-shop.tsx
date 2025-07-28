@@ -76,7 +76,6 @@ export default function KMShop() {
   } = useQuery({
     queryKey: ["/api/products", "km", debouncedFilters],
     queryFn: async () => {
-      console.log('🔍 KM Shop: Starting products query...');
       const params = new URLSearchParams();
       
       Object.entries(debouncedFilters).forEach(([key, value]) => {
@@ -85,7 +84,6 @@ export default function KMShop() {
         }
       });
 
-      console.log('🔍 KM Shop: Making API request to /api/products');
       const res = await fetch(`/api/products?${params.toString()}`, {
         credentials: 'include',
         headers: {
@@ -94,16 +92,10 @@ export default function KMShop() {
         }
       });
       
-      console.log('🔍 KM Shop: API response status:', res.status);
       if (!res.ok) {
-        console.error('🔍 KM Shop: API failed with status:', res.status);
         throw new Error(`Products API failed: ${res.status}`);
       }
       const data = await res.json();
-      
-      // Debug the API response
-      console.log('🔍 KM Shop API Response:', data.length, 'total products');
-      console.log('🔍 First product sample:', data[0]);
       
       // Filter and transform for KM pricing - check all possible field names
       const filteredProducts = data
@@ -111,7 +103,6 @@ export default function KMShop() {
           // Check both priceKm and price_km field names
           const kmPrice = product.priceKm || product.price_km;
           const hasKmPrice = kmPrice && parseFloat(kmPrice) > 0;
-          console.log(`🔍 Product "${product.name}": priceKm=${product.priceKm}, hasKmPrice=${hasKmPrice}`);
           return hasKmPrice;
         })
         .map((product: any) => ({
@@ -121,7 +112,6 @@ export default function KMShop() {
           currency: 'KM'
         }));
       
-      console.log('🔍 KM Shop filtered products:', filteredProducts.length);
       return filteredProducts;
     },
     enabled: isAuthenticated,

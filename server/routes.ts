@@ -530,16 +530,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       const { billingInfo, paymentMethod, paymentDetails } = req.body;
 
+      // Get user's tenant ID first
+      const user = req.user as any;
+      const tenantId = user.tenantId || 'eur';
+
       // Get cart items with tenant isolation
       const cartItems = await storage.getCartItems(userId, tenantId);
       if (!cartItems || cartItems.length === 0) {
         return res.status(400).json({ message: "Cart is empty" });
       }
 
-      // Calculate totals
-      const subtotal = cartItems.reduce((sum, item) => 
-        sum + (parseFloat(item.product.price) * item.quantity), 0
-      );
+      // Calculate totals using tenant-specific pricing
+      const subtotal = cartItems.reduce((sum, item) => {
+        const price = tenantId === 'km' 
+          ? parseFloat(item.product.priceKm || item.product.price) 
+          : parseFloat(item.product.price);
+        return sum + (price * item.quantity);
+      }, 0);
       const taxRate = 0.21; // 21% VAT
       const taxAmount = subtotal * taxRate;
       const finalAmount = subtotal + taxAmount;
@@ -548,10 +555,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const timestamp = Date.now();
       const randomSuffix = Math.random().toString(36).substring(2, 7).toUpperCase();
       const orderNumber = `ORD-${timestamp}-${randomSuffix}`;
-
-      // Get user's tenant ID
-      const user = req.user as any;
-      const tenantId = user.tenantId || 'eur';
 
       // Create order
       const order = await storage.createOrder({

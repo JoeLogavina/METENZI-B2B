@@ -387,7 +387,17 @@ export class DatabaseStorage implements IStorage {
         .where(and(...whereConditions, eq(products.isActive, true)))
         .orderBy(desc(cartItems.createdAt));
 
-      return rows;
+      // Transform products to use tenant-appropriate pricing
+      return rows.map(row => ({
+        ...row,
+        product: {
+          ...row.product,
+          // Use KM price for KM tenants, EUR price for EUR tenants
+          price: tenantId === 'km' 
+            ? (row.product.priceKm || row.product.price)
+            : row.product.price
+        }
+      }));
     } catch (error) {
       console.error('Error fetching cart items:', error);
       throw new Error('Failed to fetch cart items');
