@@ -674,7 +674,6 @@ function ProductRow({ product, onAddToCart, onProductClick, isLoading }: {
               }}
             />
           ) : (
-            ```text
             <Package className="w-6 h-6 text-gray-400" />
           )}
         </div>
