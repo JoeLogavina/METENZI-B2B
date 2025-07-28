@@ -64,38 +64,44 @@ export function cacheInvalidationMiddleware(options: CacheInvalidationOptions) {
                               (!isSuccessful && options.onError === true);
       
       if (shouldInvalidate) {
-        console.log(`🔄 Cache invalidation triggered for patterns: ${options.patterns.join(', ')}`);
-        // Perform cache invalidation asynchronously
-        Promise.all(
-          options.patterns.map(async (pattern) => {
-            try {
-              if (pattern.includes('orders')) {
-                const userId = (req as any).user?.id;
-                console.log(`📧 Invalidating orders cache for user: ${userId}`);
-                await cacheHelpers.invalidateOrdersData(userId);
-                console.log(`✅ Orders cache invalidated successfully for user: ${userId}`);
-              } else if (pattern.includes('wallet')) {
-                const userId = (req as any).user?.id;
-                if (userId) {
-                  console.log(`💰 Invalidating wallet cache for user: ${userId}`);
-                  await cacheHelpers.invalidateWalletData(userId);
-                }
-              } else if (pattern.includes('products')) {
-                await cacheHelpers.invalidateProducts();
-              } else if (pattern.includes('categories')) {
-                await cacheHelpers.invalidateCategoriesData();
-              } else if (pattern.includes('cart')) {
-                const userId = (req as any).user?.id;
-                if (userId) {
-                  console.log(`🛒 Invalidating cart cache for user: ${userId}`);
-                  await cacheHelpers.invalidateCartData(userId);
-                }
+        console.log(`🔄 IMMEDIATE Cache invalidation triggered for patterns: ${options.patterns.join(', ')}`);
+        // Perform cache invalidation IMMEDIATELY but asynchronously
+        const invalidationPromises = options.patterns.map(async (pattern) => {
+          try {
+            if (pattern.includes('orders')) {
+              const userId = (req as any).user?.id;
+              const tenantId = (req as any).user?.tenantId;
+              console.log(`📧 IMMEDIATE invalidation of orders cache for user: ${userId}, tenant: ${tenantId}`);
+              await cacheHelpers.invalidateOrdersData(userId);
+              console.log(`✅ Orders cache invalidated IMMEDIATELY for user: ${userId}`);
+            } else if (pattern.includes('wallet')) {
+              const userId = (req as any).user?.id;
+              if (userId) {
+                console.log(`💰 IMMEDIATE invalidation of wallet cache for user: ${userId}`);
+                await cacheHelpers.invalidateWalletData(userId);
+                console.log(`✅ Wallet cache invalidated IMMEDIATELY for user: ${userId}`);
               }
-            } catch (error) {
-              console.warn(`Cache invalidation failed for pattern ${pattern}:`, error);
+            } else if (pattern.includes('products')) {
+              await cacheHelpers.invalidateProducts();
+            } else if (pattern.includes('categories')) {
+              await cacheHelpers.invalidateCategoriesData();
+            } else if (pattern.includes('cart')) {
+              const userId = (req as any).user?.id;
+              if (userId) {
+                console.log(`🛒 IMMEDIATE invalidation of cart cache for user: ${userId}`);
+                await cacheHelpers.invalidateCartData(userId);
+                console.log(`✅ Cart cache invalidated IMMEDIATELY for user: ${userId}`);
+              }
             }
-          })
-        ).catch(error => {
+          } catch (error) {
+            console.warn(`Cache invalidation failed for pattern ${pattern}:`, error);
+          }
+        });
+        
+        // Start cache invalidation immediately, don't wait for completion
+        Promise.all(invalidationPromises).then(() => {
+          console.log(`🎯 ALL cache invalidations completed`);
+        }).catch(error => {
           console.warn('Cache invalidation error:', error);
         });
       }

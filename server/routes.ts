@@ -514,8 +514,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Order creation endpoint
-  app.post('/api/orders', isAuthenticated, async (req: any, res) => {
+  // Order creation endpoint with immediate cache invalidation
+  app.post('/api/orders', isAuthenticated, invalidateOrdersCache, async (req: any, res) => {
     try {
       const userId = req.user.id;
       const { billingInfo, paymentMethod, paymentDetails } = req.body;
@@ -662,19 +662,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         items: orderItems
       });
 
-      // Invalidate caches asynchronously after response is sent
-      setImmediate(async () => {
-        try {
-          // Invalidate orders and wallet cache to show latest data
-          await Promise.all([
-            redisCache.invalidatePattern(`orders:*${tenantId}:*`),
-            redisCache.invalidatePattern(`wallet:*${tenantId}:*`),
-            redisCache.invalidatePattern(`cart:*${tenantId}:*`)
-          ]);
-        } catch (cacheError) {
-          console.error('Order cache invalidation error:', cacheError);
-        }
-      });
+      // Cache invalidation now handled by middleware automatically
     } catch (error) {
       console.error('Error creating order:', error);
       res.status(500).json({ 
