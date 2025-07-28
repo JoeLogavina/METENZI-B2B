@@ -379,7 +379,17 @@ export class DatabaseStorage implements IStorage {
           eq(cartItems.userId, userId),
           eq(products.isActive, true) // Only active products
         ))
-        .orderBy(cartItems.createdAt);
+        .orderBy(desc(cartItems.createdAt));
+
+      console.log(`🔍 Cart query for user ${userId}: found ${rows.length} items`);
+      if (rows.length > 0) {
+        console.log('📦 Sample cart item:', {
+          id: rows[0].id,
+          productId: rows[0].productId,
+          productName: rows[0].product.name,
+          quantity: rows[0].quantity
+        });
+      }
 
       return rows.map(row => ({
         id: row.id,
@@ -390,7 +400,7 @@ export class DatabaseStorage implements IStorage {
         product: row.product
       }));
     } catch (error) {
-      console.error('Error fetching cart items:', error);
+      console.error('❌ Error fetching cart items:', error);
       throw new Error('Failed to fetch cart items');
     }
   }
