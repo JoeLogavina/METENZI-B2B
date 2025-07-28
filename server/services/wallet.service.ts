@@ -33,11 +33,29 @@ export interface WalletTransaction {
 }
 
 export class WalletService {
+  private static tenantContextCache = new Map<string, { tenantId: string; userRole: string; setAt: number }>();
+  private static CONTEXT_CACHE_TTL = 60000; // 1 minute
+
   /**
-   * Set tenant context for RLS policies
+   * Set tenant context for RLS policies with caching optimization
    */
   private async setTenantContext(tenantId: string, userRole: string = 'b2b_user'): Promise<void> {
+    const cacheKey = `${tenantId}:${userRole}`;
+    const cached = WalletService.tenantContextCache.get(cacheKey);
+    
+    // Skip database call if context was recently set
+    if (cached && (Date.now() - cached.setAt) < WalletService.CONTEXT_CACHE_TTL) {
+      return;
+    }
+
     await db.execute(sql`SELECT set_tenant_context(${tenantId}, ${userRole})`);
+    
+    // Cache the context setting
+    WalletService.tenantContextCache.set(cacheKey, {
+      tenantId,
+      userRole,
+      setAt: Date.now()
+    });
   }
 
   /**
