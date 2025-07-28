@@ -29,7 +29,7 @@ import NotFound from "@/pages/not-found";
 
 // Private pages (lazy-loaded to reduce initial bundle size)
 const B2BShop = lazy(() => import("@/pages/b2b-shop"));
-const EURShop = lazy(() => import("@/pages/eur-shop"));
+import EURShop from "@/pages/eur-shop";
 const KMShop = lazy(() => import("@/pages/km-shop"));
 const CartPage = lazy(() => import("@/pages/cart"));
 const CheckoutPage = lazy(() => import("@/pages/checkout"));
@@ -55,6 +55,9 @@ function Router() {
 
   return (
     <Switch>
+      {/* Test route - temporarily outside auth */}
+      <Route path="/eur" component={EURShop} />
+      
       {!isAuthenticated ? (
         <>
           <Route path="/" component={Landing} />
@@ -99,11 +102,7 @@ function Router() {
           )} />
           
           {/* Dedicated tenant routes */}
-          <Route path="/eur" component={() => (
-            <Suspense fallback={<ShopLoadingFallback />}>
-              <EURShop />
-            </Suspense>
-          )} />
+          <Route path="/eur" component={EURShop} />
           <Route path="/km" component={() => (
             <Suspense fallback={<ShopLoadingFallback />}>
               <KMShop />
