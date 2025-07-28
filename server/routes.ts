@@ -434,9 +434,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             quantity: item.quantity,
             unitPrice: item.unit_price,
             totalPrice: item.total_price,
-            licenseKey: item.license_key,
-            keyUsedAt: item.key_used_at,
-            keyCreatedAt: item.key_created_at,
+            licenseKeyId: item.license_key_id,
+            licenseKey: item.license_key ? {
+              id: item.license_key_id,
+              licenseKey: item.license_key,
+              usedBy: item.used_by,
+              usedAt: item.key_used_at,
+              createdAt: item.key_created_at
+            } : null,
             product: item.product_name ? {
               id: item.product_id,
               name: item.product_name,
@@ -453,6 +458,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             orderNumber: order.order_number,
             status: order.status,
             totalAmount: order.total_amount,
+            taxAmount: order.tax_amount,
+            finalAmount: order.final_amount,
             paymentMethod: order.payment_method,
             paymentStatus: order.payment_status,
             createdAt: order.created_at,
