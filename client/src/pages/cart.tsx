@@ -180,8 +180,8 @@ export default function CartPage() {
       return;
     }
 
-    // Check if item still exists in current cart
-    const currentItem = cartItems.find(item => item.id === itemId);
+    // Check if item still exists in current cart - use productId for lookup
+    const currentItem = cartItems.find(item => item.productId === itemId);
     if (!currentItem) {
       toast({
         title: "Error",
@@ -192,6 +192,7 @@ export default function CartPage() {
       return;
     }
 
+    // Pass productId (itemId) to the mutation, not cart item ID
     updateQuantityMutation.mutate({ itemId, quantity: newQuantity });
   };
 
