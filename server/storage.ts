@@ -333,21 +333,20 @@ export class DatabaseStorage implements IStorage {
 
   // Cart operations
   async getCartItems(userId: string): Promise<(CartItem & { product: Product })[]> {
-    return await db
+    const rows = await db
       .select()
       .from(cartItems)
       .innerJoin(products, eq(cartItems.productId, products.id))
-      .where(eq(cartItems.userId, userId))
-      .then(rows => 
-        rows.map(row => ({
-          id: row.cart_items.id,
-          userId: row.cart_items.userId,
-          productId: row.cart_items.productId,
-          quantity: row.cart_items.quantity,
-          createdAt: row.cart_items.createdAt,
-          product: row.products
-        }))
-      );
+      .where(eq(cartItems.userId, userId));
+
+    return rows.map(row => ({
+      id: row.cart_items.id,
+      userId: row.cart_items.userId,
+      productId: row.cart_items.productId,
+      quantity: row.cart_items.quantity,
+      createdAt: row.cart_items.createdAt,
+      product: row.products
+    }));
   }
 
   async addToCart(item: InsertCartItem): Promise<CartItem> {
