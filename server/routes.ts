@@ -388,22 +388,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
 
       try {
-        // Try event sourcing first, fallback to traditional cart
-        try {
-          const { cartEventSourcingService } = await import('./services/cart-event-sourcing.service');
-          const cartItems = await cartEventSourcingService.getCartItems(userId);
-          
-          res.setHeader('X-Cart-Mode', 'event-sourcing');
-          res.setHeader('X-Performance', 'optimized');
-          return res.json(cartItems);
-        } catch (eventSourcingError) {
-          console.log('Event sourcing not ready, using traditional cart');
-          
-          // Fallback to traditional cart system
-          const cartItems = await storage.getCartItems(userId);
-          res.setHeader('X-Cart-Mode', 'traditional');
-          return res.json(cartItems);
-        }
+        // ULTRA-FAST CART READ: Direct database operations only
+        const startTime = Date.now();
+        
+        const cartItems = await storage.getCartItems(userId);
+        const totalTime = Date.now() - startTime;
+        console.log(`⚡ ULTRA-FAST cart read completed in ${totalTime}ms - Found ${cartItems.length} items`);
+        
+        res.setHeader('X-Cart-Mode', 'ultra-fast');
+        return res.json(cartItems);
       } catch (error) {
         console.error("Cart fetch error:", error);
         res.status(500).json({ 
