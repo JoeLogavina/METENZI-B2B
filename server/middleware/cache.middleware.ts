@@ -41,7 +41,7 @@ export function cacheMiddleware(options: CacheOptions = {}) {
         return res.json(cachedResponse);
       }
 
-      console.log(`🔍 Cache MISS: ${req.originalUrl}`);
+
       
       // Store original json method
       const originalJson = res.json.bind(res);

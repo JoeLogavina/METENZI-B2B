@@ -37,7 +37,7 @@ export interface ProductService {
 export class ProductServiceImpl implements ProductService {
   async getActiveProducts(filters?: ProductFilters): Promise<ProductWithStock[]> {
     try {
-      console.log('ProductService.getActiveProducts - filters:', filters);
+
       
       const activeFilters = { 
         region: filters?.region,
@@ -49,9 +49,9 @@ export class ProductServiceImpl implements ProductService {
         isActive: true // Only return active products for B2B users
       };
       
-      console.log('ProductService.getActiveProducts - calling storage.getProducts with filters:', activeFilters);
+
       const products = await storage.getProducts(activeFilters);
-      console.log('ProductService.getActiveProducts - returned products count:', products.length);
+
       
       return products;
     } catch (error) {
