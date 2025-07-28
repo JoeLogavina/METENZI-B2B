@@ -90,12 +90,18 @@ export default function KMShop() {
       }
       const data = await res.json();
       
+      // Debug the API response
+      console.log('KM Shop API Response:', data.length, 'total products');
+      console.log('First product sample:', data[0]);
+      
       // Filter and transform for KM pricing - check all possible field names
-      return data
+      const filteredProducts = data
         .filter((product: any) => {
           // Check both priceKm and price_km field names
           const kmPrice = product.priceKm || product.price_km;
-          return kmPrice && parseFloat(kmPrice) > 0;
+          const hasKmPrice = kmPrice && parseFloat(kmPrice) > 0;
+          console.log(`Product "${product.name}": priceKm=${product.priceKm}, hasKmPrice=${hasKmPrice}`);
+          return hasKmPrice;
         })
         .map((product: any) => ({
           ...product,
@@ -103,6 +109,9 @@ export default function KMShop() {
           displayPrice: parseFloat(product.priceKm || product.price_km),
           currency: 'KM'
         }));
+      
+      console.log('KM Shop filtered products:', filteredProducts.length);
+      return filteredProducts;
     },
     enabled: isAuthenticated,
     staleTime: 5 * 60 * 1000, // 5 minutes
