@@ -11,28 +11,41 @@ class ServiceError extends Error {
 }
 
 export interface ILicenseKeyService {
-  getProductKeys(productId: string): Promise<LicenseKey[]>;
-  addKeys(productId: string, keyValues: string[]): Promise<{ added: LicenseKey[], duplicates: string[] }>;
+  getProductKeys(productId: string, tenantId?: string, userRole?: string): Promise<LicenseKey[]>;
+  addKeys(productId: string, keyValues: string[], tenantId?: string): Promise<{ added: LicenseKey[], duplicates: string[] }>;
   removeKey(keyId: string): Promise<void>;
-  getKeyStats(productId: string): Promise<{ total: number, used: number, available: number }>;
+  getKeyStats(productId: string, tenantId?: string): Promise<{ total: number, used: number, available: number }>;
   validateKeys(keyValues: string[]): string[];
 }
 
 export class LicenseKeyServiceImpl implements ILicenseKeyService {
-  async getProductKeys(productId: string): Promise<LicenseKey[]> {
+  async getProductKeys(productId: string, tenantId?: string, userRole?: string): Promise<LicenseKey[]> {
     try {
-      return await db
+      let whereConditions = [eq(licenseKeys.productId, productId)];
+      
+      // CRITICAL SECURITY FIX: Enforce tenant isolation at service level
+      if (userRole === 'admin' || userRole === 'super_admin') {
+        console.log(`🔑 ADMIN SERVICE ACCESS: User with role ${userRole} accessing all license keys for product ${productId}`);
+      } else if (tenantId) {
+        whereConditions.push(eq(licenseKeys.tenantId, tenantId));
+        console.log(`🛡️ TENANT SERVICE ISOLATION: Filtering license keys for tenant ${tenantId} and product ${productId}`);
+      }
+      
+      const keys = await db
         .select()
         .from(licenseKeys)
-        .where(eq(licenseKeys.productId, productId))
+        .where(and(...whereConditions))
         .orderBy(licenseKeys.createdAt);
+        
+      console.log(`📊 SERVICE RESULT: Returned ${keys.length} license keys for product ${productId}`);
+      return keys;
     } catch (error) {
       console.error("Error fetching license keys:", error);
       throw new ServiceError("Failed to fetch license keys");
     }
   }
 
-  async addKeys(productId: string, keyValues: string[]): Promise<{ added: LicenseKey[], duplicates: string[] }> {
+  async addKeys(productId: string, keyValues: string[], tenantId?: string): Promise<{ added: LicenseKey[], duplicates: string[] }> {
     try {
       console.log('DEBUG Service: addKeys called with productId:', productId);
       console.log('DEBUG Service: Raw key values:', keyValues);
@@ -73,6 +86,7 @@ export class LicenseKeyServiceImpl implements ILicenseKeyService {
           productId,
           keyValue,
           isUsed: false,
+          tenantId: tenantId || 'eur', // Default to EUR tenant if not specified
         }));
         
         const insertedKeys = await db
@@ -108,20 +122,26 @@ export class LicenseKeyServiceImpl implements ILicenseKeyService {
     }
   }
 
-  async getKeyStats(productId: string): Promise<{ total: number, used: number, available: number }> {
+  async getKeyStats(productId: string, tenantId?: string): Promise<{ total: number, used: number, available: number }> {
     try {
+      let totalConditions = [eq(licenseKeys.productId, productId)];
+      let usedConditions = [eq(licenseKeys.productId, productId), eq(licenseKeys.isUsed, true)];
+      
+      // Add tenant filtering for non-admin users
+      if (tenantId) {
+        totalConditions.push(eq(licenseKeys.tenantId, tenantId));
+        usedConditions.push(eq(licenseKeys.tenantId, tenantId));
+      }
+      
       const [totalResult] = await db
         .select({ count: count() })
         .from(licenseKeys)
-        .where(eq(licenseKeys.productId, productId));
+        .where(and(...totalConditions));
       
       const [usedResult] = await db
         .select({ count: count() })
         .from(licenseKeys)
-        .where(and(
-          eq(licenseKeys.productId, productId),
-          eq(licenseKeys.isUsed, true)
-        ));
+        .where(and(...usedConditions));
       
       const total = totalResult.count;
       const used = usedResult.count;

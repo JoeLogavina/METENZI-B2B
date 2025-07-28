@@ -33,7 +33,8 @@ export class AdminLicenseKeysController {
         throw new ValidationError("Product ID is required");
       }
       
-      const keys = await licenseKeyService.getProductKeys(productId);
+      // Admin users can see all license keys across all tenants
+      const keys = await licenseKeyService.getProductKeys(productId, undefined, 'admin');
       const stats = await licenseKeyService.getKeyStats(productId);
       
       res.json({
@@ -85,7 +86,8 @@ export class AdminLicenseKeysController {
         throw new ValidationError("No valid keys provided");
       }
       
-      const result = await licenseKeyService.addKeys(productId, keyValues);
+      // Admin users add keys with default EUR tenant (for backwards compatibility)
+      const result = await licenseKeyService.addKeys(productId, keyValues, 'eur');
       console.log('DEBUG Controller: Service result:', result);
       
       // If there are duplicates and user hasn't acknowledged them

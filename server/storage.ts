@@ -58,7 +58,7 @@ export interface IStorage {
   createCategory(category: InsertCategory): Promise<Category>;
 
   // License key operations
-  getLicenseKeys(productId?: string): Promise<LicenseKey[]>;
+  getLicenseKeys(productId?: string, tenantId?: string, userRole?: string): Promise<LicenseKey[]>;
   createLicenseKey(key: InsertLicenseKey): Promise<LicenseKey>;
   getAvailableKey(productId: string): Promise<LicenseKey | undefined>;
   getKeyById(keyId: string): Promise<LicenseKey | undefined>;
@@ -294,14 +294,33 @@ export class DatabaseStorage implements IStorage {
   }
 
   // License key operations
-  async getLicenseKeys(productId?: string): Promise<LicenseKey[]> {
+  async getLicenseKeys(productId?: string, tenantId?: string, userRole?: string): Promise<LicenseKey[]> {
+    let whereConditions = [];
+    
+    // Filter by product if specified
     if (productId) {
-      return await db.select().from(licenseKeys)
-        .where(eq(licenseKeys.productId, productId))
-        .orderBy(desc(licenseKeys.createdAt));
+      whereConditions.push(eq(licenseKeys.productId, productId));
     }
-    return await db.select().from(licenseKeys)
-      .orderBy(desc(licenseKeys.createdAt));
+    
+    // CRITICAL SECURITY FIX: Enforce tenant isolation at application level
+    // Since RLS policies are broken, we implement strict tenant filtering here
+    if (userRole === 'admin' || userRole === 'super_admin') {
+      // Admin can see all license keys across all tenants
+      console.log(`🔑 ADMIN ACCESS: User with role ${userRole} accessing all license keys`);
+    } else if (tenantId) {
+      // Regular users can only see keys from their specific tenant
+      whereConditions.push(eq(licenseKeys.tenantId, tenantId));
+      console.log(`🛡️ TENANT ISOLATION: Filtering license keys for tenant ${tenantId}`);
+    }
+    
+    const query = whereConditions.length > 0 
+      ? db.select().from(licenseKeys).where(and(...whereConditions))
+      : db.select().from(licenseKeys);
+      
+    const keys = await query.orderBy(desc(licenseKeys.createdAt));
+    
+    console.log(`📊 QUERY RESULT: Returned ${keys.length} license keys`);
+    return keys;
   }
 
   async createLicenseKey(key: InsertLicenseKey): Promise<LicenseKey> {
