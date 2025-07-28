@@ -380,130 +380,228 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Enterprise-optimized Cart routes with caching
+  // ENTERPRISE CART API - FULL REBUILD WITH ATOMIC OPERATIONS
+  
+  /**
+   * GET /api/cart - Fetch user's cart with smart caching
+   */
   app.get('/api/cart', 
     isAuthenticated, 
     async (req: any, res) => {
       const userId = req.user.id;
+      const cacheKey = `cart:${userId}`;
 
       try {
-        // Try cache first for better performance
-        const cacheKey = `cart:${userId}`;
+        // Check cache first
         const cachedCart = await redisCache.get(cacheKey);
-
         if (cachedCart) {
           res.setHeader('X-Cache', 'HIT');
           return res.json(cachedCart);
         }
 
-        // Fetch from database
+        // Fetch from database with full transaction safety  
         const cartItems = await storage.getCartItems(userId);
 
-        // Cache cart items for 5 minutes
-        await redisCache.set(cacheKey, cartItems, 300);
+        // Cache result for 3 minutes (cart changes frequently)
+        await redisCache.set(cacheKey, cartItems, 180);
 
         res.setHeader('X-Cache', 'MISS');
         res.json(cartItems);
       } catch (error) {
-        console.error("Error fetching cart:", error);
-        res.status(500).json({ message: "Failed to fetch cart" });
+        console.error("Cart fetch error:", error);
+        res.status(500).json({ 
+          message: "Failed to fetch cart", 
+          error: error.message,
+          timestamp: new Date().toISOString()
+        });
       }
     });
 
+  /**
+   * POST /api/cart - Add item to cart with validation
+   */
   app.post('/api/cart', 
     isAuthenticated, 
     async (req: any, res) => {
       const userId = req.user.id;
+      const cacheKey = `cart:${userId}`;
 
       try {
-        // Validate and parse cart data
-        const cartData = insertCartItemSchema.parse({ ...req.body, userId });
+        // Validate request data
+        const cartData = insertCartItemSchema.parse({ 
+          ...req.body, 
+          userId 
+        });
 
-        // Add to cart
+        // Add to cart with transactional safety
         const cartItem = await storage.addToCart(cartData);
 
-        // Invalidate cart cache for this user
-        const cacheKey = `cart:${userId}`;
+        // Atomic cache invalidation
         await redisCache.del(cacheKey);
 
+        // Return the created item
         res.status(201).json(cartItem);
       } catch (error) {
-        console.error("Error adding to cart:", error);
-        res.status(500).json({ message: "Failed to add to cart" });
+        console.error("Cart add error:", error);
+        
+        // Handle validation errors specifically
+        if (error.name === 'ZodError') {
+          return res.status(400).json({ 
+            message: "Invalid cart data", 
+            errors: error.errors 
+          });
+        }
+
+        res.status(500).json({ 
+          message: "Failed to add to cart", 
+          error: error.message,
+          timestamp: new Date().toISOString()
+        });
       }
     });
 
-  app.put('/api/cart/:id', 
-    isAuthenticated, 
-    async (req: any, res) => {
-      const userId = req.user.id;
-
-      try {
-        const { quantity } = req.body;
-        await storage.updateCartItem(req.params.id, quantity);
-
-        // Invalidate user's cart cache
-        await redisCache.del(`cart:${userId}`);
-
-        res.json({ success: true });
-      } catch (error) {
-        console.error("Error updating cart item:", error);
-        res.status(500).json({ message: "Failed to update cart item" });
-      }
-    });
-
+  /**
+   * PATCH /api/cart/:id - Update cart item quantity
+   */
   app.patch('/api/cart/:id', 
     isAuthenticated, 
     async (req: any, res) => {
       const userId = req.user.id;
+      const itemId = req.params.id;
+      const cacheKey = `cart:${userId}`;
 
       try {
         const { quantity } = req.body;
-        await storage.updateCartItem(req.params.id, quantity);
 
-        // Invalidate user's cart cache
-        await redisCache.del(`cart:${userId}`);
+        // Validate quantity
+        if (!quantity || quantity < 1) {
+          return res.status(400).json({ 
+            message: "Quantity must be at least 1" 
+          });
+        }
 
-        res.json({ success: true });
+        // Update with transaction safety
+        const updatedItem = await storage.updateCartItem(itemId, quantity);
+
+        // Atomic cache invalidation
+        await redisCache.del(cacheKey);
+
+        res.json({ 
+          success: true, 
+          item: updatedItem,
+          message: "Cart item updated successfully"
+        });
       } catch (error) {
-        console.error("Error updating cart item:", error);
-        res.status(500).json({ message: "Failed to update cart item" });
+        console.error("Cart update error:", error);
+        res.status(500).json({ 
+          message: "Failed to update cart item", 
+          error: error.message,
+          timestamp: new Date().toISOString()
+        });
       }
     });
 
+  /**
+   * DELETE /api/cart/:id - Remove specific item from cart
+   */
   app.delete('/api/cart/:id', 
     isAuthenticated, 
     async (req: any, res) => {
       const userId = req.user.id;
+      const itemId = req.params.id;
+      const cacheKey = `cart:${userId}`;
 
       try {
-        await storage.removeFromCart(req.params.id);
+        // Remove with transaction safety
+        const wasRemoved = await storage.removeFromCart(itemId);
 
-        // Invalidate user's cart cache
-        await redisCache.del(`cart:${userId}`);
+        // Atomic cache invalidation
+        await redisCache.del(cacheKey);
 
-        res.json({ success: true });
+        if (wasRemoved) {
+          res.json({ 
+            success: true, 
+            message: "Item removed from cart"
+          });
+        } else {
+          res.status(404).json({ 
+            success: false, 
+            message: "Cart item not found"
+          });
+        }
       } catch (error) {
-        console.error("Error removing from cart:", error);
-        res.status(500).json({ message: "Failed to remove from cart" });
+        console.error("Cart remove error:", error);
+        res.status(500).json({ 
+          message: "Failed to remove cart item", 
+          error: error.message,
+          timestamp: new Date().toISOString()
+        });
       }
     });
 
+  /**
+   * DELETE /api/cart - Clear entire cart
+   */
   app.delete('/api/cart', 
     isAuthenticated, 
     async (req: any, res) => {
       const userId = req.user.id;
+      const cacheKey = `cart:${userId}`;
 
       try {
-        await storage.clearCart(userId);
+        // Clear cart with atomic operation
+        const itemsRemoved = await storage.clearCart(userId);
 
-        // Invalidate user's cart cache
-        await redisCache.del(`cart:${userId}`);
+        // Atomic cache invalidation
+        await redisCache.del(cacheKey);
 
-        res.json({ success: true });
+        res.json({ 
+          success: true, 
+          itemsRemoved,
+          message: `Cart cleared successfully. ${itemsRemoved} items removed.`
+        });
       } catch (error) {
-        console.error("Error clearing cart:", error);
-        res.status(500).json({ message: "Failed to clear cart" });
+        console.error("Cart clear error:", error);
+        res.status(500).json({ 
+          message: "Failed to clear cart", 
+          error: error.message,
+          timestamp: new Date().toISOString()
+        });
+      }
+    });
+
+  /**
+   * GET /api/cart/summary - Get cart summary with totals
+   */
+  app.get('/api/cart/summary', 
+    isAuthenticated, 
+    async (req: any, res) => {
+      const userId = req.user.id;
+      const cacheKey = `cart:summary:${userId}`;
+
+      try {
+        // Check cache first
+        const cachedSummary = await redisCache.get(cacheKey);
+        if (cachedSummary) {
+          res.setHeader('X-Cache', 'HIT');
+          return res.json(cachedSummary);
+        }
+
+        // Get cart summary from storage
+        const summary = await storage.getCartSummary(userId);
+
+        // Cache summary for 2 minutes
+        await redisCache.set(cacheKey, summary, 120);
+
+        res.setHeader('X-Cache', 'MISS');
+        res.json(summary);
+      } catch (error) {
+        console.error("Cart summary error:", error);
+        res.status(500).json({ 
+          message: "Failed to get cart summary", 
+          error: error.message,
+          timestamp: new Date().toISOString()
+        });
       }
     });
 

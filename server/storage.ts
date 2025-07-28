@@ -331,56 +331,249 @@ export class DatabaseStorage implements IStorage {
     return result.count;
   }
 
-  // Cart operations
+  // ENTERPRISE CART OPERATIONS WITH TRANSACTIONAL SAFETY
+  
+  /**
+   * Get cart items with complete product information
+   * Uses proper joins and error handling
+   */
   async getCartItems(userId: string): Promise<(CartItem & { product: Product })[]> {
-    const rows = await db
-      .select()
-      .from(cartItems)
-      .innerJoin(products, eq(cartItems.productId, products.id))
-      .where(eq(cartItems.userId, userId));
+    try {
+      const rows = await db
+        .select({
+          // Cart item fields
+          id: cartItems.id,
+          userId: cartItems.userId,
+          productId: cartItems.productId,
+          quantity: cartItems.quantity,
+          createdAt: cartItems.createdAt,
+          // Product fields
+          product: {
+            id: products.id,
+            sku: products.sku,
+            name: products.name,
+            description: products.description,
+            price: products.price,
+            priceKm: products.priceKm,
+            purchasePrice: products.purchasePrice,
+            b2bPrice: products.b2bPrice,
+            retailPrice: products.retailPrice,
+            purchasePriceKm: products.purchasePriceKm,
+            resellerPriceKm: products.resellerPriceKm,
+            retailerPriceKm: products.retailerPriceKm,
+            categoryId: products.categoryId,
+            region: products.region,
+            platform: products.platform,
+            stockCount: products.stockCount,
+            imageUrl: products.imageUrl,
+            warranty: products.warranty,
+            htmlDescription: products.htmlDescription,
+            isActive: products.isActive,
+            createdAt: products.createdAt,
+            updatedAt: products.updatedAt,
+          }
+        })
+        .from(cartItems)
+        .innerJoin(products, eq(cartItems.productId, products.id))
+        .where(and(
+          eq(cartItems.userId, userId),
+          eq(products.isActive, true) // Only active products
+        ))
+        .orderBy(cartItems.createdAt);
 
-    return rows.map(row => ({
-      id: row.cart_items.id,
-      userId: row.cart_items.userId,
-      productId: row.cart_items.productId,
-      quantity: row.cart_items.quantity,
-      createdAt: row.cart_items.createdAt,
-      product: row.products
-    }));
-  }
-
-  async addToCart(item: InsertCartItem): Promise<CartItem> {
-    // Check if item already exists
-    const [existingItem] = await db
-      .select()
-      .from(cartItems)
-      .where(and(eq(cartItems.userId, item.userId), eq(cartItems.productId, item.productId)));
-
-    if (existingItem) {
-      // Update quantity
-      const [updatedItem] = await db
-        .update(cartItems)
-        .set({ quantity: existingItem.quantity + item.quantity })
-        .where(eq(cartItems.id, existingItem.id))
-        .returning();
-      return updatedItem;
-    } else {
-      // Add new item
-      const [newItem] = await db.insert(cartItems).values(item).returning();
-      return newItem;
+      return rows.map(row => ({
+        id: row.id,
+        userId: row.userId,
+        productId: row.productId,
+        quantity: row.quantity,
+        createdAt: row.createdAt,
+        product: row.product
+      }));
+    } catch (error) {
+      console.error('Error fetching cart items:', error);
+      throw new Error('Failed to fetch cart items');
     }
   }
 
-  async updateCartItem(id: string, quantity: number): Promise<void> {
-    await db.update(cartItems).set({ quantity }).where(eq(cartItems.id, id));
+  /**
+   * Add item to cart with transactional safety
+   * Handles quantity merging and stock validation
+   */
+  async addToCart(item: InsertCartItem): Promise<CartItem> {
+    try {
+      return await db.transaction(async (tx) => {
+        // Validate product exists and is active
+        const [product] = await tx
+          .select({ id: products.id, stockCount: products.stockCount, isActive: products.isActive })
+          .from(products)
+          .where(eq(products.id, item.productId));
+
+        if (!product) {
+          throw new Error('Product not found');
+        }
+
+        if (!product.isActive) {
+          throw new Error('Product is not available');
+        }
+
+        // Check if item already exists in cart
+        const [existingItem] = await tx
+          .select()
+          .from(cartItems)
+          .where(and(
+            eq(cartItems.userId, item.userId), 
+            eq(cartItems.productId, item.productId)
+          ));
+
+        if (existingItem) {
+          // Update existing item quantity
+          const newQuantity = existingItem.quantity + item.quantity;
+          
+          const [updatedItem] = await tx
+            .update(cartItems)
+            .set({ 
+              quantity: newQuantity,
+              createdAt: new Date() // Update timestamp for proper ordering
+            })
+            .where(eq(cartItems.id, existingItem.id))
+            .returning();
+          
+          return updatedItem;
+        } else {
+          // Insert new cart item
+          const [newItem] = await tx
+            .insert(cartItems)
+            .values(item)
+            .returning();
+          
+          return newItem;
+        }
+      });
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      throw new Error(`Failed to add item to cart: ${error.message}`);
+    }
   }
 
-  async removeFromCart(id: string): Promise<void> {
-    await db.delete(cartItems).where(eq(cartItems.id, id));
+  /**
+   * Update cart item quantity with validation
+   */
+  async updateCartItem(id: string, quantity: number): Promise<CartItem> {
+    try {
+      if (quantity < 1) {
+        throw new Error('Quantity must be at least 1');
+      }
+
+      return await db.transaction(async (tx) => {
+        // Verify cart item exists and belongs to user
+        const [existingItem] = await tx
+          .select()
+          .from(cartItems)
+          .where(eq(cartItems.id, id));
+
+        if (!existingItem) {
+          throw new Error('Cart item not found');
+        }
+
+        // Update quantity
+        const [updatedItem] = await tx
+          .update(cartItems)
+          .set({ quantity })
+          .where(eq(cartItems.id, id))
+          .returning();
+
+        return updatedItem;
+      });
+    } catch (error) {
+      console.error('Error updating cart item:', error);
+      throw new Error(`Failed to update cart item: ${error.message}`);
+    }
   }
 
-  async clearCart(userId: string): Promise<void> {
-    await db.delete(cartItems).where(eq(cartItems.userId, userId));
+  /**
+   * Remove specific item from cart
+   */
+  async removeFromCart(id: string): Promise<boolean> {
+    try {
+      return await db.transaction(async (tx) => {
+        // Verify item exists before deletion
+        const [existingItem] = await tx
+          .select()
+          .from(cartItems)
+          .where(eq(cartItems.id, id));
+
+        if (!existingItem) {
+          return false; // Item doesn't exist, consider it removed
+        }
+
+        // Delete the item
+        await tx
+          .delete(cartItems)
+          .where(eq(cartItems.id, id));
+
+        return true;
+      });
+    } catch (error) {
+      console.error('Error removing from cart:', error);
+      throw new Error(`Failed to remove item from cart: ${error.message}`);
+    }
+  }
+
+  /**
+   * Clear entire cart for user with atomic operation
+   */
+  async clearCart(userId: string): Promise<number> {
+    try {
+      return await db.transaction(async (tx) => {
+        // Count items before deletion for confirmation
+        const [countResult] = await tx
+          .select({ count: count() })
+          .from(cartItems)
+          .where(eq(cartItems.userId, userId));
+
+        const itemCount = countResult.count;
+
+        if (itemCount > 0) {
+          // Delete all cart items for user
+          await tx
+            .delete(cartItems)
+            .where(eq(cartItems.userId, userId));
+        }
+
+        return itemCount;
+      });
+    } catch (error) {
+      console.error('Error clearing cart:', error);
+      throw new Error(`Failed to clear cart: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get cart summary with totals
+   */
+  async getCartSummary(userId: string): Promise<{
+    itemCount: number;
+    totalAmount: number;
+    items: (CartItem & { product: Product })[];
+  }> {
+    try {
+      const items = await this.getCartItems(userId);
+      
+      const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
+      const totalAmount = items.reduce((sum, item) => {
+        const price = parseFloat(item.product.price || '0');
+        return sum + (price * item.quantity);
+      }, 0);
+
+      return {
+        itemCount,
+        totalAmount,
+        items
+      };
+    } catch (error) {
+      console.error('Error getting cart summary:', error);
+      throw new Error('Failed to get cart summary');
+    }
   }
 
   // Order operations

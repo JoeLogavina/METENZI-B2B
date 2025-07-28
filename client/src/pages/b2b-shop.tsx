@@ -162,10 +162,10 @@ export default function B2BShop() {
 
   // Enterprise-grade optimistic updates with instant UI response
   const addToCartMutation = useMutation({
-    mutationFn: async ({ productId, quantity }: { productId, quantity: number }) => {
+    mutationFn: async ({ productId, quantity }: { productId: string, quantity: number }) => {
       // Don't set loading state here - let optimistic update handle UX
       const response = await apiRequest("POST", "/api/cart", { productId, quantity });
-      return response.json();
+      return response;
     },
     onMutate: async ({ productId, quantity }) => {
       // Instant UI response - set loading state immediately
