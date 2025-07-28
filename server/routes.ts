@@ -417,6 +417,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userRole = req.user.role;
       const tenantId = req.user.tenantId || 'eur';
 
+      console.log('🛡️ TENANT ISOLATION CHECK:', {
+        userId,
+        userRole,
+        tenantId,
+        timestamp: new Date().toISOString()
+      });
+
       const { OrderService } = await import('./services/order.service');
       const orderService = new OrderService();
 
@@ -426,7 +433,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ordersData = await orderService.getAllOrders(userRole);
       } else {
         ordersData = await orderService.getUserOrders(userId, tenantId);
+        
+        // CRITICAL: Double-check tenant isolation at API level
+        const filteredOrders = ordersData.filter(order => 
+          order.userId === userId && order.tenantId === tenantId
+        );
+        
+        if (filteredOrders.length !== ordersData.length) {
+          console.error('🚨 TENANT ISOLATION BREACH DETECTED:', {
+            userId,
+            tenantId,
+            originalCount: ordersData.length,
+            filteredCount: filteredOrders.length,
+            breachingOrders: ordersData.filter(order => 
+              order.userId !== userId || order.tenantId !== tenantId
+            )
+          });
+        }
+        
+        ordersData = filteredOrders;
       }
+
+      console.log('✅ TENANT ISOLATION VERIFIED:', {
+        userId,
+        tenantId,
+        orderCount: ordersData.length,
+        firstOrderTenant: ordersData[0]?.tenantId || 'none'
+      });
 
       res.json(ordersData);
     } catch (error) {

@@ -91,9 +91,10 @@ export function invalidateCacheMiddleware(pattern: string) {
   };
 }
 
-function generateCacheKey(prefix: string, url: string, query: any): string {
+function generateCacheKey(prefix: string, url: string, query: any, tenantId?: string): string {
   const queryString = Object.keys(query).length > 0 ? JSON.stringify(query) : '';
-  const keyData = `${url}:${queryString}`;
+  const tenantPrefix = tenantId ? `${tenantId}:` : '';
+  const keyData = `${tenantPrefix}${url}:${queryString}`;
   return `${prefix}:${Buffer.from(keyData).toString('base64')}`;
 }
 
@@ -126,7 +127,10 @@ export const ordersCacheMiddleware = cacheMiddleware({
   ttl: 300, // 5 minutes for orders (frequently updated)
   keyPrefix: 'orders',
   skipCacheCondition: (req) => {
-    // Skip cache for admin users (they might see different data)
-    return (req.user as any)?.role === 'admin' || (req.user as any)?.role === 'super_admin';
+    // TEMPORARILY DISABLE ORDERS CACHE TO FIX TENANT ISOLATION BREACH
+    return true;
+    
+    // Future tenant-aware caching:
+    // return (req.user as any)?.role === 'admin' || (req.user as any)?.role === 'super_admin';
   }
 });
