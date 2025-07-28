@@ -90,14 +90,14 @@ export default function PriceManagementPage() {
   }, [searchTerm]);
 
   const { data: productsRaw, isLoading } = useQuery({
-    queryKey: ["/api/products"],
+    queryKey: ["/api/admin/products"],
   });
 
   // Client-side filtering for search and categories
   const products = React.useMemo(() => {
-    if (!productsRaw) return [];
+    if (!productsRaw?.data) return [];
     
-    let filtered = productsRaw as Product[];
+    let filtered = productsRaw.data as Product[];
     
     // Apply search filter
     if (debouncedSearchTerm) {
