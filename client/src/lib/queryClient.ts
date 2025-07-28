@@ -8,12 +8,12 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-// TIER 1 ENTERPRISE OPTIMIZATION: Enhanced API Request with Batching Support
+// Enhanced API Request with proper error handling
 export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
-): Promise<Response> {
+): Promise<any> {
   // Skip batching for cart API - needs immediate response for UX
   const skipBatching = url.includes('/api/cart') || url.includes('/api/wallet') || url.includes('/api/orders');
   
@@ -21,14 +21,7 @@ export async function apiRequest(
   if (method === 'GET' && !data && !skipBatching) {
     try {
       const responseData = await requestBatcher.batchRequest(url, method);
-      // Create a mock Response object with the batched data
-      return {
-        ok: true,
-        status: 200,
-        json: async () => responseData,
-        text: async () => JSON.stringify(responseData),
-        statusText: 'OK'
-      } as Response;
+      return responseData;
     } catch (error) {
       // Fallback to regular fetch if batching fails
       console.warn('Request batching failed, falling back to regular fetch:', error);

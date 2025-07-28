@@ -162,7 +162,7 @@ export default function B2BShop() {
   const addToCartMutation = useMutation({
     mutationFn: async ({ productId, quantity }: { productId: string, quantity: number }) => {
       const response = await apiRequest("POST", "/api/cart", { productId, quantity });
-      return response;
+      return response.json();
     },
     onMutate: async (variables) => {
       // Set loading state for UI feedback
