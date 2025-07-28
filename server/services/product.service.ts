@@ -113,6 +113,8 @@ export class ProductServiceImpl implements ProductService {
     try {
       console.log('ProductService.updateProduct - ID:', id);
       console.log('ProductService.updateProduct - Data:', updateData);
+      console.log('ProductService.updateProduct - Storage object:', typeof storage, !!storage);
+      console.log('ProductService.updateProduct - Storage.updateProduct method:', typeof storage?.updateProduct);
       
       // Check if product exists
       await this.getProductById(id);
@@ -123,6 +125,10 @@ export class ProductServiceImpl implements ProductService {
       // Business rules validation for updates
       if (updateData.price !== undefined) {
         await this.validatePriceUpdate(id, updateData.price);
+      }
+      
+      if (!storage || !storage.updateProduct) {
+        throw new Error('Storage or updateProduct method is undefined');
       }
       
       const result = await storage.updateProduct(id, updateData);
