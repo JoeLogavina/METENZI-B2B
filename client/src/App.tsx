@@ -125,7 +125,27 @@ function Router() {
               <CartPage />
             </Suspense>
           )} />
+          <Route path="/eur/cart" component={() => (
+            <Suspense fallback={<CartLoadingFallback />}>
+              <CartPage />
+            </Suspense>
+          )} />
+          <Route path="/km/cart" component={() => (
+            <Suspense fallback={<CartLoadingFallback />}>
+              <CartPage />
+            </Suspense>
+          )} />
           <Route path="/checkout" component={() => (
+            <Suspense fallback={<CheckoutLoadingFallback />}>
+              <CheckoutPage />
+            </Suspense>
+          )} />
+          <Route path="/eur/checkout" component={() => (
+            <Suspense fallback={<CheckoutLoadingFallback />}>
+              <CheckoutPage />
+            </Suspense>
+          )} />
+          <Route path="/km/checkout" component={() => (
             <Suspense fallback={<CheckoutLoadingFallback />}>
               <CheckoutPage />
             </Suspense>

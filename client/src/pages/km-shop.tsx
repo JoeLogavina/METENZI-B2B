@@ -230,6 +230,7 @@ export default function KMShop() {
   const sidebarItems = [
     { icon: Package, label: "KM SHOP", active: true, href: "/km", allowed: true },
     { icon: Grid, label: "CATALOG", active: false, href: "/km", allowed: true },
+    { icon: ShoppingCart, label: "MY CART", active: false, href: "/km/cart", allowed: true },
     { icon: FileText, label: "ORDERS", active: false, href: "/orders", allowed: true },
     { icon: CreditCard, label: "MY WALLET", active: false, href: "/wallet", allowed: true },
     { icon: Settings, label: "SETTINGS", active: false, href: "/km", allowed: true },
