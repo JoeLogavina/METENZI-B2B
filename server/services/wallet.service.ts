@@ -1,12 +1,6 @@
-import { db } from "../db";
-import { wallets, walletTransactions, users, type Wallet, type WalletTransaction, type InsertWallet, type InsertWalletTransaction } from "@shared/schema";
-import { eq, and, desc, sum } from "drizzle-orm";
-class ServiceError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "ServiceError";
-  }
-}
+import { db } from '../db';
+import { wallets, walletTransactions, orders, users } from '@shared/schema';
+import { eq, and, desc, sql } from 'drizzle-orm';
 
 export interface WalletBalance {
   depositBalance: string;
@@ -17,406 +11,341 @@ export interface WalletBalance {
   isOverlimit: boolean;
 }
 
-export interface WalletSummary extends Wallet {
+export interface WalletData {
+  id: string;
+  userId: string;
+  tenantId: string;
+  depositBalance: string;
+  creditLimit: string;
+  creditUsed: string;
+  isActive: boolean;
   balance: WalletBalance;
-  recentTransactions: WalletTransaction[];
 }
 
-class WalletServiceImpl {
-  async getOrCreateUserWallet(userId: string): Promise<Wallet> {
-    try {
-      // Check if wallet exists
-      const [existingWallet] = await db
-        .select()
-        .from(wallets)
-        .where(eq(wallets.userId, userId));
+export interface WalletTransaction {
+  id: string;
+  type: string;
+  amount: string;
+  description: string;
+  createdAt: string;
+  balanceAfter: string;
+  orderId?: string;
+}
 
-      if (existingWallet) {
-        return existingWallet;
-      }
-
-      // Create new wallet for user
-      const [newWallet] = await db
-        .insert(wallets)
-        .values({
-          userId,
-          depositBalance: "0.00",
-          creditLimit: "0.00",
-          creditUsed: "0.00",
-          isActive: true,
-        })
-        .returning();
-
-      return newWallet;
-    } catch (error) {
-      console.error("Error getting or creating wallet:", error);
-      throw new ServiceError("Failed to access user wallet");
-    }
+export class WalletService {
+  /**
+   * Set tenant context for RLS policies
+   */
+  private async setTenantContext(tenantId: string, userRole: string = 'b2b_user'): Promise<void> {
+    await db.execute(sql`SELECT set_tenant_context(${tenantId}, ${userRole})`);
   }
 
-  async getWalletSummary(userId: string): Promise<WalletSummary> {
-    try {
-      const wallet = await this.getOrCreateUserWallet(userId);
-      
-      // Get all transactions for this user to calculate real balance
-      const transactions = await db
-        .select()
-        .from(walletTransactions)
-        .where(eq(walletTransactions.userId, userId))
-        .orderBy(desc(walletTransactions.createdAt));
+  /**
+   * Initialize wallet for user if it doesn't exist
+   */
+  async initializeWallet(userId: string, tenantId: string): Promise<string> {
+    await this.setTenantContext(tenantId);
+    
+    // Check if wallet exists
+    const [existingWallet] = await db
+      .select({ id: wallets.id })
+      .from(wallets)
+      .where(and(
+        eq(wallets.userId, userId),
+        eq(wallets.tenantId, tenantId)
+      ));
 
-      // Use wallet table data directly instead of transaction calculation
-      const balance = this.calculateBalance(wallet);
-
-      // Get recent transactions (limit to 10 for display)
-      const recentTransactions = transactions.slice(0, 10);
-
-      return {
-        ...wallet,
-        balance,
-        recentTransactions,
-      };
-    } catch (error) {
-      console.error("Error getting wallet summary:", error);
-      throw new ServiceError("Failed to get wallet summary");
+    if (existingWallet) {
+      return existingWallet.id;
     }
+
+    // Create wallet using stored procedure
+    const result = await db.execute(
+      sql`SELECT initialize_user_wallet(${userId}, ${tenantId}, 5000.00, 5000.00) as wallet_id`
+    );
+    
+    return result.rows[0]?.wallet_id as string;
   }
 
-  async addDeposit(userId: string, amount: string, description: string, adminId: string): Promise<WalletTransaction> {
-    try {
-      const wallet = await this.getOrCreateUserWallet(userId);
-      const depositAmount = parseFloat(amount);
-      
-      if (depositAmount <= 0) {
-        throw new ServiceError("Deposit amount must be greater than 0");
-      }
+  /**
+   * Get wallet data with proper tenant isolation
+   */
+  async getWallet(userId: string, tenantId: string): Promise<WalletData> {
+    await this.setTenantContext(tenantId);
+    
+    // Initialize wallet if it doesn't exist
+    await this.initializeWallet(userId, tenantId);
 
-      const newDepositBalance = (parseFloat(wallet.depositBalance) + depositAmount).toFixed(2);
+    // Get wallet record (RLS will automatically filter by tenant)
+    const [wallet] = await db
+      .select()
+      .from(wallets)
+      .where(and(
+        eq(wallets.userId, userId),
+        eq(wallets.tenantId, tenantId)
+      ));
 
-      // Update wallet deposit balance
-      await db
-        .update(wallets)
-        .set({ 
-          depositBalance: newDepositBalance,
-          updatedAt: new Date(),
-        })
-        .where(eq(wallets.id, wallet.id));
-
-      // Record transaction
-      const [transaction] = await db
-        .insert(walletTransactions)
-        .values({
-          walletId: wallet.id,
-          userId,
-          type: "deposit",
-          amount: amount,
-          balanceAfter: newDepositBalance,
-          description,
-          adminId,
-        })
-        .returning();
-
-      return transaction;
-    } catch (error) {
-      console.error("Error adding deposit:", error);
-      throw new ServiceError("Failed to add deposit to wallet");
+    if (!wallet) {
+      throw new Error('Wallet not found after initialization');
     }
-  }
 
-  async setCreditLimit(userId: string, creditLimit: string, adminId: string): Promise<WalletTransaction> {
-    try {
-      const wallet = await this.getOrCreateUserWallet(userId);
-      const newCreditLimit = parseFloat(creditLimit);
-      
-      if (newCreditLimit < 0) {
-        throw new ServiceError("Credit limit cannot be negative");
-      }
-
-      // Update wallet credit limit
-      await db
-        .update(wallets)
-        .set({ 
-          creditLimit: creditLimit,
-          updatedAt: new Date(),
-        })
-        .where(eq(wallets.id, wallet.id));
-
-      // Record transaction
-      const [transaction] = await db
-        .insert(walletTransactions)
-        .values({
-          walletId: wallet.id,
-          userId,
-          type: "credit_limit",
-          amount: creditLimit,
-          balanceAfter: wallet.depositBalance, // Deposit balance doesn't change
-          description: `Credit limit set to €${creditLimit}`,
-          adminId,
-        })
-        .returning();
-
-      return transaction;
-    } catch (error) {
-      console.error("Error setting credit limit:", error);
-      throw new ServiceError("Failed to set credit limit");
-    }
-  }
-
-  async recordCreditPayment(userId: string, amount: string, description: string, adminId: string): Promise<WalletTransaction> {
-    try {
-      const wallet = await this.getOrCreateUserWallet(userId);
-      const paymentAmount = parseFloat(amount);
-      
-      if (paymentAmount <= 0) {
-        throw new ServiceError("Payment amount must be greater than 0");
-      }
-
-      const currentCreditUsed = parseFloat(wallet.creditUsed);
-      const newCreditUsed = Math.max(0, currentCreditUsed - paymentAmount).toFixed(2);
-
-      // Update wallet credit used
-      await db
-        .update(wallets)
-        .set({ 
-          creditUsed: newCreditUsed,
-          updatedAt: new Date(),
-        })
-        .where(eq(wallets.id, wallet.id));
-
-      // Record transaction
-      const [transaction] = await db
-        .insert(walletTransactions)
-        .values({
-          walletId: wallet.id,
-          userId,
-          type: "credit_payment",
-          amount: amount,
-          balanceAfter: wallet.depositBalance, // Deposit balance doesn't change
-          description: description || `Credit payment of €${amount}`,
-          adminId,
-        })
-        .returning();
-
-      return transaction;
-    } catch (error) {
-      console.error("Error recording credit payment:", error);
-      throw new ServiceError("Failed to record credit payment");
-    }
-  }
-
-  async processPayment(userId: string, amount: string, orderId: string, description: string): Promise<{ success: boolean; paymentMethod: string; transaction?: WalletTransaction }> {
-    try {
-      const wallet = await this.getOrCreateUserWallet(userId);
-      const paymentAmount = parseFloat(amount);
-      
-      if (paymentAmount <= 0) {
-        throw new ServiceError("Payment amount must be greater than 0");
-      }
-
-      const balance = this.calculateBalance(wallet);
-      const totalAvailable = parseFloat(balance.totalAvailable);
-
-      if (totalAvailable < paymentAmount) {
-        return {
-          success: false,
-          paymentMethod: "insufficient_funds",
-        };
-      }
-
-      let newDepositBalance = parseFloat(wallet.depositBalance);
-      let newCreditUsed = parseFloat(wallet.creditUsed);
-      let paymentMethod = "";
-
-      // First use deposit balance
-      if (newDepositBalance >= paymentAmount) {
-        newDepositBalance -= paymentAmount;
-        paymentMethod = "deposit";
-      } else {
-        // Use deposit + credit
-        const remainingAmount = paymentAmount - newDepositBalance;
-        newDepositBalance = 0;
-        newCreditUsed += remainingAmount;
-        paymentMethod = newDepositBalance > 0 ? "deposit_and_credit" : "credit";
-      }
-
-      // Update wallet
-      await db
-        .update(wallets)
-        .set({ 
-          depositBalance: newDepositBalance.toFixed(2),
-          creditUsed: newCreditUsed.toFixed(2),
-          updatedAt: new Date(),
-        })
-        .where(eq(wallets.id, wallet.id));
-
-      // Record transaction
-      const [transaction] = await db
-        .insert(walletTransactions)
-        .values({
-          walletId: wallet.id,
-          userId,
-          type: "payment",
-          amount: amount,
-          balanceAfter: newDepositBalance.toFixed(2),
-          description: description || `Payment for order ${orderId}`,
-          orderId,
-        })
-        .returning();
-
-      return {
-        success: true,
-        paymentMethod,
-        transaction,
-      };
-    } catch (error) {
-      console.error("Error processing payment:", error);
-      throw new ServiceError("Failed to process wallet payment");
-    }
-  }
-
-  async getTransactionHistory(userId: string, limit: number = 50): Promise<WalletTransaction[]> {
-    try {
-      const wallet = await this.getOrCreateUserWallet(userId);
-      
-      return await db
-        .select()
-        .from(walletTransactions)
-        .where(eq(walletTransactions.walletId, wallet.id))
-        .orderBy(desc(walletTransactions.createdAt))
-        .limit(limit);
-    } catch (error) {
-      console.error("Error getting transaction history:", error);
-      throw new ServiceError("Failed to get transaction history");
-    }
-  }
-
-  private calculateBalance(wallet: Wallet): WalletBalance {
     const depositBalance = parseFloat(wallet.depositBalance);
     const creditLimit = parseFloat(wallet.creditLimit);
     const creditUsed = parseFloat(wallet.creditUsed);
+    const availableCredit = Math.max(0, creditLimit - creditUsed);
+    const totalAvailable = depositBalance + availableCredit;
+    const isOverlimit = creditUsed > creditLimit;
+
+    return {
+      id: wallet.id,
+      userId: wallet.userId,
+      tenantId: wallet.tenantId,
+      depositBalance: depositBalance.toFixed(2),
+      creditLimit: creditLimit.toFixed(2),
+      creditUsed: creditUsed.toFixed(2),
+      isActive: wallet.isActive,
+      balance: {
+        depositBalance: depositBalance.toFixed(2),
+        creditLimit: creditLimit.toFixed(2),
+        creditUsed: creditUsed.toFixed(2),
+        availableCredit: availableCredit.toFixed(2),
+        totalAvailable: totalAvailable.toFixed(2),
+        isOverlimit
+      }
+    };
+  }
+
+  /**
+   * Get wallet transactions with proper tenant isolation
+   */
+  async getWalletTransactions(userId: string, tenantId: string): Promise<WalletTransaction[]> {
+    await this.setTenantContext(tenantId);
     
-    const availableCredit = Math.max(0, creditLimit - creditUsed);
-    const totalAvailable = depositBalance + availableCredit;
-    const isOverlimit = creditUsed > creditLimit;
+    // Get wallet ID
+    const [wallet] = await db
+      .select({ id: wallets.id })
+      .from(wallets)
+      .where(and(
+        eq(wallets.userId, userId),
+        eq(wallets.tenantId, tenantId)
+      ));
 
-    return {
-      depositBalance: depositBalance.toFixed(2),
-      creditLimit: creditLimit.toFixed(2),
-      creditUsed: creditUsed.toFixed(2),
-      availableCredit: availableCredit.toFixed(2),
-      totalAvailable: totalAvailable.toFixed(2),
-      isOverlimit,
-    };
-  }
-
-
-
-  async getAllWalletsSummary(): Promise<Array<WalletSummary & { user: { username: string; email: string } }>> {
-    try {
-      const walletsWithUsers = await db
-        .select({
-          wallet: wallets,
-          user: {
-            id: users.id,
-            username: users.username,
-            email: users.email,
-            firstName: users.firstName,
-            lastName: users.lastName,
-          },
-        })
-        .from(wallets)
-        .leftJoin(users, eq(wallets.userId, users.id))
-        .where(eq(wallets.isActive, true));
-
-      const results = [];
-      for (const { wallet, user } of walletsWithUsers) {
-        const recentTransactions = await db
-          .select()
-          .from(walletTransactions)
-          .where(eq(walletTransactions.walletId, wallet.id))
-          .orderBy(desc(walletTransactions.createdAt))
-          .limit(5);
-
-        const balance = this.calculateBalance(wallet);
-
-        results.push({
-          ...wallet,
-          balance,
-          recentTransactions,
-          user: { 
-            username: user?.username || "Unknown", 
-            email: user?.email || "Unknown" 
-          },
-        } as any);
-      }
-
-      return results;
-    } catch (error) {
-      console.error("Error getting all wallets summary:", error);
-      throw new ServiceError("Failed to get wallets summary");
+    if (!wallet) {
+      return [];
     }
+
+    // Get transactions (RLS will automatically filter)
+    const transactions = await db
+      .select({
+        id: walletTransactions.id,
+        type: walletTransactions.type,
+        amount: walletTransactions.amount,
+        description: walletTransactions.description,
+        createdAt: walletTransactions.createdAt,
+        balanceAfter: walletTransactions.balanceAfter,
+        orderId: walletTransactions.orderId
+      })
+      .from(walletTransactions)
+      .where(eq(walletTransactions.walletId, wallet.id))
+      .orderBy(desc(walletTransactions.createdAt))
+      .limit(50);
+
+    return transactions.map(tx => ({
+      id: tx.id,
+      type: tx.type,
+      amount: tx.amount,
+      description: tx.description || '',
+      createdAt: tx.createdAt?.toISOString() || new Date().toISOString(),
+      balanceAfter: tx.balanceAfter,
+      orderId: tx.orderId || undefined
+    }));
   }
-  // Method to calculate balance from transactions
-  private calculateBalanceFromTransactions(transactions: WalletTransaction[]): WalletBalance {
-    let depositBalance = 0;
-    let creditLimit = 0;
-    let creditUsed = 0;
 
-    // First pass: calculate total deposits and credit limit
-    transactions.forEach(tx => {
-      const amount = parseFloat(tx.amount);
-      switch (tx.type) {
-        case 'deposit':
-          depositBalance += amount;
-          break;
-        case 'credit_limit':
-          creditLimit = amount; // Set to latest credit limit
-          break;
+  /**
+   * Process payment from wallet (called during order creation)
+   */
+  async processPayment(
+    userId: string, 
+    tenantId: string, 
+    amount: number, 
+    orderId: string,
+    description: string
+  ): Promise<{ success: boolean; newBalance: number; error?: string }> {
+    await this.setTenantContext(tenantId);
+
+    return await db.transaction(async (tx) => {
+      // Get current wallet
+      const [wallet] = await tx
+        .select()
+        .from(wallets)
+        .where(and(
+          eq(wallets.userId, userId),
+          eq(wallets.tenantId, tenantId)
+        ));
+
+      if (!wallet) {
+        return { success: false, newBalance: 0, error: 'Wallet not found' };
       }
-    });
 
-    // Second pass: process payments - deduct from deposits first, then use credit
-    transactions.forEach(tx => {
-      const amount = parseFloat(tx.amount);
-      switch (tx.type) {
-        case 'payment':
-          if (depositBalance >= amount) {
-            // Pay from deposits
-            depositBalance -= amount;
-          } else {
-            // Pay from deposits + credit
-            const remainingAmount = amount - depositBalance;
-            depositBalance = 0;
-            creditUsed += remainingAmount;
-          }
-          break;
-        case 'refund':
-          // First restore credit, then deposits
-          if (creditUsed >= amount) {
-            creditUsed -= amount;
-          } else {
-            const remainingRefund = amount - creditUsed;
-            creditUsed = 0;
-            depositBalance += remainingRefund;
-          }
-          break;
+      const currentDeposit = parseFloat(wallet.depositBalance);
+      const currentCreditUsed = parseFloat(wallet.creditUsed);
+      const creditLimit = parseFloat(wallet.creditLimit);
+      const totalAvailable = currentDeposit + (creditLimit - currentCreditUsed);
+
+      if (amount > totalAvailable) {
+        return { success: false, newBalance: currentDeposit, error: 'Insufficient funds' };
       }
+
+      // Calculate new balances
+      let newDepositBalance = currentDeposit;
+      let newCreditUsed = currentCreditUsed;
+
+      if (amount <= currentDeposit) {
+        // Use deposit balance first
+        newDepositBalance = currentDeposit - amount;
+      } else {
+        // Use all deposit + credit
+        const creditNeeded = amount - currentDeposit;
+        newDepositBalance = 0;
+        newCreditUsed = currentCreditUsed + creditNeeded;
+      }
+
+      // Update wallet
+      await tx
+        .update(wallets)
+        .set({
+          depositBalance: newDepositBalance.toFixed(2),
+          creditUsed: newCreditUsed.toFixed(2),
+          updatedAt: new Date()
+        })
+        .where(eq(wallets.id, wallet.id));
+
+      // Create transaction record
+      await tx
+        .insert(walletTransactions)
+        .values({
+          walletId: wallet.id,
+          userId: userId,
+          type: 'payment',
+          amount: `-${amount.toFixed(2)}`,
+          balanceAfter: newDepositBalance.toFixed(2),
+          description: description,
+          orderId: orderId
+        });
+
+      return { 
+        success: true, 
+        newBalance: newDepositBalance,
+        error: undefined 
+      };
     });
+  }
 
-    const availableCredit = Math.max(0, creditLimit - creditUsed);
-    const totalAvailable = depositBalance + availableCredit;
-    const isOverlimit = creditUsed > creditLimit;
+  /**
+   * Add funds to wallet (admin operation)
+   */
+  async addFunds(
+    userId: string,
+    tenantId: string,
+    amount: number,
+    adminId: string,
+    description: string
+  ): Promise<{ success: boolean; newBalance: number; error?: string }> {
+    await this.setTenantContext(tenantId, 'admin');
 
-    return {
-      depositBalance: depositBalance.toFixed(2),
-      creditLimit: creditLimit.toFixed(2),
-      creditUsed: creditUsed.toFixed(2),
-      availableCredit: availableCredit.toFixed(2),
-      totalAvailable: totalAvailable.toFixed(2),
-      isOverlimit
-    };
+    return await db.transaction(async (tx) => {
+      // Get wallet
+      const [wallet] = await tx
+        .select()
+        .from(wallets)
+        .where(and(
+          eq(wallets.userId, userId),
+          eq(wallets.tenantId, tenantId)
+        ));
+
+      if (!wallet) {
+        return { success: false, newBalance: 0, error: 'Wallet not found' };
+      }
+
+      const currentBalance = parseFloat(wallet.depositBalance);
+      const newBalance = currentBalance + amount;
+
+      // Update wallet
+      await tx
+        .update(wallets)
+        .set({
+          depositBalance: newBalance.toFixed(2),
+          updatedAt: new Date()
+        })
+        .where(eq(wallets.id, wallet.id));
+
+      // Create transaction record
+      await tx
+        .insert(walletTransactions)
+        .values({
+          walletId: wallet.id,
+          userId: userId,
+          type: 'deposit',
+          amount: `+${amount.toFixed(2)}`,
+          balanceAfter: newBalance.toFixed(2),
+          description: description,
+          adminId: adminId
+        });
+
+      return { success: true, newBalance, error: undefined };
+    });
+  }
+
+  /**
+   * Get all wallets for admin (cross-tenant view)
+   */
+  async getAllWallets(adminRole: string): Promise<WalletData[]> {
+    await this.setTenantContext('admin', adminRole);
+
+    const allWallets = await db
+      .select({
+        id: wallets.id,
+        userId: wallets.userId,
+        tenantId: wallets.tenantId,
+        depositBalance: wallets.depositBalance,
+        creditLimit: wallets.creditLimit,
+        creditUsed: wallets.creditUsed,
+        isActive: wallets.isActive,
+        username: users.username,
+        email: users.email
+      })
+      .from(wallets)
+      .innerJoin(users, eq(wallets.userId, users.id))
+      .orderBy(wallets.tenantId, wallets.createdAt);
+
+    return allWallets.map(wallet => {
+      const depositBalance = parseFloat(wallet.depositBalance);
+      const creditLimit = parseFloat(wallet.creditLimit);
+      const creditUsed = parseFloat(wallet.creditUsed);
+      const availableCredit = Math.max(0, creditLimit - creditUsed);
+      const totalAvailable = depositBalance + availableCredit;
+      const isOverlimit = creditUsed > creditLimit;
+
+      return {
+        id: wallet.id,
+        userId: wallet.userId,
+        tenantId: wallet.tenantId,
+        depositBalance: depositBalance.toFixed(2),
+        creditLimit: creditLimit.toFixed(2),
+        creditUsed: creditUsed.toFixed(2),
+        isActive: wallet.isActive,
+        balance: {
+          depositBalance: depositBalance.toFixed(2),
+          creditLimit: creditLimit.toFixed(2),
+          creditUsed: creditUsed.toFixed(2),
+          availableCredit: availableCredit.toFixed(2),
+          totalAvailable: totalAvailable.toFixed(2),
+          isOverlimit
+        }
+      };
+    });
   }
 }
 
-export const WalletService = WalletServiceImpl;
-export const walletService = new WalletServiceImpl();
+// Export singleton instance for backward compatibility
+export const walletService = new WalletService();

@@ -545,6 +545,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const taxAmount = subtotal * taxRate;
       const finalAmount = subtotal + taxAmount;
 
+      // Process wallet payment if paymentMethod is wallet
+      if (paymentMethod === 'wallet') {
+        const { WalletService } = await import('./services/wallet.service');
+        const walletService = new WalletService();
+        const paymentResult = await walletService.processPayment(
+          userId,
+          tenantId,
+          finalAmount,
+          'temp-order-id', // Will be updated after order creation
+          `Order payment for ${cartItems.length} items`
+        );
+
+        if (!paymentResult.success) {
+          return res.status(400).json({ 
+            message: paymentResult.error || 'Insufficient funds'
+          });
+        }
+      }
+
       // Generate order number
       const timestamp = Date.now();
       const randomSuffix = Math.random().toString(36).substring(2, 7).toUpperCase();
@@ -628,11 +647,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Wallet routes with real data - TENANT-AWARE
+  // Wallet routes with enterprise-grade tenant isolation
   app.get('/api/wallet', isAuthenticated, async (req: any, res) => {
     try {
-      const tenantId = req.user.tenantId; // Get tenant from authenticated user
-      const wallet = await storage.getWallet(req.user.id, tenantId);
+      const { WalletService } = await import('./services/wallet.service');
+      const walletService = new WalletService();
+      
+      const tenantId = req.user.tenantId;
+      const wallet = await walletService.getWallet(req.user.id, tenantId);
       res.json({ data: wallet });
     } catch (error) {
       console.error("Error fetching wallet:", error);
@@ -642,8 +664,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/wallet/transactions', isAuthenticated, async (req: any, res) => {
     try {
-      const tenantId = req.user.tenantId; // Get tenant from authenticated user  
-      const transactions = await storage.getWalletTransactions(req.user.id, tenantId);
+      const { WalletService } = await import('./services/wallet.service');
+      const walletService = new WalletService();
+      
+      const tenantId = req.user.tenantId;
+      const transactions = await walletService.getWalletTransactions(req.user.id, tenantId);
       res.json({ data: transactions });
     } catch (error) {
       console.error("Error fetching transactions:", error);

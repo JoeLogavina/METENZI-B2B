@@ -775,111 +775,34 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  // Wallet operations
+  // Wallet operations - DEPRECATED: Use WalletService instead
   async getWallet(userId: string, tenantId?: string): Promise<any> {
-    try {
-      // Get user's tenant if not provided
-      if (!tenantId) {
-        const [user] = await db.select({ tenantId: users.tenantId }).from(users).where(eq(users.id, userId));
-        tenantId = user?.tenantId || 'eur';
-      }
-
-      // Calculate actual balance based on completed orders FOR THIS TENANT
-      const completedOrdersResult = await db
-        .select({ total: sql<string>`COALESCE(SUM(CAST(total_amount AS DECIMAL)), 0)` })
-        .from(orders)
-        .where(and(
-          eq(orders.userId, userId),
-          eq(orders.tenantId, tenantId), // TENANT ISOLATION ADDED
-          eq(orders.status, 'completed')
-        ));
-      
-      const totalSpent = parseFloat(completedOrdersResult[0]?.total || '0');
-      
-      // Tenant-specific starting balances
-      const startingBalance = tenantId === 'km' ? 5000.00 : 5000.00; // Same amount but could be different
-      const remainingBalance = Math.max(0, startingBalance - totalSpent);
-      const creditUsed = Math.max(0, totalSpent - startingBalance);
-      const creditLimit = tenantId === 'km' ? 5000.00 : 5000.00; // Tenant-specific credit limits
-      const availableCredit = Math.max(0, creditLimit - creditUsed);
-      const totalAvailable = remainingBalance + availableCredit;
-      const isOverlimit = creditUsed > creditLimit;
-
-      return {
-        id: userId,
-        userId: userId,
-        tenantId: tenantId, // TENANT ID INCLUDED
-        depositBalance: remainingBalance.toFixed(2),
-        creditLimit: creditLimit.toFixed(2),
-        creditUsed: creditUsed.toFixed(2),
-        isActive: true,
-        balance: {
-          depositBalance: remainingBalance.toFixed(2),
-          creditLimit: creditLimit.toFixed(2),
-          creditUsed: creditUsed.toFixed(2),
-          availableCredit: availableCredit.toFixed(2),
-          totalAvailable: totalAvailable.toFixed(2),
-          isOverlimit: isOverlimit
-        }
-      };
-    } catch (error) {
-      console.error('Error fetching wallet:', error);
-      throw new Error('Failed to fetch wallet data');
+    // This method is deprecated and kept for backward compatibility
+    // New implementations should use WalletService
+    const { WalletService } = await import('./services/wallet.service');
+    const walletService = new WalletService();
+    
+    if (!tenantId) {
+      const [user] = await db.select({ tenantId: users.tenantId }).from(users).where(eq(users.id, userId));
+      tenantId = user?.tenantId || 'eur';
     }
+    
+    return await walletService.getWallet(userId, tenantId);
   }
 
+  // Wallet transactions - DEPRECATED: Use WalletService instead
   async getWalletTransactions(userId: string, tenantId?: string): Promise<any[]> {
-    try {
-      // Get user's tenant if not provided
-      if (!tenantId) {
-        const [user] = await db.select({ tenantId: users.tenantId }).from(users).where(eq(users.id, userId));
-        tenantId = user?.tenantId || 'eur';
-      }
-
-      // Get actual order transactions from database FOR THIS TENANT
-      const completedOrders = await db
-        .select({
-          id: orders.id,
-          orderNumber: orders.orderNumber,
-          totalAmount: orders.totalAmount,
-          createdAt: orders.createdAt,
-          paymentMethod: orders.paymentMethod,
-          tenantId: orders.tenantId
-        })
-        .from(orders)
-        .where(and(
-          eq(orders.userId, userId),
-          eq(orders.tenantId, tenantId), // TENANT ISOLATION ADDED
-          eq(orders.status, 'completed'),
-          eq(orders.paymentMethod, 'wallet')
-        ))
-        .orderBy(desc(orders.createdAt));
-
-      // Convert to transaction format
-      const transactions = completedOrders.map((order, index) => ({
-        id: order.id,
-        type: "purchase",
-        amount: `-${parseFloat(order.totalAmount).toFixed(2)}`,
-        description: `Order ${order.orderNumber}`,
-        createdAt: order.createdAt ? order.createdAt.toISOString() : new Date().toISOString(),
-        balanceAfter: "0.00" // Simplified for now
-      }));
-
-      // Add initial deposit transaction
-      transactions.push({
-        id: "initial-deposit",
-        type: "deposit",
-        amount: "+5000.00",
-        description: "Initial account deposit",
-        createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days ago
-        balanceAfter: "5000.00"
-      });
-
-      return transactions.slice(0, 10); // Show latest 10 transactions
-    } catch (error) {
-      console.error('Error fetching wallet transactions:', error);
-      throw new Error('Failed to fetch wallet transactions');
+    // This method is deprecated and kept for backward compatibility
+    // New implementations should use WalletService
+    const { WalletService } = await import('./services/wallet.service');
+    const walletService = new WalletService();
+    
+    if (!tenantId) {
+      const [user] = await db.select({ tenantId: users.tenantId }).from(users).where(eq(users.id, userId));
+      tenantId = user?.tenantId || 'eur';
     }
+    
+    return await walletService.getWalletTransactions(userId, tenantId);
   }
 }
 

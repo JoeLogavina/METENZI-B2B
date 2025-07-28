@@ -1,38 +1,17 @@
 import { Request, Response } from 'express';
-import { walletService } from '../../services/wallet.service';
-import { storage } from '../../storage';
+import { WalletService } from '../../services/wallet.service';
 
 export class AdminWalletController {
   /**
-   * Get all B2B users with their wallet information
+   * Get all B2B users with their wallet information using enterprise wallet service
    */
   static async getAllWallets(req: Request, res: Response): Promise<void> {
     try {
-      console.log('AdminWalletController.getAllWallets called');
+      const walletService = new WalletService();
+      const userRole = (req as any).user?.role || 'admin';
       
-      // Get all B2B users
-      const allUsers = await storage.getAllUsers();
-      console.log('All users found:', allUsers.length);
-      const b2bUsers = allUsers.filter(user => user.role === 'b2b_user');
-      console.log('B2B users found:', b2bUsers.length);
-      
-      // Get wallet information for each user
-      const walletsData = b2bUsers.map((user: any) => ({
-        id: user.id,
-        username: user.username,
-        firstName: user.firstName || user.first_name,
-        lastName: user.lastName || user.last_name,
-        email: user.email,
-        role: user.role,
-        balance: {
-          depositBalance: "0.00",
-          creditLimit: "1000.00",
-          creditUsed: "0.00",
-          availableCredit: "1000.00",
-          totalAvailable: "1000.00",
-          isOverlimit: false
-        }
-      }));
+      // Get all wallets (cross-tenant view for admins)
+      const walletsData = await walletService.getAllWallets(userRole);
       
       console.log('Final wallets data:', walletsData);
       res.json(walletsData);
@@ -55,7 +34,10 @@ export class AdminWalletController {
         return;
       }
 
-      // Verify user exists and is B2B user
+      const walletService = new WalletService();
+      
+      // Get user to determine tenant
+      const { storage } = await import('../../storage');
       const user = await storage.getUser(userId);
       if (!user) {
         res.status(404).json({ message: 'User not found' });
@@ -67,8 +49,7 @@ export class AdminWalletController {
         return;
       }
 
-      const walletData = await walletService.getWalletSummary(userId);
-      const transactions = walletData?.recentTransactions || [];
+      const transactions = await walletService.getWalletTransactions(userId, user.tenantId);
       
       res.json(transactions);
     } catch (error: any) {
@@ -97,6 +78,9 @@ export class AdminWalletController {
         return;
       }
 
+      const walletService = new WalletService();
+      const { storage } = await import('../../storage');
+      
       // Verify user exists and is B2B user
       const user = await storage.getUser(userId);
       if (!user) {
@@ -116,34 +100,29 @@ export class AdminWalletController {
         return;
       }
 
-      let transaction;
       const finalDescription = description || `${type.charAt(0).toUpperCase() + type.slice(1).replace('_', ' ')} by admin ${adminUsername}`;
 
+      // For now, only support deposit operations (add funds)
+      let result;
       switch (type) {
         case 'deposit':
-          transaction = await walletService.addDeposit(userId, amountNum.toString(), finalDescription, adminUserId);
-          break;
-        case 'credit_limit':
-          transaction = await walletService.setCreditLimit(userId, amountNum.toString(), adminUserId);
-          break;
-        case 'credit_payment':
-          transaction = await walletService.recordCreditPayment(userId, amountNum.toString(), finalDescription, adminUserId);
-          break;
         case 'adjustment':
-          // adjustBalance method doesn't exist yet, let's use addDeposit for now
-          transaction = await walletService.addDeposit(userId, amountNum.toString(), finalDescription, adminUserId);
-          break;
         case 'refund':
-          transaction = await walletService.addDeposit(userId, amountNum.toString(), finalDescription, adminUserId);
+          result = await walletService.addFunds(userId, user.tenantId, amountNum, adminUserId, finalDescription);
           break;
         default:
-          res.status(400).json({ message: 'Unsupported transaction type' });
+          res.status(400).json({ message: 'Transaction type not yet supported in enterprise wallet system' });
           return;
+      }
+
+      if (!result.success) {
+        res.status(400).json({ message: result.error || 'Transaction failed' });
+        return;
       }
       
       res.status(201).json({
         message: 'Transaction added successfully',
-        transaction
+        newBalance: result.newBalance
       });
     } catch (error: any) {
       console.error('Error adding transaction:', error);
@@ -156,36 +135,33 @@ export class AdminWalletController {
    */
   static async getWalletAnalytics(req: Request, res: Response): Promise<void> {
     try {
-      const adminUserId = (req.user as any).id;
+      const walletService = new WalletService();
+      const userRole = (req as any).user?.role || 'admin';
       
-      // Get all B2B users
-      const allUsers = await storage.getAllUsers();
-      const b2bUsers = allUsers.filter(user => user.role === 'b2b_user');
+      // Get all wallets using enterprise service
+      const allWallets = await walletService.getAllWallets(userRole);
       
       let totalDeposits = 0;
       let totalCreditLimit = 0;
       let totalCreditUsed = 0;
       let usersOverLimit = 0;
       
-      for (const user of b2bUsers) {
-        const walletData = await walletService.getWalletSummary(user.id);
-        if (walletData?.balance) {
-          totalDeposits += parseFloat(walletData.balance.depositBalance);
-          totalCreditLimit += parseFloat(walletData.balance.creditLimit);
-          totalCreditUsed += parseFloat(walletData.balance.creditUsed);
-          if (walletData.balance.isOverlimit) {
-            usersOverLimit++;
-          }
+      for (const wallet of allWallets) {
+        totalDeposits += parseFloat(wallet.balance.depositBalance);
+        totalCreditLimit += parseFloat(wallet.balance.creditLimit);
+        totalCreditUsed += parseFloat(wallet.balance.creditUsed);
+        if (wallet.balance.isOverlimit) {
+          usersOverLimit++;
         }
       }
 
       const analytics = {
-        totalUsers: b2bUsers.length,
+        totalUsers: allWallets.length,
         totalDeposits: totalDeposits.toFixed(2),
         totalCreditLimit: totalCreditLimit.toFixed(2),
-        totalCreditUsed: totalCreditUsed.toFixed(2),
+        totalCreditUsed: totalCreditUsed.toFixed(2),  
         usersOverLimit,
-        averageBalance: b2bUsers.length > 0 ? (totalDeposits / b2bUsers.length).toFixed(2) : "0"
+        averageBalance: allWallets.length > 0 ? (totalDeposits / allWallets.length).toFixed(2) : "0"
       };
       
       res.json(analytics);
