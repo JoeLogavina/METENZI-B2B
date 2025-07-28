@@ -758,20 +758,40 @@ export class DatabaseStorage implements IStorage {
   // Wallet operations
   async getWallet(userId: string): Promise<any> {
     try {
+      // Calculate actual balance based on completed orders
+      const completedOrdersResult = await db
+        .select({ total: sql<string>`COALESCE(SUM(CAST(total_amount AS DECIMAL)), 0)` })
+        .from(orders)
+        .where(and(
+          eq(orders.userId, userId),
+          eq(orders.status, 'completed')
+        ));
+      
+      const totalSpent = parseFloat(completedOrdersResult[0]?.total || '0');
+      
+      // Assuming starting balance was €5000 
+      const startingBalance = 5000.00;
+      const remainingBalance = Math.max(0, startingBalance - totalSpent);
+      const creditUsed = Math.max(0, totalSpent - startingBalance);
+      const creditLimit = 5000.00;
+      const availableCredit = Math.max(0, creditLimit - creditUsed);
+      const totalAvailable = remainingBalance + availableCredit;
+      const isOverlimit = creditUsed > creditLimit;
+
       return {
         id: userId,
         userId: userId,
-        depositBalance: "1236.38",
-        creditLimit: "5000.00",
-        creditUsed: "0.00",
+        depositBalance: remainingBalance.toFixed(2),
+        creditLimit: creditLimit.toFixed(2),
+        creditUsed: creditUsed.toFixed(2),
         isActive: true,
         balance: {
-          depositBalance: "1236.38",
-          creditLimit: "5000.00",
-          creditUsed: "0.00",
-          availableCredit: "5000.00",
-          totalAvailable: "6236.38",
-          isOverlimit: false
+          depositBalance: remainingBalance.toFixed(2),
+          creditLimit: creditLimit.toFixed(2),
+          creditUsed: creditUsed.toFixed(2),
+          availableCredit: availableCredit.toFixed(2),
+          totalAvailable: totalAvailable.toFixed(2),
+          isOverlimit: isOverlimit
         }
       };
     } catch (error) {
@@ -782,24 +802,44 @@ export class DatabaseStorage implements IStorage {
 
   async getWalletTransactions(userId: string): Promise<any[]> {
     try {
-      return [
-        {
-          id: "txn_1",
-          type: "purchase",
-          amount: "-14.52",
-          description: "Order #ORD-2025-001 - Microsoft Office 365",
-          createdAt: new Date().toISOString(),
-          balanceAfter: "1221.86"
-        },
-        {
-          id: "txn_2", 
-          type: "deposit",
-          amount: "+1250.00",
-          description: "Account deposit",
-          createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          balanceAfter: "1236.38"
-        }
-      ];
+      // Get actual order transactions from database
+      const completedOrders = await db
+        .select({
+          id: orders.id,
+          orderNumber: orders.orderNumber,
+          totalAmount: orders.totalAmount,
+          createdAt: orders.createdAt,
+          paymentMethod: orders.paymentMethod
+        })
+        .from(orders)
+        .where(and(
+          eq(orders.userId, userId),
+          eq(orders.status, 'completed'),
+          eq(orders.paymentMethod, 'wallet')
+        ))
+        .orderBy(desc(orders.createdAt));
+
+      // Convert to transaction format
+      const transactions = completedOrders.map((order, index) => ({
+        id: order.id,
+        type: "purchase",
+        amount: `-${parseFloat(order.totalAmount).toFixed(2)}`,
+        description: `Order ${order.orderNumber}`,
+        createdAt: order.createdAt.toISOString(),
+        balanceAfter: "0.00" // Simplified for now
+      }));
+
+      // Add initial deposit transaction
+      transactions.push({
+        id: "initial-deposit",
+        type: "deposit",
+        amount: "+5000.00",
+        description: "Initial account deposit",
+        createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days ago
+        balanceAfter: "5000.00"
+      });
+
+      return transactions.slice(0, 10); // Show latest 10 transactions
     } catch (error) {
       console.error('Error fetching wallet transactions:', error);
       throw new Error('Failed to fetch wallet transactions');
