@@ -294,8 +294,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const product = await storage.createProduct(productData);
         const duration = Date.now() - startTime;
 
-        // Clear products cache
-        await cacheHelpers.invalidateProducts();
+        // Cache invalidation handled by middleware
 
         res.status(201).json(product);
       } catch (error) {
@@ -389,18 +388,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
 
       try {
-        // ENTERPRISE EVENT SOURCING: Instant cart reads from materialized view
-        const { cartEventSourcingService } = await import('./services/cart-event-sourcing.service');
-        const cartItems = await cartEventSourcingService.getCartItems(userId);
-        
-        res.setHeader('X-Cart-Mode', 'event-sourcing');
-        res.setHeader('X-Performance', 'optimized');
-        res.json(cartItems);
+        // Try event sourcing first, fallback to traditional cart
+        try {
+          const { cartEventSourcingService } = await import('./services/cart-event-sourcing.service');
+          const cartItems = await cartEventSourcingService.getCartItems(userId);
+          
+          res.setHeader('X-Cart-Mode', 'event-sourcing');
+          res.setHeader('X-Performance', 'optimized');
+          return res.json(cartItems);
+        } catch (eventSourcingError) {
+          console.log('Event sourcing not ready, using traditional cart');
+          
+          // Fallback to traditional cart system
+          const cartItems = await storage.getCartItems(userId);
+          res.setHeader('X-Cart-Mode', 'traditional');
+          return res.json(cartItems);
+        }
       } catch (error) {
         console.error("Cart fetch error:", error);
         res.status(500).json({ 
           message: "Failed to fetch cart", 
-          error: error.message,
+          error: (error as Error).message,
           timestamp: new Date().toISOString()
         });
       }
@@ -424,18 +432,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Set response headers for optimal performance
         res.setHeader('Content-Type', 'application/json');
         res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('X-Cart-Mode', 'event-sourcing');
         
-        // ENTERPRISE EVENT SOURCING: Ultra-fast cart operations
-        const { cartEventSourcingService } = await import('./services/cart-event-sourcing.service');
-        const cartItem = await cartEventSourcingService.addToCart(userId, productId, quantity);
-        
-        res.status(201).json(cartItem);
+        // Try event sourcing first, fallback to traditional cart
+        try {
+          const { cartEventSourcingService } = await import('./services/cart-event-sourcing.service');
+          const cartItem = await cartEventSourcingService.addToCart(userId, productId, quantity);
+          
+          res.setHeader('X-Cart-Mode', 'event-sourcing');
+          return res.status(201).json(cartItem);
+        } catch (eventSourcingError) {
+          console.log('Event sourcing not ready, using traditional cart');
+          
+          // Fallback to traditional cart system
+          const cartData = insertCartItemSchema.parse({ productId, quantity, userId });
+          const cartItem = await storage.addToCart(cartData);
+          
+          res.setHeader('X-Cart-Mode', 'traditional');
+          return res.status(201).json(cartItem);
+        }
       } catch (error) {
         console.error("Cart add error:", error);
         res.status(500).json({ 
           message: "Failed to add to cart", 
-          error: error.message,
+          error: (error as Error).message,
           timestamp: new Date().toISOString()
         });
       }
@@ -469,7 +488,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("Cart update error:", error);
         res.status(500).json({ 
           message: "Failed to update cart item", 
-          error: error.message,
+          error: (error as Error).message,
           timestamp: new Date().toISOString()
         });
       }
@@ -495,7 +514,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("Cart remove error:", error);
         res.status(500).json({ 
           message: "Failed to remove cart item", 
-          error: error.message,
+          error: (error as Error).message,
           timestamp: new Date().toISOString()
         });
       }
@@ -522,7 +541,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("Cart clear error:", error);
         res.status(500).json({ 
           message: "Failed to clear cart", 
-          error: error.message,
+          error: (error as Error).message,
           timestamp: new Date().toISOString()
         });
       }
