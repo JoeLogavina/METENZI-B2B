@@ -86,8 +86,17 @@ export default function KMShop() {
       });
 
       console.log('🔍 KM Shop: Making API request to /api/products');
-      const res = await apiRequest("GET", `/api/products?${params.toString()}`);
+      const res = await fetch(`/api/products?${params.toString()}`, {
+        credentials: 'include',
+        headers: {
+          'Cache-Control': 'no-cache', // Force fresh data
+          'Accept': 'application/json'
+        }
+      });
+      
+      console.log('🔍 KM Shop: API response status:', res.status);
       if (!res.ok) {
+        console.error('🔍 KM Shop: API failed with status:', res.status);
         throw new Error(`Products API failed: ${res.status}`);
       }
       const data = await res.json();
@@ -120,6 +129,7 @@ export default function KMShop() {
     gcTime: 0, // No caching
     refetchOnMount: true,
     refetchOnWindowFocus: true,
+    retry: false, // Disable retry to see errors quickly
   });
 
   // Fetch KM user's cart
