@@ -65,11 +65,11 @@ export interface IStorage {
   getProductStock(productId: string): Promise<number>;
 
   // Cart operations
-  getCartItems(userId: string): Promise<(CartItem & { product: Product })[]>;
+  getCartItems(userId: string, tenantId?: string): Promise<(CartItem & { product: Product })[]>;
   addToCart(item: InsertCartItem): Promise<CartItem>;
   updateCartItem(id: string, quantity: number): Promise<void>;
   removeFromCart(id: string): Promise<void>;
-  clearCart(userId: string): Promise<void>;
+  clearCart(userId: string, tenantId?: string): Promise<void>;
 
   // Order operations
   createOrder(order: InsertOrder): Promise<Order>;
@@ -340,12 +340,18 @@ export class DatabaseStorage implements IStorage {
    * Get cart items with complete product information
    * Uses proper joins and error handling
    */
-  async getCartItems(userId: string): Promise<(CartItem & { product: Product })[]> {
+  async getCartItems(userId: string, tenantId?: string): Promise<(CartItem & { product: Product })[]> {
     try {
+      const whereConditions = [eq(cartItems.userId, userId)];
+      if (tenantId) {
+        whereConditions.push(eq(cartItems.tenantId, tenantId));
+      }
+
       const rows = await db
         .select({
           id: cartItems.id,
           userId: cartItems.userId,
+          tenantId: cartItems.tenantId,
           productId: cartItems.productId,
           quantity: cartItems.quantity,
           createdAt: cartItems.createdAt,
@@ -376,10 +382,7 @@ export class DatabaseStorage implements IStorage {
         })
         .from(cartItems)
         .innerJoin(products, eq(cartItems.productId, products.id))
-        .where(and(
-          eq(cartItems.userId, userId),
-          eq(products.isActive, true)
-        ))
+        .where(and(...whereConditions, eq(products.isActive, true)))
         .orderBy(desc(cartItems.createdAt));
 
       return rows;
@@ -504,13 +507,18 @@ export class DatabaseStorage implements IStorage {
   /**
    * Clear entire cart for user with atomic operation
    */
-  async clearCart(userId: string): Promise<void> {
+  async clearCart(userId: string, tenantId?: string): Promise<void> {
     try {
       return await db.transaction(async (tx) => {
+        const whereConditions = [eq(cartItems.userId, userId)];
+        if (tenantId) {
+          whereConditions.push(eq(cartItems.tenantId, tenantId));
+        }
+        
         // Delete all cart items for user and return count
         const result = await tx
           .delete(cartItems)
-          .where(eq(cartItems.userId, userId))
+          .where(and(...whereConditions))
           .returning({ id: cartItems.id });
         
         // Return void as per interface

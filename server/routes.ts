@@ -21,6 +21,7 @@ import { redisCache } from "./cache/redis";
 import { upload, saveBase64Image, deleteUploadedFile } from "./middleware/upload";
 import { tenantResolutionMiddleware, requireTenantType } from './middleware/tenant.middleware';
 import type { Currency } from './middleware/tenant.middleware';
+import { tenantAuthMiddleware } from './middleware/tenant-auth.middleware';
 import express from "express";
 import path from "path";
 
@@ -219,11 +220,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Cart API - Clean and optimized
+  // Cart API - Clean and optimized with tenant awareness
   app.get('/api/cart', isAuthenticated, async (req: any, res) => {
     const userId = req.user.id;
+    const user = req.user as any;
     try {
-      const cartItems = await storage.getCartItems(userId);
+      // Get user's tenant or determine from request
+      const tenantId = user.tenantId || 'eur';
+      const cartItems = await storage.getCartItems(userId, tenantId);
       return res.json(cartItems);
     } catch (error) {
       console.error("Cart fetch error:", error);
@@ -237,6 +241,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/cart', isAuthenticated, async (req: any, res) => {
     const userId = req.user.id;
+    const user = req.user as any;
     try {
       const { productId, quantity } = req.body;
       
@@ -246,7 +251,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const cartData = insertCartItemSchema.parse({ productId, quantity, userId });
+      // Get user's tenant ID for proper data isolation
+      const tenantId = user.tenantId || 'eur';
+      const cartData = insertCartItemSchema.parse({ productId, quantity, userId, tenantId });
       const cartItem = await storage.addToCart(cartData);
       return res.status(201).json(cartItem);
     } catch (error) {
@@ -335,8 +342,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete('/api/cart', isAuthenticated, async (req: any, res) => {
     const userId = req.user.id;
+    const user = req.user as any;
     try {
-      await storage.clearCart(userId);
+      const tenantId = user.tenantId || 'eur';
+      await storage.clearCart(userId, tenantId);
       res.json({ 
         success: true, 
         message: "Cart cleared successfully"

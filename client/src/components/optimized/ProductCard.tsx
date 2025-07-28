@@ -10,6 +10,7 @@ import type { ProductWithStock } from "@shared/schema";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useTenant } from '@/contexts/TenantContext';
 
 interface ProductCardProps {
   product: ProductWithStock;
@@ -25,11 +26,15 @@ const ProductCard = memo(function ProductCard({
 }: ProductCardProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { tenant, formatPrice } = useTenant();
 
-  // Memoized price formatting to avoid recalculation
+  // Memoized tenant-aware price formatting
   const formattedPrice = useMemo(() => {
+    if (tenant.currency === 'KM' && product.priceKm) {
+      return `${parseFloat(product.priceKm).toFixed(2)} KM`;
+    }
     return `€${parseFloat(product.price).toFixed(2)}`;
-  }, [product.price]);
+  }, [product.price, product.priceKm, tenant.currency]);
 
   // Memoized stock status calculation
   const stockStatus = useMemo(() => {

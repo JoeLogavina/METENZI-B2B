@@ -38,6 +38,7 @@ export const users = pgTable("users", {
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
   role: userRoleEnum("role").default("b2b_user").notNull(),
+  tenantId: varchar("tenant_id").notNull().default("eur"), // EUR or KM tenant
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -92,6 +93,7 @@ export const licenseKeys = pgTable("license_keys", {
 export const orders = pgTable("orders", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").references(() => users.id).notNull(),
+  tenantId: varchar("tenant_id").notNull(), // EUR or KM tenant
   orderNumber: varchar("order_number").notNull().unique(),
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
   taxAmount: decimal("tax_amount", { precision: 10, scale: 2 }).notNull().default('0'),
@@ -134,6 +136,7 @@ export const orderItems = pgTable("order_items", {
 export const cartItems = pgTable("cart_items", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").references(() => users.id).notNull(),
+  tenantId: varchar("tenant_id").notNull(), // EUR or KM tenant
   productId: varchar("product_id").references(() => products.id).notNull(),
   quantity: integer("quantity").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
@@ -143,6 +146,7 @@ export const cartItems = pgTable("cart_items", {
 export const cartEvents = pgTable("cart_events", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id),
+  tenantId: varchar("tenant_id").notNull(), // EUR or KM tenant
   eventType: varchar("event_type").notNull(), // 'ITEM_ADDED', 'ITEM_UPDATED', 'ITEM_REMOVED', 'CART_CLEARED'
   productId: varchar("product_id").references(() => products.id),
   quantity: integer("quantity"),
@@ -231,6 +235,7 @@ export const transactionTypeEnum = pgEnum("transaction_type", [
 export const wallets = pgTable("wallets", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").references(() => users.id).notNull(),
+  tenantId: varchar("tenant_id").notNull(), // EUR or KM tenant
   depositBalance: decimal("deposit_balance", { precision: 10, scale: 2 }).default("0.00").notNull(),
   creditLimit: decimal("credit_limit", { precision: 10, scale: 2 }).default("0.00").notNull(),
   creditUsed: decimal("credit_used", { precision: 10, scale: 2 }).default("0.00").notNull(),
