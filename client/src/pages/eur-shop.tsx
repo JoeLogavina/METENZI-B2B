@@ -82,10 +82,9 @@ export default function EURShop() {
     isLoading: productsLoading,
     error: productsError,
   } = useQuery({
-    queryKey: ["/api/products", "eur", debouncedFilters],
+    queryKey: ["/api/products", debouncedFilters],
     queryFn: async () => {
       const params = new URLSearchParams();
-      params.append('tenant', 'eur'); // Force EUR tenant
       
       Object.entries(debouncedFilters).forEach(([key, value]) => {
         if (value) {
@@ -93,10 +92,10 @@ export default function EURShop() {
         }
       });
 
-      const res = await apiRequest("GET", `/api/products?${params.toString()}`);
+      const res = await apiRequest("GET", `/api/products${params.toString() ? `?${params.toString()}` : ''}`);
       const data = await res.json();
       
-      // Ensure we're getting EUR pricing
+      // Ensure we're getting EUR pricing for EUR shop
       return data.map((product: any) => ({
         ...product,
         // Use EUR price as primary price for EUR shop
