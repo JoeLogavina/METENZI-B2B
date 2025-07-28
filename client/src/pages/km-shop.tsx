@@ -77,7 +77,7 @@ export default function KMShop() {
     isLoading: productsLoading,
     error: productsError,
   } = useQuery({
-    queryKey: ["/api/products", "km", debouncedFilters],
+    queryKey: ["/api/products", "km-shop", debouncedFilters],
     queryFn: async () => {
       const params = new URLSearchParams();
       
@@ -226,12 +226,12 @@ export default function KMShop() {
   }
 
   const sidebarItems = [
-    { icon: Package, label: "KM SHOP", active: true, href: "/shop/km", allowed: true },
-    { icon: Grid, label: "CATALOG", active: false, href: "/shop/km", allowed: true },
-    { icon: FileText, label: "ORDERS", active: false, href: "/km/orders", allowed: true },
-    { icon: CreditCard, label: "MY WALLET", active: false, href: "/km/wallet", allowed: true },
-    { icon: Settings, label: "SETTINGS", active: false, href: "/shop/km", allowed: true },
-    { icon: HelpCircle, label: "SUPPORT", active: false, href: "/shop/km", allowed: true },
+    { icon: Package, label: "KM SHOP", active: true, href: "/km", allowed: true },
+    { icon: Grid, label: "CATALOG", active: false, href: "/km", allowed: true },
+    { icon: FileText, label: "ORDERS", active: false, href: "/orders", allowed: true },
+    { icon: CreditCard, label: "MY WALLET", active: false, href: "/wallet", allowed: true },
+    { icon: Settings, label: "SETTINGS", active: false, href: "/km", allowed: true },
+    { icon: HelpCircle, label: "SUPPORT", active: false, href: "/km", allowed: true },
   ].filter(item => item.allowed);
 
   const formatKMPrice = (amount: number | string): string => {

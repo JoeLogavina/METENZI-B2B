@@ -210,12 +210,12 @@ export default function EURShop() {
   }
 
   const sidebarItems = [
-    { icon: Package, label: "EUR SHOP", active: true, href: "/shop/eur", allowed: true },
-    { icon: Grid, label: "CATALOG", active: false, href: "/eur/catalog", allowed: true },
-    { icon: FileText, label: "ORDERS", active: false, href: "/eur/orders", allowed: true },
-    { icon: CreditCard, label: "MY WALLET", active: false, href: "/eur/wallet", allowed: true },
-    { icon: Settings, label: "SETTINGS", active: false, href: "/eur/settings", allowed: true },
-    { icon: HelpCircle, label: "SUPPORT", active: false, href: "/eur/support", allowed: true },
+    { icon: Package, label: "EUR SHOP", active: true, href: "/eur", allowed: true },
+    { icon: Grid, label: "CATALOG", active: false, href: "/eur", allowed: true },
+    { icon: FileText, label: "ORDERS", active: false, href: "/orders", allowed: true },
+    { icon: CreditCard, label: "MY WALLET", active: false, href: "/wallet", allowed: true },
+    { icon: Settings, label: "SETTINGS", active: false, href: "/eur", allowed: true },
+    { icon: HelpCircle, label: "SUPPORT", active: false, href: "/eur", allowed: true },
   ].filter(item => item.allowed);
 
   const formatEURPrice = (amount: number | string): string => {

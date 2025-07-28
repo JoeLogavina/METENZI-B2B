@@ -13,8 +13,8 @@ export function TenantNavigation() {
     {
       label: 'Shop',
       icon: ShoppingCart,
-      href: tenant.type === 'km-shop' ? '/shop/km' : '/shop/eur',
-      active: location.startsWith('/shop') || location === '/b2b-shop' || location === '/'
+      href: tenant.type === 'km-shop' ? '/km' : '/eur',
+      active: location === '/km' || location === '/eur' || location === '/shop/km' || location === '/shop/eur' || location === '/b2b-shop' || location === '/'
     },
     {
       label: 'Cart',

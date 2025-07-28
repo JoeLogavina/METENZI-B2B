@@ -63,23 +63,27 @@ function Router() {
         </>
       ) : (
         <>
-          {/* Default route - redirect to tenant shop */}
+          {/* Default route - redirect to appropriate tenant shop */}
           <Route path="/" component={() => {
             const { user } = useAuth();
+            const [, setLocation] = useLocation();
             
-            if (user?.tenantId === 'km') {
-              return (
-                <Suspense fallback={<ShopLoadingFallback />}>
-                  <KMShop />
-                </Suspense>
-              );
-            } else {
-              return (
-                <Suspense fallback={<ShopLoadingFallback />}>
-                  <EURShop />
-                </Suspense>
-              );
-            }
+            useEffect(() => {
+              if (user?.tenantId === 'km') {
+                setLocation('/km');
+              } else if (user?.tenantId === 'eur') {
+                setLocation('/eur');
+              }
+            }, [user, setLocation]);
+            
+            return (
+              <div className="min-h-screen flex items-center justify-center">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                  <p className="mt-2 text-gray-600">Redirecting to your shop...</p>
+                </div>
+              </div>
+            );
           }} />
           
           {/* Tenant-specific B2B Shop Routes */}
@@ -94,7 +98,7 @@ function Router() {
             </Suspense>
           )} />
           
-          {/* Legacy routes */}
+          {/* Dedicated tenant routes */}
           <Route path="/eur" component={() => (
             <Suspense fallback={<ShopLoadingFallback />}>
               <EURShop />
