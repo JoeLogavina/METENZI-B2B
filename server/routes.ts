@@ -381,7 +381,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ENTERPRISE CART API - FULL REBUILD WITH ATOMIC OPERATIONS
-  
+
   /**
    * GET /api/cart - Fetch user's cart with smart caching
    */
@@ -443,7 +443,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(201).json(cartItem);
       } catch (error) {
         console.error("Cart add error:", error);
-        
+
         // Handle validation errors specifically
         if (error.name === 'ZodError') {
           return res.status(400).json({ 
@@ -912,8 +912,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Admin access required" });
       }
 
-      const products = await storage.getAllProducts(); // Get ALL products for admin
-      res.json(products);
+      const products = await storage.getAllProducts(); // Get ALL products for admin      res.json(products);
     } catch (error) {
       console.error("Error fetching admin products:", error);
       res.status(500).json({ message: "Failed to fetch products" });
@@ -1046,6 +1045,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
+  /**
+   * DELETE /api/cart - Clear entire cart
+   */
+  app.delete('/api/cart', 
+    isAuthenticated, 
+    async (req: any, res) => {
+      const userId = req.user.id;
+      const cacheKey = `cart:${userId}`;
+
+      try {
+        // Clear cart with atomic operation
+        const itemsRemoved = await storage.clearCart(userId);
+
+        // Atomic cache invalidation
+        await redisCache.del(cacheKey);
+
+        res.json({ 
+          success: true, 
+          itemsRemoved,
+          message: `Cart cleared successfully. ${itemsRemoved} items removed.`
+        });
+      } catch (error) {
+        console.error("Cart clear error:", error);
+        res.status(500).json({ 
+          message: "Failed to clear cart", 
+          error: error.message,
+          timestamp: new Date().toISOString()
+        });
+      }
+    });
 
   // Global error handler (must be last middleware)
   app.use(errorHandler);

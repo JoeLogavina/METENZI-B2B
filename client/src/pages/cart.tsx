@@ -132,10 +132,15 @@ export default function CartPage() {
   // ENTERPRISE CLEAR CART - SIMPLIFIED SERVER-FIRST APPROACH
   const clearCartMutation = useMutation({
     mutationFn: async () => {
+      console.log("🗑️ Client: Clearing cart...");
       const response = await apiRequest("DELETE", "/api/cart");
+      console.log("🗑️ Client: Clear cart response:", response);
       return response;
     },
     onSuccess: () => {
+      console.log("🗑️ Client: Cart cleared successfully, invalidating cache...");
+      // Clear cache immediately
+      queryClient.setQueryData(["/api/cart"], []);
       // Force invalidate and refetch cart data
       queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
       queryClient.refetchQueries({ queryKey: ["/api/cart"] });

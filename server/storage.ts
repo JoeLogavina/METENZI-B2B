@@ -154,7 +154,7 @@ export class DatabaseStorage implements IStorage {
     console.log('Storage.getProducts - called with filters:', filters);
 
     let whereConditions = [];
-    
+
     // Handle isActive filter - default to true if not specified
     const isActiveFilter = filters?.isActive !== undefined ? filters.isActive : true;
     whereConditions.push(eq(products.isActive, isActiveFilter));
@@ -207,7 +207,7 @@ export class DatabaseStorage implements IStorage {
         .where(and(...whereConditions))
         .groupBy(products.id)
         .orderBy(desc(products.createdAt));
-        
+
       console.log('Storage.getProducts - query result:', result.length, 'products found');
       return result as ProductWithStock[];
     } catch (error) {
@@ -332,7 +332,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // ENTERPRISE CART OPERATIONS WITH TRANSACTIONAL SAFETY
-  
+
   /**
    * Get cart items with complete product information
    * Uses proper joins and error handling
@@ -436,7 +436,7 @@ export class DatabaseStorage implements IStorage {
         if (existingItem) {
           // Update existing item quantity
           const newQuantity = existingItem.quantity + item.quantity;
-          
+
           const [updatedItem] = await tx
             .update(cartItems)
             .set({ 
@@ -445,7 +445,7 @@ export class DatabaseStorage implements IStorage {
             })
             .where(eq(cartItems.id, existingItem.id))
             .returning();
-          
+
           return updatedItem;
         } else {
           // Insert new cart item
@@ -453,7 +453,7 @@ export class DatabaseStorage implements IStorage {
             .insert(cartItems)
             .values(item)
             .returning();
-          
+
           return newItem;
         }
       });
@@ -539,7 +539,7 @@ export class DatabaseStorage implements IStorage {
   }> {
     try {
       const items = await this.getCartItems(userId);
-      
+
       const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
       const totalAmount = items.reduce((sum, item) => {
         const price = parseFloat(item.product.price || '0');
