@@ -44,6 +44,7 @@ interface CartItem {
     name: string;
     description: string;
     price: number;
+    priceKm?: number;
     region: string;
     platform: string;
     stockCount: number;
@@ -80,7 +81,7 @@ type CheckoutFormData = z.infer<typeof checkoutSchema>;
 export default function CheckoutPage() {
   const { user, isLoading, isAuthenticated } = useAuth();
   const { toast } = useToast();
-  const { formatPrice } = useTenant();
+  const { formatPrice, tenant } = useTenant();
   const { updateOrderOptimistically } = useOptimisticOrders();
   const [, setLocation] = useLocation();
   const [step, setStep] = useState<'checkout' | 'processing' | 'success'>('checkout');
@@ -260,7 +261,15 @@ export default function CheckoutPage() {
     }, 2000);
   };
 
-  const totalAmount = cartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+  // TENANT-AWARE PRICING CALCULATION
+  const getTenantPrice = (product: CartItem['product']): number => {
+    if (tenant.currency === 'KM' && product.priceKm) {
+      return typeof product.priceKm === 'string' ? parseFloat(product.priceKm) : product.priceKm;
+    }
+    return typeof product.price === 'string' ? parseFloat(product.price) : product.price;
+  };
+
+  const totalAmount = cartItems.reduce((sum, item) => sum + (getTenantPrice(item.product) * item.quantity), 0);
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const taxAmount = totalAmount * 0.21;
   const finalAmount = totalAmount + taxAmount;
@@ -831,11 +840,11 @@ export default function CheckoutPage() {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-[#4D585A] truncate">{item.product.name}</p>
                         <p className="text-xs text-gray-500">
-                          {formatPrice(item.product.price)} × <span className="font-mono">{item.quantity}</span>
+                          {formatPrice(getTenantPrice(item.product))} × <span className="font-mono">{item.quantity}</span>
                         </p>
                       </div>
                       <div className="text-sm font-mono font-semibold text-[#4D585A]">
-                        {formatPrice(item.product.price * item.quantity)}
+                        {formatPrice(getTenantPrice(item.product) * item.quantity)}
                       </div>
                     </div>
                   ))}

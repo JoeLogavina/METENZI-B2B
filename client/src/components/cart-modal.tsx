@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import { useTenant } from "@/contexts/TenantContext";
 import {
   Dialog,
   DialogContent,
@@ -25,6 +26,7 @@ export default function CartModal({ isOpen, onClose, cartItems, isLoading }: Car
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [processingOrder, setProcessingOrder] = useState(false);
+  const { formatPrice, tenant } = useTenant();
 
   // Update cart item mutation
   const updateCartMutation = useMutation({
@@ -136,8 +138,16 @@ export default function CartModal({ isOpen, onClose, cartItems, isLoading }: Car
     createOrderMutation.mutate();
   };
 
+  // TENANT-AWARE PRICING CALCULATION
+  const getTenantPrice = (product: any): number => {
+    if (tenant.currency === 'KM' && product.priceKm) {
+      return typeof product.priceKm === 'string' ? parseFloat(product.priceKm) : product.priceKm;
+    }
+    return typeof product.price === 'string' ? parseFloat(product.price) : product.price;
+  };
+
   const totalAmount = cartItems?.reduce((sum, item) => 
-    sum + (parseFloat(item.product.price) * item.quantity), 0
+    sum + (getTenantPrice(item.product) * item.quantity), 0
   ) || 0;
 
   const totalItems = cartItems?.reduce((sum, item) => sum + item.quantity, 0) || 0;
@@ -188,7 +198,7 @@ export default function CartModal({ isOpen, onClose, cartItems, isLoading }: Car
                       <span className="text-sm text-gray-500">SKU: {item.product.sku}</span>
                     </div>
                     <p className="text-lg font-semibold text-gray-900 mt-1">
-                      €{parseFloat(item.product.price).toLocaleString()}
+                      {formatPrice(getTenantPrice(item.product))}
                       <span className="text-sm text-gray-500 font-normal"> per license</span>
                     </p>
                   </div>
@@ -217,7 +227,7 @@ export default function CartModal({ isOpen, onClose, cartItems, isLoading }: Car
 
                   <div className="text-right">
                     <p className="font-semibold text-gray-900">
-                      €{(parseFloat(item.product.price) * item.quantity).toLocaleString()}
+                      {formatPrice(getTenantPrice(item.product) * item.quantity)}
                     </p>
                     <Button
                       variant="ghost"
@@ -243,7 +253,7 @@ export default function CartModal({ isOpen, onClose, cartItems, isLoading }: Car
               <div className="flex justify-between items-center">
                 <span className="text-lg font-semibold">Total:</span>
                 <span className="text-2xl font-bold text-primary">
-                  €{totalAmount.toLocaleString()}
+                  {formatPrice(totalAmount)}
                 </span>
               </div>
               

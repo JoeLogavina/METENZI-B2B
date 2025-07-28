@@ -519,11 +519,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
             throw new Error(`No license keys available for product: ${cartItem.product.name}`);
           }
 
+          // Use tenant-specific pricing for the transaction
+          const tenantPrice = tenantId === 'km' 
+            ? (cartItem.product.priceKm || cartItem.product.price)
+            : cartItem.product.price;
+
           transactionCartItems.push({
             productId: cartItem.productId,
             quantity: 1,
-            unitPrice: cartItem.product.price,
-            totalPrice: cartItem.product.price,
+            unitPrice: tenantPrice,
+            totalPrice: tenantPrice,
             licenseKeyId: licenseKey.id
           });
         }

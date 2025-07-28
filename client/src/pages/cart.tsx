@@ -24,6 +24,7 @@ interface CartItem {
     name: string;
     description: string;
     price: number;
+    priceKm?: number;
     region: string;
     platform: string;
     stockCount: number;
@@ -33,7 +34,7 @@ interface CartItem {
 export default function CartPage() {
   const { user, isLoading, isAuthenticated } = useAuth();
   const { toast } = useToast();
-  const { formatPrice } = useTenant();
+  const { formatPrice, tenant } = useTenant();
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -237,12 +238,20 @@ export default function CartPage() {
     clearCartMutation.mutate();
   };
 
+  // TENANT-AWARE CART TOTAL CALCULATION
+  const getTenantPrice = (product: CartItem['product']): number => {
+    if (tenant.currency === 'KM' && product.priceKm) {
+      return parsePrice(product.priceKm);
+    }
+    return parsePrice(product.price);
+  };
+
   const totalAmount = cartItems.reduce((sum, item) => {
-    if (!item.product || !item.product.price) {
+    if (!item.product) {
       return sum;
     }
     
-    const price = parsePrice(item.product.price);
+    const price = getTenantPrice(item.product);
     if (isNaN(price) || price < 0) {
       return sum;
     }
@@ -363,7 +372,7 @@ export default function CartPage() {
                       {/* Price */}
                       <div className="text-right">
                         <div className="font-mono font-semibold text-[#4D585A]">
-                          {formatPrice(item.product.price)}
+                          {formatPrice(getTenantPrice(item.product))}
                         </div>
                         <div className="text-xs text-gray-500">per license</div>
                       </div>
@@ -394,7 +403,7 @@ export default function CartPage() {
                       {/* Total Price */}
                       <div className="text-right min-w-[80px]">
                         <div className="font-mono font-semibold text-lg text-[#4D585A]">
-                          {formatPrice(calculateTotal(item.product.price, item.quantity))}
+                          {formatPrice(getTenantPrice(item.product) * item.quantity)}
                         </div>
                       </div>
 
