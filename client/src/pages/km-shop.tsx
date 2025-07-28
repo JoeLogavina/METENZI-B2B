@@ -85,6 +85,9 @@ export default function KMShop() {
       });
 
       const res = await apiRequest("GET", `/api/products?${params.toString()}`);
+      if (!res.ok) {
+        throw new Error(`Products API failed: ${res.status}`);
+      }
       const data = await res.json();
       
       // Filter and transform for KM pricing - check all possible field names

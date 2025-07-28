@@ -124,6 +124,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Use the admin router
   app.use('/api/admin', adminRouter);
 
+  // Products route - PUBLIC for all users (must come BEFORE /api/products/:id)
+  app.get('/api/products', async (req: Request, res: Response) => {
+    try {
+      const filters = req.query as Record<string, any>;
+      const products = await storage.getProducts(filters);
+      res.json(products);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+      res.status(500).json({ message: "Failed to fetch products" });
+    }
+  });
+
   // Product routes
   app.get('/api/products/:id', async (req, res) => {
     try {
