@@ -518,8 +518,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       const { billingInfo, paymentMethod, paymentDetails } = req.body;
 
-      // Get cart items
-      const cartItems = await storage.getCartItems(userId);
+      // Get cart items with tenant isolation
+      const cartItems = await storage.getCartItems(userId, tenantId);
       if (!cartItems || cartItems.length === 0) {
         return res.status(400).json({ message: "Cart is empty" });
       }
@@ -537,9 +537,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const randomSuffix = Math.random().toString(36).substring(2, 7).toUpperCase();
       const orderNumber = `ORD-${timestamp}-${randomSuffix}`;
 
+      // Get user's tenant ID
+      const user = req.user as any;
+      const tenantId = user.tenantId || 'eur';
+
       // Create order
       const order = await storage.createOrder({
         userId,
+        tenantId,
         orderNumber,
         status: 'completed',
         totalAmount: subtotal.toFixed(2),
