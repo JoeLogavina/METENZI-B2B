@@ -76,6 +76,7 @@ export default function KMShop() {
   } = useQuery({
     queryKey: ["/api/products", "km", debouncedFilters],
     queryFn: async () => {
+      console.log('🔍 KM Shop: Starting products query...');
       const params = new URLSearchParams();
       
       Object.entries(debouncedFilters).forEach(([key, value]) => {
@@ -84,6 +85,7 @@ export default function KMShop() {
         }
       });
 
+      console.log('🔍 KM Shop: Making API request to /api/products');
       const res = await apiRequest("GET", `/api/products?${params.toString()}`);
       if (!res.ok) {
         throw new Error(`Products API failed: ${res.status}`);
@@ -91,8 +93,8 @@ export default function KMShop() {
       const data = await res.json();
       
       // Debug the API response
-      console.log('KM Shop API Response:', data.length, 'total products');
-      console.log('First product sample:', data[0]);
+      console.log('🔍 KM Shop API Response:', data.length, 'total products');
+      console.log('🔍 First product sample:', data[0]);
       
       // Filter and transform for KM pricing - check all possible field names
       const filteredProducts = data
@@ -100,7 +102,7 @@ export default function KMShop() {
           // Check both priceKm and price_km field names
           const kmPrice = product.priceKm || product.price_km;
           const hasKmPrice = kmPrice && parseFloat(kmPrice) > 0;
-          console.log(`Product "${product.name}": priceKm=${product.priceKm}, hasKmPrice=${hasKmPrice}`);
+          console.log(`🔍 Product "${product.name}": priceKm=${product.priceKm}, hasKmPrice=${hasKmPrice}`);
           return hasKmPrice;
         })
         .map((product: any) => ({
@@ -110,12 +112,14 @@ export default function KMShop() {
           currency: 'KM'
         }));
       
-      console.log('KM Shop filtered products:', filteredProducts.length);
+      console.log('🔍 KM Shop filtered products:', filteredProducts.length);
       return filteredProducts;
     },
     enabled: isAuthenticated,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 30 * 60 * 1000, // 30 minutes
+    staleTime: 0, // Force fresh data
+    gcTime: 0, // No caching
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
   // Fetch KM user's cart
