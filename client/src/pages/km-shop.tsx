@@ -221,11 +221,11 @@ export default function KMShop() {
     );
   }
 
-  if (!isAuthenticated || user?.tenantId !== 'km') {
+  // Allow admin users to access any tenant shop
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+  if (!isAuthenticated || (!isAdmin && user?.tenantId !== 'km')) {
     return null;
   }
-
-  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
   
   const sidebarItems = [
     { icon: Package, label: "KM SHOP", active: true, href: "/km", allowed: true },

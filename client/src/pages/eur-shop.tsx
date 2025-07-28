@@ -39,21 +39,26 @@ export default function EURShop() {
   const queryClient = useQueryClient();
   const [location, setLocation] = useLocation();
 
-  // Enforce EUR tenant access only
+  // Enforce EUR tenant access (allow admin users to access any tenant)
   useEffect(() => {
-    if (!isLoading && isAuthenticated && user?.tenantId !== 'eur') {
-      toast({
-        title: "Access Denied",
-        description: "You don't have access to the EUR shop. Redirecting to your tenant.",
-        variant: "destructive",
-      });
+    if (!isLoading && isAuthenticated && user) {
+      const isAdmin = user.role === 'admin' || user.role === 'super_admin';
       
-      if (user?.tenantId === 'km') {
-        setLocation('/shop/km');
-      } else {
-        setLocation('/auth');
+      // Allow admin users to access any tenant shop, otherwise enforce tenant restriction
+      if (!isAdmin && user.tenantId !== 'eur') {
+        toast({
+          title: "Access Denied",
+          description: "You don't have access to the EUR shop. Redirecting to your tenant.",
+          variant: "destructive",
+        });
+        
+        if (user.tenantId === 'km') {
+          setLocation('/km');
+        } else {
+          setLocation('/auth');
+        }
+        return;
       }
-      return;
     }
   }, [user, isLoading, isAuthenticated, setLocation, toast]);
 
