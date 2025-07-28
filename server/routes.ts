@@ -3,10 +3,10 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { productService } from './services/product.service';
 import { setupAuth } from "./auth";
-import { insertProductSchema, insertCategorySchema, insertLicenseKeySchema, insertCartItemSchema } from "@shared/schema";
+import { insertProductSchema, insertCategorySchema, insertLicenseKeySchema, insertCartItemSchema, cartItems } from "@shared/schema";
 import { z } from "zod";
 import { db } from "./db";
-import { sql } from "drizzle-orm";
+import { sql, eq, and } from "drizzle-orm";
 import { adminRouter } from "./routes/admin";
 import { errorHandler, rateLimit } from "./middleware/auth.middleware";
 import { 
@@ -460,29 +460,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
 
-        // ULTRA-FAST CART UPDATE: Direct database operations
+        // ULTRA-FAST CART UPDATE: Direct database query optimization
         const startTime = Date.now();
-        console.log(`🔧 Cart update request: userId=${userId}, productId=${productId}, quantity=${quantity}`);
         
-        const cartItems = await storage.getCartItems(userId);
-        console.log(`🔧 Found ${cartItems.length} cart items:`, cartItems.map(item => ({ id: item.id, productId: item.productId, currentQty: item.quantity })));
+        // Single direct database update query instead of fetch + update
+        const result = await db.update(cartItems)
+          .set({ quantity })
+          .where(
+            and(
+              eq(cartItems.userId, userId),
+              eq(cartItems.productId, productId)
+            )
+          )
+          .returning({ id: cartItems.id });
         
-        const existingItem = cartItems.find(item => item.productId === productId);
-        
-        if (!existingItem) {
-          console.log(`❌ Cart item not found for productId: ${productId}`);
+        if (result.length === 0) {
           return res.status(404).json({ 
             success: false, 
             message: "Cart item not found" 
           });
         }
         
-        console.log(`🔧 Updating cart item ${existingItem.id} from quantity ${existingItem.quantity} to ${quantity}`);
-        await storage.updateCartItem(existingItem.id, quantity);
         const totalTime = Date.now() - startTime;
-        console.log(`⚡ ULTRA-FAST cart update completed in ${totalTime}ms`);
+        console.log(`⚡ ULTRA-FAST cart update completed in ${totalTime}ms (optimized direct query)`);
         
-        res.setHeader('X-Cart-Mode', 'ultra-fast');
+        res.setHeader('X-Cart-Mode', 'ultra-fast-optimized');
         res.json({ 
           success: true, 
           message: "Cart item updated successfully"
@@ -504,29 +506,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       const productId = req.params.productId;
       try {
-        // ULTRA-FAST CART REMOVE: Direct database operations
+        // ULTRA-FAST CART REMOVE: Direct database delete optimization  
         const startTime = Date.now();
-        console.log(`🔧 Cart remove request: userId=${userId}, productId=${productId}`);
         
-        const cartItems = await storage.getCartItems(userId);
-        console.log(`🔧 Found ${cartItems.length} cart items for removal check`);
+        // Single direct database delete query instead of fetch + delete
+        const result = await db.delete(cartItems)
+          .where(
+            and(
+              eq(cartItems.userId, userId),
+              eq(cartItems.productId, productId)
+            )
+          )
+          .returning({ id: cartItems.id });
         
-        const existingItem = cartItems.find(item => item.productId === productId);
-        
-        if (!existingItem) {
-          console.log(`❌ Cart item not found for removal: productId=${productId}`);
+        if (result.length === 0) {
           return res.status(404).json({ 
             success: false, 
             message: "Cart item not found" 
           });
         }
         
-        console.log(`🔧 Removing cart item ${existingItem.id} for product ${productId}`);
-        await storage.removeFromCart(existingItem.id);
         const totalTime = Date.now() - startTime;
-        console.log(`⚡ ULTRA-FAST cart remove completed in ${totalTime}ms`);
+        console.log(`⚡ ULTRA-FAST cart remove completed in ${totalTime}ms (optimized direct query)`);
         
-        res.setHeader('X-Cart-Mode', 'ultra-fast');
+        res.setHeader('X-Cart-Mode', 'ultra-fast-optimized');
         res.json({ 
           success: true, 
           message: "Item removed from cart"
