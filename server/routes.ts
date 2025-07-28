@@ -16,7 +16,7 @@ import {
   categoriesCacheMiddleware,
   invalidateCacheMiddleware 
 } from "./middleware/cache.middleware";
-import { invalidateOrdersCache } from "./middleware/cache-invalidation.middleware";
+import { invalidateOrdersCache, invalidateCartCache } from "./middleware/cache-invalidation.middleware";
 import { redisCache } from "./cache/redis";
 import { upload, saveBase64Image, deleteUploadedFile } from "./middleware/upload";
 import { tenantResolutionMiddleware, requireTenantType } from './middleware/tenant.middleware';
@@ -251,7 +251,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/cart', isAuthenticated, async (req: any, res) => {
+  app.post('/api/cart', isAuthenticated, invalidateCartCache, async (req: any, res) => {
     const userId = req.user.id;
     const user = req.user as any;
     try {
@@ -278,7 +278,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/cart/:productId', isAuthenticated, async (req: any, res) => {
+  app.patch('/api/cart/:productId', isAuthenticated, invalidateCartCache, async (req: any, res) => {
     const userId = req.user.id;
     const productId = req.params.productId;
     try {
@@ -318,7 +318,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/cart/:productId', isAuthenticated, async (req: any, res) => {
+  app.delete('/api/cart/:productId', isAuthenticated, invalidateCartCache, async (req: any, res) => {
     const userId = req.user.id;
     const productId = req.params.productId;
     try {
@@ -352,7 +352,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/cart', isAuthenticated, async (req: any, res) => {
+  app.delete('/api/cart', isAuthenticated, invalidateCartCache, async (req: any, res) => {
     const userId = req.user.id;
     const user = req.user as any;
     try {
@@ -529,7 +529,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Order creation endpoint
-  app.post('/api/orders', isAuthenticated, async (req: any, res) => {
+  app.post('/api/orders', isAuthenticated, invalidateOrdersCache, async (req: any, res) => {
     try {
       const userId = req.user.id;
       const { billingInfo, paymentMethod, paymentDetails } = req.body;

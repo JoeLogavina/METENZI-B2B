@@ -275,5 +275,24 @@ export const cacheHelpers = {
   
   async invalidateCategoriesData() {
     await redisCache.invalidatePattern('categories:*');
+  },
+
+  // Cart cache
+  async getCartData(userId: string, tenantId: string = 'eur') {
+    const key = `cart:${userId}:${tenantId}`;
+    return await redisCache.get(key);
+  },
+  
+  async setCartData(userId: string, tenantId: string, cartData: any) {
+    const key = `cart:${userId}:${tenantId}`;
+    await redisCache.set(key, cartData, 180); // 3 minutes for cart data
+  },
+  
+  async invalidateCartData(userId?: string) {
+    if (userId) {
+      await redisCache.invalidatePattern(`cart:${userId}:*`);
+    } else {
+      await redisCache.invalidatePattern('cart:*');
+    }
   }
 };

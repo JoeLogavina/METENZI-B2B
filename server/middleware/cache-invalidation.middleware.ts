@@ -39,6 +39,11 @@ export function cacheInvalidationMiddleware(options: CacheInvalidationOptions) {
                 await cacheHelpers.invalidateProducts();
               } else if (pattern.includes('categories')) {
                 await cacheHelpers.invalidateCategoriesData();
+              } else if (pattern.includes('cart')) {
+                const userId = (req as any).user?.id;
+                if (userId) {
+                  await cacheHelpers.invalidateCartData(userId);
+                }
               }
             } catch (error) {
               console.warn(`Cache invalidation failed for pattern ${pattern}:`, error);
@@ -75,6 +80,11 @@ export function cacheInvalidationMiddleware(options: CacheInvalidationOptions) {
                 await cacheHelpers.invalidateProducts();
               } else if (pattern.includes('categories')) {
                 await cacheHelpers.invalidateCategoriesData();
+              } else if (pattern.includes('cart')) {
+                const userId = (req as any).user?.id;
+                if (userId) {
+                  await cacheHelpers.invalidateCartData(userId);
+                }
               }
             } catch (error) {
               console.warn(`Cache invalidation failed for pattern ${pattern}:`, error);
@@ -105,5 +115,10 @@ export const invalidateWalletCache = cacheInvalidationMiddleware({
 
 export const invalidateProductsCache = cacheInvalidationMiddleware({
   patterns: ['products:*'],
+  onSuccess: true
+});
+
+export const invalidateCartCache = cacheInvalidationMiddleware({
+  patterns: ['cart:*'],
   onSuccess: true
 });
