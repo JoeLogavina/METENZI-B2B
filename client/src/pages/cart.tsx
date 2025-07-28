@@ -61,30 +61,14 @@ export default function CartPage() {
     },
   });
 
-  // Debug cart data changes
-  useEffect(() => {
-    console.log(`🛒🔍 Cart data changed:`, {
-      itemCount: cartItems.length,
-      items: cartItems.map(item => ({ 
-        id: item.id, 
-        productId: item.productId, 
-        productName: item.product?.name,
-        quantity: item.quantity 
-      }))
-    });
-  }, [cartItems]);
+
 
   // ENTERPRISE UPDATE QUANTITY - SIMPLIFIED SERVER-FIRST APPROACH
   const updateQuantityMutation = useMutation({
     mutationFn: async ({ itemId, quantity }: { itemId: string; quantity: number }) => {
-      console.log(`🛒🔄 Client: Updating item ${itemId} to quantity ${quantity}`);
-      const response = await apiRequest("PATCH", `/api/cart/${itemId}`, { quantity });
-      console.log(`🛒🔄 Client: Update response:`, response);
-      return response;
+      return await apiRequest("PATCH", `/api/cart/${itemId}`, { quantity });
     },
     onSuccess: (data, variables) => {
-      console.log(`🛒✅ Client: Update successful for item ${variables.itemId}`);
-      // Force invalidate and refetch cart data
       queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
       queryClient.refetchQueries({ queryKey: ["/api/cart"] });
       toast({
@@ -93,7 +77,6 @@ export default function CartPage() {
       });
     },
     onError: (error, variables) => {
-      console.log(`🛒❌ Client: Update failed for item ${variables.itemId}:`, error);
       
       if (isUnauthorizedError(error)) {
         toast({
@@ -116,14 +99,9 @@ export default function CartPage() {
   // ENTERPRISE REMOVE ITEM - SIMPLIFIED SERVER-FIRST APPROACH
   const removeItemMutation = useMutation({
     mutationFn: async (itemId: string) => {
-      console.log(`🛒🗑️ Client: Removing item ${itemId}`);
-      const response = await apiRequest("DELETE", `/api/cart/${itemId}`);
-      console.log(`🛒🗑️ Client: Remove response:`, response);
-      return response;
+      return await apiRequest("DELETE", `/api/cart/${itemId}`);
     },
     onSuccess: (response, itemId) => {
-      console.log(`🛒✅ Client: Remove successful for item ${itemId}`);
-      // Force invalidate and refetch cart data
       queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
       queryClient.refetchQueries({ queryKey: ["/api/cart"] });
       toast({
@@ -132,7 +110,6 @@ export default function CartPage() {
       });
     },
     onError: (error, itemId) => {
-      console.log(`🛒❌ Client: Remove failed for item ${itemId}:`, error);
       
       if (isUnauthorizedError(error)) {
         toast({
@@ -155,13 +132,9 @@ export default function CartPage() {
   // ENTERPRISE CLEAR CART - ENHANCED WITH FORCE REFRESH
   const clearCartMutation = useMutation({
     mutationFn: async () => {
-      console.log("🗑️ Client: Clearing cart...");
-      const response = await apiRequest("DELETE", "/api/cart");
-      console.log("🗑️ Client: Clear cart response:", response);
-      return response;
+      return await apiRequest("DELETE", "/api/cart");
     },
     onSuccess: () => {
-      console.log("🗑️ Client: Cart cleared successfully, force refreshing...");
       
       // AGGRESSIVE CACHE CLEARING
       queryClient.setQueryData(["/api/cart"], []);
@@ -203,17 +176,13 @@ export default function CartPage() {
   });
 
   const handleQuantityChange = (itemId: string, newQuantity: number) => {
-    console.log(`🛒🔄 Client: handleQuantityChange called - itemId: ${itemId}, newQuantity: ${newQuantity}`);
-    
     if (newQuantity < 1) {
-      console.log(`🛒❌ Client: Invalid quantity ${newQuantity}, ignoring`);
       return;
     }
 
     // Check if item still exists in current cart
     const currentItem = cartItems.find(item => item.id === itemId);
     if (!currentItem) {
-      console.log(`🛒❌ Client: Item ${itemId} not found in current cart:`, cartItems.map(item => ({ id: item.id, quantity: item.quantity })));
       toast({
         title: "Error",
         description: "Cart item not found. Refreshing cart...",
@@ -223,17 +192,13 @@ export default function CartPage() {
       return;
     }
 
-    console.log(`🛒🔄 Client: Found item in cart:`, { id: currentItem.id, currentQuantity: currentItem.quantity, newQuantity });
     updateQuantityMutation.mutate({ itemId, quantity: newQuantity });
   };
 
   const handleRemoveItem = (itemId: string) => {
-    console.log(`🛒🗑️ Client: handleRemoveItem called - itemId: ${itemId}`);
-    
     // Check if item still exists in current cart
     const currentItem = cartItems.find(item => item.id === itemId);
     if (!currentItem) {
-      console.log(`🛒❌ Client: Item ${itemId} not found in current cart:`, cartItems.map(item => ({ id: item.id, quantity: item.quantity })));
       toast({
         title: "Error",
         description: "Cart item not found. Refreshing cart...",
@@ -243,7 +208,6 @@ export default function CartPage() {
       return;
     }
 
-    console.log(`🛒🗑️ Client: Found item to remove:`, { id: currentItem.id, quantity: currentItem.quantity });
     removeItemMutation.mutate(itemId);
   };
 
@@ -253,23 +217,17 @@ export default function CartPage() {
   };
 
   const totalAmount = cartItems.reduce((sum, item) => {
-    // Add comprehensive safety checks for product and price
     if (!item.product || !item.product.price) {
-      console.warn('Cart item missing product data:', item);
       return sum;
     }
     
-    // Parse price safely and validate
     const price = parsePrice(item.product.price);
     if (isNaN(price) || price < 0) {
-      console.warn('Invalid price for cart item:', item.product.price, item);
       return sum;
     }
     
-    // Validate quantity
     const quantity = item.quantity || 0;
     if (quantity <= 0) {
-      console.warn('Invalid quantity for cart item:', quantity, item);
       return sum;
     }
     
@@ -354,7 +312,7 @@ export default function CartPage() {
               {cartItems.map((item) => {
                 // Add safety check for product data
                 if (!item.product) {
-                  console.warn('Cart item missing product data:', item);
+
                   return null;
                 }
                 

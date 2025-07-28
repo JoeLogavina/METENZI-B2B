@@ -62,7 +62,7 @@ export function preloadRoute(routeName: string) {
     requestIdleCallback(() => {
       route().then(() => {
         if (process.env.NODE_ENV === 'development') {
-          console.log(`🚀 Preloaded: ${routeName}`);
+
         }
       }).catch(() => {
         // Silently handle preload failures

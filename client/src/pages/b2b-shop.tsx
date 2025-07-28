@@ -87,8 +87,7 @@ export default function B2BShop() {
       if (debouncedFilters.priceMin) params.append('priceMin', debouncedFilters.priceMin);
       if (debouncedFilters.priceMax) params.append('priceMax', debouncedFilters.priceMax);
 
-      console.log('Fetching products with user authenticated:', isAuthenticated);
-      console.log('Filters:', debouncedFilters);
+
 
       const res = await fetch(`/api/products?${params.toString()}`, {
         credentials: 'include',
@@ -98,8 +97,7 @@ export default function B2BShop() {
         },
       });
 
-      console.log('Products response status:', res.status);
-      console.log('Products response headers:', res.headers.get('content-type'));
+
 
       if (!res.ok) {
         if (res.status === 401) {
@@ -118,7 +116,7 @@ export default function B2BShop() {
         } else {
           // Server returned HTML error page
           const errorText = await res.text();
-          console.error('Server error response:', errorText);
+
           throw new Error(`Server error: ${res.status} ${res.statusText}`);
         }
       }
@@ -129,7 +127,7 @@ export default function B2BShop() {
       }
 
       const data = await res.json();
-      console.log('Products data received:', data?.length || 0, 'items');
+
       return data;
     },
     enabled: isAuthenticated && !isLoading,

@@ -250,48 +250,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // Debug endpoint for cart/database issues
-  app.get('/api/debug-cart', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      
-      // Check cart_items table directly with raw SQL
-      const { pool } = await import('./db');
-      
-      const cartQuery = `SELECT * FROM cart_items WHERE user_id = $1`;
-      const cartResult = await pool.query(cartQuery, [userId]);
-      
-      const productsQuery = `SELECT id, name, is_active FROM products`;
-      const productsResult = await pool.query(productsQuery);
-      
-      // Cache debugging
-      const cacheKey = `cart:${userId}`;
-      const cachedData = await redisCache.get(cacheKey);
-      
-      res.json({
-        userId,
-        database: {
-          cartItems: cartResult.rows,
-          cartItemsCount: cartResult.rows.length,
-        },
-        cache: {
-          key: cacheKey,
-          data: cachedData,
-          dataType: typeof cachedData,
-          isArray: Array.isArray(cachedData),
-          length: Array.isArray(cachedData) ? cachedData.length : null
-        },
-        products: {
-          items: productsResult.rows,
-          count: productsResult.rows.length
-        },
-        timestamp: new Date().toISOString()
-      });
-    } catch (error) {
-      console.error('Debug cart error:', error);
-      res.status(500).json({ error: error.message });
-    }
-  });
+
 
   // Mount wallet routes for B2B users
   const walletRouter = await import('./routes/wallet.routes');
@@ -434,26 +393,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
 
       try {
-        console.log(`🛒 API DEBUG: GET /api/cart called for user ${userId}`);
-
-        // ALWAYS fetch fresh from database - NO CACHING for debugging
         const cartItems = await storage.getCartItems(userId);
-
-        console.log(`🛒 API DEBUG: Database returned ${cartItems.length} items`);
-        
-        // DATABASE DEBUGGING
-        if (cartItems.length > 0) {
-          console.log(`🛒🔍 DATABASE DEBUG: Fresh items:`, cartItems.map(item => ({ 
-            id: item.id, 
-            quantity: item.quantity,
-            productName: item.product?.name 
-          })));
-        }
-
-        res.setHeader('X-Cache', 'DISABLED');
         res.json(cartItems);
       } catch (error) {
-        console.error("❌ Cart fetch error:", error);
+        console.error("Cart fetch error:", error);
         res.status(500).json({ 
           message: "Failed to fetch cart", 
           error: error.message,
@@ -469,47 +412,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     isAuthenticated, 
     async (req: any, res) => {
       const userId = req.user.id;
-      const cacheKey = `cart:${userId}`;
 
       try {
-        console.log(`🛒 API DEBUG: POST /api/cart called for user ${userId}`, req.body);
-
         // Validate request data
         const cartData = insertCartItemSchema.parse({ 
           ...req.body, 
           userId 
         });
 
-        console.log(`🛒 API DEBUG: Validated cart data:`, cartData);
-
         // Add to cart with transactional safety
         const cartItem = await storage.addToCart(cartData);
-
-        console.log(`🛒 API DEBUG: Item added successfully:`, cartItem);
-
-        // ENHANCED CACHE INVALIDATION - Multiple approaches with verification
-        try {
-          // Clear cache keys
-          await redisCache.del(cacheKey);
-          await redisCache.del(`cart:summary:${userId}`);
-          
-          // Set activity marker to force fresh data on next request
-          const activityKey = `cart:activity:${userId}`;
-          await redisCache.set(activityKey, Date.now(), 10); // 10 second marker
-          
-          // Verify cache is cleared
-          const cacheCheck = await redisCache.get(cacheKey);
-          console.log(`🛒 API DEBUG: Cache cleared, verification check:`, cacheCheck);
-          
-          console.log(`🛒 API DEBUG: Enhanced cache invalidation completed for user ${userId}`);
-        } catch (cacheError) {
-          console.warn(`🛒⚠️ Cache invalidation warning:`, cacheError.message);
-        }
 
         // Return the created item
         res.status(201).json(cartItem);
       } catch (error) {
-        console.error("❌ Cart add error:", error);
+        console.error("Cart add error:", error);
 
         // Handle validation errors specifically
         if (error.name === 'ZodError') {
@@ -613,56 +530,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     isAuthenticated, 
     async (req: any, res) => {
       const userId = req.user.id;
-      const cacheKey = `cart:${userId}`;
-
-      console.log(`🛒🗑️ DELETE /api/cart (CLEAR ALL) - User: ${userId}`);
 
       try {
-        // First, let's see what's in the cart
-        const currentCart = await storage.getCartItems(userId);
-        console.log(`🛒🗑️ Current cart before clear:`, currentCart.map(item => ({ id: item.id, quantity: item.quantity })));
-
         // Clear cart with atomic operation
         const itemsRemoved = await storage.clearCart(userId);
-        console.log(`🛒🗑️ Items removed: ${itemsRemoved}`);
-
-        // AGGRESSIVE CACHE INVALIDATION to fix stale data issue
-        try {
-          const cacheOperations = [
-            redisCache.del(cacheKey),
-            redisCache.del(`cart:summary:${userId}`),
-            // Try pattern-based deletion
-            redisCache.flushPattern ? redisCache.flushPattern(`cart:*`) : Promise.resolve(),
-            // Force a cache flush for this user's patterns
-            redisCache.del(`api:products:*`), // Clear products cache that might reference cart
-          ];
-          
-          await Promise.all(cacheOperations.filter(Boolean));
-          console.log(`🛒🗑️ AGGRESSIVE cache invalidation completed for user ${userId}`);
-          
-          // Additional verification - try to clear any remaining keys
-          await new Promise(resolve => setTimeout(resolve, 100)); // Brief delay
-          await redisCache.del(cacheKey); // Double-clear
-          
-        } catch (cacheError) {
-          console.warn(`🛒⚠️ Cache invalidation warning (non-fatal):`, cacheError.message);
-        }
-
-        // Verify cart is empty with fresh database query
-        const cartAfterClear = await storage.getCartItems(userId);
-        console.log(`🛒🗑️ Cart after clear:`, cartAfterClear.length, 'items remaining');
 
         res.json({ 
           success: true, 
           itemsRemoved,
-          message: `Cart cleared successfully. ${itemsRemoved} items removed.`,
-          verification: {
-            itemsRemainingInDB: cartAfterClear.length,
-            timestamp: new Date().toISOString()
-          }
+          message: `Cart cleared successfully. ${itemsRemoved} items removed.`
         });
       } catch (error) {
-        console.error("🛒❌ Cart clear error:", error);
+        console.error("Cart clear error:", error);
         res.status(500).json({ 
           message: "Failed to clear cart", 
           error: error.message,

@@ -84,7 +84,7 @@ function preloadData(endpoint: string) {
         gcTime: 30 * 60 * 1000, // 30 minutes
       }).then(() => {
         if (process.env.NODE_ENV === 'development') {
-          console.log(`🗄️ Data preloaded: ${endpoint}`);
+
         }
       }).catch(() => {
         // Silently handle preload failures

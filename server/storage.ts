@@ -151,7 +151,7 @@ export class DatabaseStorage implements IStorage {
     priceMax?: number;
     isActive?: boolean;
   }): Promise<ProductWithStock[]> {
-    console.log('Storage.getProducts - called with filters:', filters);
+
 
     let whereConditions = [];
 
@@ -208,10 +208,10 @@ export class DatabaseStorage implements IStorage {
         .groupBy(products.id)
         .orderBy(desc(products.createdAt));
 
-      console.log('Storage.getProducts - query result:', result.length, 'products found');
+
       return result as ProductWithStock[];
     } catch (error) {
-      console.error('Storage.getProducts - Database error:', error);
+      console.error('Database error:', error);
       throw error;
     }
   }
@@ -255,8 +255,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateProduct(id: string, product: Partial<InsertProduct>): Promise<Product> {
-    console.log('Storage.updateProduct - ID:', id);
-    console.log('Storage.updateProduct - Data:', product);
+
 
     try {
       const [updatedProduct] = await db
@@ -265,10 +264,10 @@ export class DatabaseStorage implements IStorage {
         .where(eq(products.id, id))
         .returning();
 
-      console.log('Storage.updateProduct - Success:', updatedProduct);
+
       return updatedProduct;
     } catch (error) {
-      console.error('Storage.updateProduct - Database Error:', error);
+      console.error('Database Error:', error);
       throw error;
     }
   }
@@ -339,129 +338,49 @@ export class DatabaseStorage implements IStorage {
    */
   async getCartItems(userId: string): Promise<(CartItem & { product: Product })[]> {
     try {
-      console.log(`🔍 CART DEBUG: Starting getCartItems for user ${userId}`);
-      
-      // First, check if cart items exist for this user
-      const cartItemsCount = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(cartItems)
-        .where(eq(cartItems.userId, userId));
-      
-      console.log(`🔍 CART DEBUG: Found ${cartItemsCount[0]?.count || 0} cart items in database`);
-
-      // Check if products exist
-      const productsCount = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(products)
-        .where(eq(products.isActive, true));
-      
-      console.log(`🔍 CART DEBUG: Found ${productsCount[0]?.count || 0} active products in database`);
-
       const rows = await db
         .select({
-          // Cart item fields
           id: cartItems.id,
           userId: cartItems.userId,
           productId: cartItems.productId,
           quantity: cartItems.quantity,
           createdAt: cartItems.createdAt,
-          // Product fields - flatten the structure
-          productId_p: products.id,
-          productSku: products.sku,
-          productName: products.name,
-          productDescription: products.description,
-          productPrice: products.price,
-          productPriceKm: products.priceKm,
-          productPurchasePrice: products.purchasePrice,
-          productB2bPrice: products.b2bPrice,
-          productRetailPrice: products.retailPrice,
-          productPurchasePriceKm: products.purchasePriceKm,
-          productResellerPriceKm: products.resellerPriceKm,
-          productRetailerPriceKm: products.retailerPriceKm,
-          productCategoryId: products.categoryId,
-          productRegion: products.region,
-          productPlatform: products.platform,
-          productStockCount: products.stockCount,
-          productImageUrl: products.imageUrl,
-          productWarranty: products.warranty,
-          productHtmlDescription: products.htmlDescription,
-          productIsActive: products.isActive,
-          productCreatedAt: products.createdAt,
-          productUpdatedAt: products.updatedAt,
+          product: {
+            id: products.id,
+            sku: products.sku,
+            name: products.name,
+            description: products.description,
+            price: products.price,
+            priceKm: products.priceKm,
+            purchasePrice: products.purchasePrice,
+            b2bPrice: products.b2bPrice,
+            retailPrice: products.retailPrice,
+            purchasePriceKm: products.purchasePriceKm,
+            resellerPriceKm: products.resellerPriceKm,
+            retailerPriceKm: products.retailerPriceKm,
+            categoryId: products.categoryId,
+            region: products.region,
+            platform: products.platform,
+            stockCount: products.stockCount,
+            imageUrl: products.imageUrl,
+            warranty: products.warranty,
+            htmlDescription: products.htmlDescription,
+            isActive: products.isActive,
+            createdAt: products.createdAt,
+            updatedAt: products.updatedAt,
+          }
         })
         .from(cartItems)
         .innerJoin(products, eq(cartItems.productId, products.id))
-        .where(eq(cartItems.userId, userId))
+        .where(and(
+          eq(cartItems.userId, userId),
+          eq(products.isActive, true)
+        ))
         .orderBy(desc(cartItems.createdAt));
 
-      console.log(`🔍 CART DEBUG: JOIN query returned ${rows.length} items`);
-      if (rows.length > 0) {
-        console.log('📦 CART DEBUG: Sample cart item raw data:', {
-          id: rows[0].id,
-          userId: rows[0].userId,
-          productId: rows[0].productId,
-          productName: rows[0].productName,
-          quantity: rows[0].quantity,
-          productIsActive: rows[0].productIsActive
-        });
-      } else {
-        console.log('❌ CART DEBUG: No items returned from JOIN query - checking raw cart items...');
-        
-        // Debug: Get raw cart items without JOIN
-        const rawCartItems = await db
-          .select()
-          .from(cartItems)
-          .where(eq(cartItems.userId, userId));
-        
-        console.log(`🔍 CART DEBUG: Raw cart items (no JOIN): ${rawCartItems.length} items`);
-        if (rawCartItems.length > 0) {
-          console.log('📦 CART DEBUG: Raw cart item sample:', rawCartItems[0]);
-          
-          // Check if products exist for these cart items
-          for (const item of rawCartItems) {
-            const product = await db
-              .select({ id: products.id, name: products.name, isActive: products.isActive })
-              .from(products)
-              .where(eq(products.id, item.productId));
-            
-            console.log(`🔍 CART DEBUG: Product ${item.productId} exists:`, product.length > 0, product[0]);
-          }
-        }
-      }
-
-      return rows.map(row => ({
-        id: row.id,
-        userId: row.userId,
-        productId: row.productId,
-        quantity: row.quantity,
-        createdAt: row.createdAt,
-        product: {
-          id: row.productId_p,
-          sku: row.productSku,
-          name: row.productName,
-          description: row.productDescription,
-          price: row.productPrice,
-          priceKm: row.productPriceKm,
-          purchasePrice: row.productPurchasePrice,
-          b2bPrice: row.productB2bPrice,
-          retailPrice: row.productRetailPrice,
-          purchasePriceKm: row.productPurchasePriceKm,
-          resellerPriceKm: row.productResellerPriceKm,
-          retailerPriceKm: row.productRetailerPriceKm,
-          categoryId: row.productCategoryId,
-          region: row.productRegion,
-          platform: row.productPlatform,
-          stockCount: row.productStockCount,
-          imageUrl: row.productImageUrl,
-          warranty: row.productWarranty,
-          htmlDescription: row.productHtmlDescription,
-          isActive: row.productIsActive,
-          createdAt: row.productCreatedAt,
-          updatedAt: row.productUpdatedAt,
-        }
-      }));
+      return rows;
     } catch (error) {
-      console.error('❌ Error fetching cart items:', error);
+      console.error('Error fetching cart items:', error);
       throw new Error('Failed to fetch cart items');
     }
   }
@@ -472,24 +391,12 @@ export class DatabaseStorage implements IStorage {
    */
   async addToCart(item: InsertCartItem): Promise<CartItem> {
     try {
-      console.log(`🛒 CART DEBUG: Adding item to cart:`, {
-        userId: item.userId,
-        productId: item.productId,
-        quantity: item.quantity
-      });
-
       return await db.transaction(async (tx) => {
         // Validate product exists and is active
         const [product] = await tx
           .select({ id: products.id, stockCount: products.stockCount, isActive: products.isActive })
           .from(products)
           .where(eq(products.id, item.productId));
-
-        console.log(`🛒 CART DEBUG: Product validation:`, {
-          productId: item.productId,
-          found: !!product,
-          isActive: product?.isActive
-        });
 
         if (!product) {
           throw new Error('Product not found');
@@ -508,44 +415,32 @@ export class DatabaseStorage implements IStorage {
             eq(cartItems.productId, item.productId)
           ));
 
-        console.log(`🛒 CART DEBUG: Existing item check:`, {
-          found: !!existingItem,
-          existingId: existingItem?.id,
-          existingQuantity: existingItem?.quantity
-        });
-
         if (existingItem) {
           // Update existing item quantity
           const newQuantity = existingItem.quantity + item.quantity;
-
-          console.log(`🛒 CART DEBUG: Updating existing item quantity from ${existingItem.quantity} to ${newQuantity}`);
 
           const [updatedItem] = await tx
             .update(cartItems)
             .set({ 
               quantity: newQuantity,
-              createdAt: new Date() // Update timestamp for proper ordering
+              createdAt: new Date()
             })
             .where(eq(cartItems.id, existingItem.id))
             .returning();
 
-          console.log(`🛒 CART DEBUG: Item updated successfully:`, updatedItem);
           return updatedItem;
         } else {
           // Insert new cart item
-          console.log(`🛒 CART DEBUG: Inserting new cart item`);
-
           const [newItem] = await tx
             .insert(cartItems)
             .values(item)
             .returning();
 
-          console.log(`🛒 CART DEBUG: New item inserted successfully:`, newItem);
           return newItem;
         }
       });
     } catch (error) {
-      console.error('❌ CART DEBUG: Error adding to cart:', error);
+      console.error('Error adding to cart:', error);
       throw new Error(`Failed to add item to cart: ${(error as Error).message}`);
     }
   }
@@ -700,7 +595,7 @@ export class DatabaseStorage implements IStorage {
 
   async getOrdersWithDetails(userId?: string): Promise<any[]> {
     try {
-      console.log('Getting orders with raw SQL for user:', userId);
+
 
       // Use direct pool connection to bypass Drizzle completely
       const orderQuery = userId 
@@ -711,12 +606,12 @@ export class DatabaseStorage implements IStorage {
       const orderResult = await pool.query(orderQuery, orderParams);
       const orderRows = orderResult.rows;
 
-      console.log('Found orders:', orderRows.length);
+
 
       // Get order items with products and license keys for each order
       const ordersWithDetails = await Promise.all(
         orderRows.map(async (order: any) => {
-          console.log('Processing order:', order.id);
+
 
           // Get order items for this order
           const itemsQuery = `
@@ -740,7 +635,7 @@ export class DatabaseStorage implements IStorage {
           const itemsResult = await pool.query(itemsQuery, [order.id]);
           const itemRows = itemsResult.rows;
 
-          console.log('Found items for order', order.id, ':', itemRows.length);
+
 
           const items = itemRows.map((item: any) => ({
             id: item.id,
@@ -799,7 +694,7 @@ export class DatabaseStorage implements IStorage {
         })
       );
 
-      console.log('Returning orders:', ordersWithDetails.length);
+
       return ordersWithDetails;
     } catch (error) {
       console.error('Error in getOrdersWithDetails:', error);
