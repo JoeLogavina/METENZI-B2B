@@ -89,12 +89,32 @@ export default function PriceManagementPage() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  const { data: products, isLoading } = useQuery({
-    queryKey: ["/api/products", { 
-      search: debouncedSearchTerm || undefined, 
-      categoryId: categoryFilter === 'all' ? undefined : categoryFilter 
-    }],
+  const { data: productsRaw, isLoading } = useQuery({
+    queryKey: ["/api/products"],
   });
+
+  // Client-side filtering for search and categories
+  const products = React.useMemo(() => {
+    if (!productsRaw) return [];
+    
+    let filtered = productsRaw as Product[];
+    
+    // Apply search filter
+    if (debouncedSearchTerm) {
+      const searchLower = debouncedSearchTerm.toLowerCase();
+      filtered = filtered.filter(product => 
+        product.name.toLowerCase().includes(searchLower) ||
+        product.description.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    // Apply category filter
+    if (categoryFilter !== 'all') {
+      filtered = filtered.filter(product => product.categoryName === categoryFilter);
+    }
+    
+    return filtered;
+  }, [productsRaw, debouncedSearchTerm, categoryFilter]);
 
   const { data: categories } = useQuery({
     queryKey: ["/api/categories"],
