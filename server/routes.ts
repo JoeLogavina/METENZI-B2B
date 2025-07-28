@@ -241,7 +241,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/cart', isAuthenticated, invalidateCartCache, async (req: any, res) => {
+  app.post('/api/cart', isAuthenticated, async (req: any, res) => {
     const userId = req.user.id;
     const user = req.user as any;
     try {
@@ -257,7 +257,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const tenantId = user.tenantId || 'eur';
       const cartData = insertCartItemSchema.parse({ productId, quantity, userId, tenantId });
       const cartItem = await storage.addToCart(cartData);
-      return res.status(201).json(cartItem);
+      
+      // Send response immediately
+      res.status(201).json(cartItem);
+      
+      // Invalidate cache asynchronously after response
+      setImmediate(async () => {
+        try {
+          await redisCache.invalidatePattern(`cart:*${tenantId}:*`);
+        } catch (cacheError) {
+          console.error('Cart cache invalidation error:', cacheError);
+        }
+      });
     } catch (error) {
       console.error("Cart add error:", error);
       res.status(500).json({ 
@@ -268,7 +279,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/cart/:productId', isAuthenticated, invalidateCartCache, async (req: any, res) => {
+  app.patch('/api/cart/:productId', isAuthenticated, async (req: any, res) => {
     const userId = req.user.id;
     const productId = req.params.productId;
     try {
@@ -298,6 +309,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       res.json({ success: true });
+
+      // Invalidate cache asynchronously after response
+      setImmediate(async () => {
+        try {
+          const user = req.user as any;
+          const tenantId = user.tenantId || 'eur';
+          await redisCache.invalidatePattern(`cart:*${tenantId}:*`);
+        } catch (cacheError) {
+          console.error('Cart cache invalidation error:', cacheError);
+        }
+      });
     } catch (error) {
       console.error("Cart update error:", error);
       res.status(500).json({ 
@@ -308,7 +330,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/cart/:productId', isAuthenticated, invalidateCartCache, async (req: any, res) => {
+  app.delete('/api/cart/:productId', isAuthenticated, async (req: any, res) => {
     const userId = req.user.id;
     const productId = req.params.productId;
     try {
@@ -332,6 +354,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: true, 
         message: "Item removed from cart"
       });
+
+      // Invalidate cache asynchronously after response
+      setImmediate(async () => {
+        try {
+          const user = req.user as any;
+          const tenantId = user.tenantId || 'eur';
+          await redisCache.invalidatePattern(`cart:*${tenantId}:*`);
+        } catch (cacheError) {
+          console.error('Cart cache invalidation error:', cacheError);
+        }
+      });
     } catch (error) {
       console.error("Cart remove error:", error);
       res.status(500).json({ 
@@ -342,7 +375,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/cart', isAuthenticated, invalidateCartCache, async (req: any, res) => {
+  app.delete('/api/cart', isAuthenticated, async (req: any, res) => {
     const userId = req.user.id;
     const user = req.user as any;
     try {
@@ -351,6 +384,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ 
         success: true, 
         message: "Cart cleared successfully"
+      });
+
+      // Invalidate cache asynchronously after response
+      setImmediate(async () => {
+        try {
+          await redisCache.invalidatePattern(`cart:*${tenantId}:*`);
+        } catch (cacheError) {
+          console.error('Cart cache invalidation error:', cacheError);
+        }
       });
     } catch (error) {
       console.error("Cart clear error:", error);
@@ -469,7 +511,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Order creation endpoint
-  app.post('/api/orders', isAuthenticated, invalidateOrdersCache, async (req: any, res) => {
+  app.post('/api/orders', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
       const { billingInfo, paymentMethod, paymentDetails } = req.body;
@@ -614,6 +656,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         paymentStatus: order.paymentStatus,
         createdAt: order.createdAt,
         items: orderItems
+      });
+
+      // Invalidate caches asynchronously after response is sent
+      setImmediate(async () => {
+        try {
+          // Invalidate orders and wallet cache to show latest data
+          await Promise.all([
+            redisCache.invalidatePattern(`orders:*${tenantId}:*`),
+            redisCache.invalidatePattern(`wallet:*${tenantId}:*`),
+            redisCache.invalidatePattern(`cart:*${tenantId}:*`)
+          ]);
+        } catch (cacheError) {
+          console.error('Order cache invalidation error:', cacheError);
+        }
       });
     } catch (error) {
       console.error('Error creating order:', error);
