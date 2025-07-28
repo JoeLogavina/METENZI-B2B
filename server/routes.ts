@@ -460,10 +460,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
 
-        // ULTRA-FAST CART UPDATE: Direct database query optimization
+        // ULTRA-FAST CART UPDATE: Maximum performance optimization
         const startTime = Date.now();
         
-        // Single direct database update query instead of fetch + update
+        // Set response headers early for streaming
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('X-Cart-Mode', 'ultra-fast-optimized');
+        
+        // Single direct database update query
         const result = await db.update(cartItems)
           .set({ quantity })
           .where(
@@ -474,6 +478,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           )
           .returning({ id: cartItems.id });
         
+        const totalTime = Date.now() - startTime;
+        console.log(`⚡ ULTRA-FAST cart update completed in ${totalTime}ms (max optimized)`);
+        
         if (result.length === 0) {
           return res.status(404).json({ 
             success: false, 
@@ -481,14 +488,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
         
-        const totalTime = Date.now() - startTime;
-        console.log(`⚡ ULTRA-FAST cart update completed in ${totalTime}ms (optimized direct query)`);
-        
-        res.setHeader('X-Cart-Mode', 'ultra-fast-optimized');
-        res.json({ 
-          success: true, 
-          message: "Cart item updated successfully"
-        });
+        // Send minimal response for speed
+        res.json({ success: true });
       } catch (error) {
         console.error("Cart update error:", error);
         res.status(500).json({ 

@@ -63,18 +63,32 @@ export default function CartPage() {
 
 
 
-  // ENTERPRISE UPDATE QUANTITY - SIMPLIFIED SERVER-FIRST APPROACH
+  // ENTERPRISE UPDATE QUANTITY - OPTIMISTIC UPDATES FOR INSTANT UI
   const updateQuantityMutation = useMutation({
     mutationFn: async ({ itemId, quantity }: { itemId: string; quantity: number }) => {
       return await apiRequest("PATCH", `/api/cart/${itemId}`, { quantity });
     },
+    onMutate: async ({ itemId, quantity }) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["/api/cart"] });
+      
+      // Snapshot previous value
+      const previousCart = queryClient.getQueryData(["/api/cart"]);
+      
+      // Optimistically update UI immediately
+      queryClient.setQueryData(["/api/cart"], (old: CartItem[] | undefined) => 
+        old?.map(item => 
+          item.productId === itemId 
+            ? { ...item, quantity }
+            : item
+        ) || []
+      );
+      
+      return { previousCart };
+    },
     onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
+      // Still refetch to ensure consistency
       queryClient.refetchQueries({ queryKey: ["/api/cart"] });
-      toast({
-        title: "Updated",
-        description: "Quantity updated successfully",
-      });
     },
     onError: (error, variables) => {
       
