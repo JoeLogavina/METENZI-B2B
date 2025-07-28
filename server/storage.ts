@@ -347,36 +347,33 @@ export class DatabaseStorage implements IStorage {
           productId: cartItems.productId,
           quantity: cartItems.quantity,
           createdAt: cartItems.createdAt,
-          // Product fields
-          product: {
-            id: products.id,
-            sku: products.sku,
-            name: products.name,
-            description: products.description,
-            price: products.price,
-            priceKm: products.priceKm,
-            purchasePrice: products.purchasePrice,
-            b2bPrice: products.b2bPrice,
-            retailPrice: products.retailPrice,
-            purchasePriceKm: products.purchasePriceKm,
-            resellerPriceKm: products.resellerPriceKm,
-            retailerPriceKm: products.retailerPriceKm,
-            categoryId: products.categoryId,
-            region: products.region,
-            platform: products.platform,
-            stockCount: products.stockCount,
-            imageUrl: products.imageUrl,
-            warranty: products.warranty,
-            htmlDescription: products.htmlDescription,
-            isActive: products.isActive,
-            createdAt: products.createdAt,
-            updatedAt: products.updatedAt,
-          }
+          // Product fields - flatten the structure
+          productId_p: products.id,
+          productSku: products.sku,
+          productName: products.name,
+          productDescription: products.description,
+          productPrice: products.price,
+          productPriceKm: products.priceKm,
+          productPurchasePrice: products.purchasePrice,
+          productB2bPrice: products.b2bPrice,
+          productRetailPrice: products.retailPrice,
+          productPurchasePriceKm: products.purchasePriceKm,
+          productResellerPriceKm: products.resellerPriceKm,
+          productRetailerPriceKm: products.retailerPriceKm,
+          productCategoryId: products.categoryId,
+          productRegion: products.region,
+          productPlatform: products.platform,
+          productStockCount: products.stockCount,
+          productImageUrl: products.imageUrl,
+          productWarranty: products.warranty,
+          productHtmlDescription: products.htmlDescription,
+          productIsActive: products.isActive,
+          productCreatedAt: products.createdAt,
+          productUpdatedAt: products.updatedAt,
         })
         .from(cartItems)
         .innerJoin(products, eq(cartItems.productId, products.id))
         .where(eq(cartItems.userId, userId))
-        // Remove isActive filter to test if this is the issue
         .orderBy(desc(cartItems.createdAt));
 
       console.log(`🔍 Cart query for user ${userId}: found ${rows.length} items`);
@@ -384,7 +381,7 @@ export class DatabaseStorage implements IStorage {
         console.log('📦 Sample cart item:', {
           id: rows[0].id,
           productId: rows[0].productId,
-          productName: rows[0].product.name,
+          productName: rows[0].productName,
           quantity: rows[0].quantity
         });
       }
@@ -395,7 +392,30 @@ export class DatabaseStorage implements IStorage {
         productId: row.productId,
         quantity: row.quantity,
         createdAt: row.createdAt,
-        product: row.product
+        product: {
+          id: row.productId_p,
+          sku: row.productSku,
+          name: row.productName,
+          description: row.productDescription,
+          price: row.productPrice,
+          priceKm: row.productPriceKm,
+          purchasePrice: row.productPurchasePrice,
+          b2bPrice: row.productB2bPrice,
+          retailPrice: row.productRetailPrice,
+          purchasePriceKm: row.productPurchasePriceKm,
+          resellerPriceKm: row.productResellerPriceKm,
+          retailerPriceKm: row.productRetailerPriceKm,
+          categoryId: row.productCategoryId,
+          region: row.productRegion,
+          platform: row.productPlatform,
+          stockCount: row.productStockCount,
+          imageUrl: row.productImageUrl,
+          warranty: row.productWarranty,
+          htmlDescription: row.productHtmlDescription,
+          isActive: row.productIsActive,
+          createdAt: row.productCreatedAt,
+          updatedAt: row.productUpdatedAt,
+        }
       }));
     } catch (error) {
       console.error('❌ Error fetching cart items:', error);
@@ -498,13 +518,16 @@ export class DatabaseStorage implements IStorage {
   /**
    * Remove specific item from cart
    */
-  async removeFromCart(id: string): Promise<void> {
+  async removeFromCart(id: string): Promise<boolean> {
     try {
-      await db.transaction(async (tx) => {
-        // Delete the item (if it doesn't exist, that's fine)
-        await tx
+      return await db.transaction(async (tx) => {
+        // Delete the item and get the affected rows count
+        const result = await tx
           .delete(cartItems)
-          .where(eq(cartItems.id, id));
+          .where(eq(cartItems.id, id))
+          .returning({ id: cartItems.id });
+        
+        return result.length > 0;
       });
     } catch (error) {
       console.error('Error removing from cart:', error);
@@ -515,13 +538,16 @@ export class DatabaseStorage implements IStorage {
   /**
    * Clear entire cart for user with atomic operation
    */
-  async clearCart(userId: string): Promise<void> {
+  async clearCart(userId: string): Promise<number> {
     try {
-      await db.transaction(async (tx) => {
-        // Delete all cart items for user
-        await tx
+      return await db.transaction(async (tx) => {
+        // Delete all cart items for user and return count
+        const result = await tx
           .delete(cartItems)
-          .where(eq(cartItems.userId, userId));
+          .where(eq(cartItems.userId, userId))
+          .returning({ id: cartItems.id });
+        
+        return result.length;
       });
     } catch (error) {
       console.error('Error clearing cart:', error);
