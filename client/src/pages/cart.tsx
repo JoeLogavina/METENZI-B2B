@@ -90,7 +90,11 @@ export default function CartPage() {
       // Still refetch to ensure consistency
       queryClient.refetchQueries({ queryKey: ["/api/cart"] });
     },
-    onError: (error, variables) => {
+    onError: (error, variables, context) => {
+      // Rollback optimistic update
+      if (context?.previousCart) {
+        queryClient.setQueryData(["/api/cart"], context.previousCart);
+      }
       
       if (isUnauthorizedError(error)) {
         toast({
