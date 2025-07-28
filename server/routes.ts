@@ -17,7 +17,7 @@ import {
   invalidateCacheMiddleware 
 } from "./middleware/cache.middleware";
 import { invalidateOrdersCache } from "./middleware/cache-invalidation.middleware";
-import { cacheHelpers, redisCache } from "./cache/redis";
+import { redisCache } from "./cache/redis";
 import { upload, saveBase64Image, deleteUploadedFile } from "./middleware/upload";
 import express from "express";
 import path from "path";
@@ -382,11 +382,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // ENTERPRISE CART API - FULL REBUILD WITH ATOMIC OPERATIONS
-
-  /**
-   * GET /api/cart - Fetch user's cart with smart caching
-   */
+  // Cart API
   app.get('/api/cart', 
     isAuthenticated, 
     async (req: any, res) => {
@@ -405,25 +401,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
 
-  /**
-   * POST /api/cart - Add item to cart with validation
-   */
+
   app.post('/api/cart', 
     isAuthenticated, 
     async (req: any, res) => {
       const userId = req.user.id;
 
       try {
-        // Validate request data
         const cartData = insertCartItemSchema.parse({ 
           ...req.body, 
           userId 
         });
 
-        // Add to cart with transactional safety
         const cartItem = await storage.addToCart(cartData);
-
-        // Return the created item
         res.status(201).json(cartItem);
       } catch (error) {
         console.error("Cart add error:", error);
@@ -444,31 +434,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
 
-  /**
-   * PATCH /api/cart/:id - Update cart item quantity
-   */
+
   app.patch('/api/cart/:id', 
     isAuthenticated, 
     async (req: any, res) => {
       const userId = req.user.id;
       const itemId = req.params.id;
-      const cacheKey = `cart:${userId}`;
-
       try {
         const { quantity } = req.body;
 
-        // Validate quantity
         if (!quantity || quantity < 1) {
           return res.status(400).json({ 
             message: "Quantity must be at least 1" 
           });
         }
 
-        // Update with transaction safety
         const updatedItem = await storage.updateCartItem(itemId, quantity);
-
-        // Atomic cache invalidation
-        await redisCache.del(cacheKey);
 
         res.json({ 
           success: true, 
@@ -485,22 +466,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
 
-  /**
-   * DELETE /api/cart/:id - Remove specific item from cart
-   */
+
   app.delete('/api/cart/:id', 
     isAuthenticated, 
     async (req: any, res) => {
       const userId = req.user.id;
       const itemId = req.params.id;
-      const cacheKey = `cart:${userId}`;
-
       try {
-        // Remove with transaction safety
         const wasRemoved = await storage.removeFromCart(itemId);
-
-        // Atomic cache invalidation
-        await redisCache.del(cacheKey);
 
         if (wasRemoved) {
           res.json({ 
@@ -523,16 +496,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
 
-  /**
-   * DELETE /api/cart - Clear entire cart
-   */
+
   app.delete('/api/cart', 
     isAuthenticated, 
     async (req: any, res) => {
       const userId = req.user.id;
 
       try {
-        // Clear cart with atomic operation
+
         const itemsRemoved = await storage.clearCart(userId);
 
         res.json({ 
@@ -1025,41 +996,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.status(500).json({ error: "Internal server error" });
   }
 });
-
-  /**
-   * GET /api/cart/summary - Get cart summary with totals
-   */
-  app.get('/api/cart/summary', 
-    isAuthenticated, 
-    async (req: any, res) => {
-      const userId = req.user.id;
-      const cacheKey = `cart:summary:${userId}`;
-
-      try {
-        // Check cache first
-        const cachedSummary = await redisCache.get(cacheKey);
-        if (cachedSummary) {
-          res.setHeader('X-Cache', 'HIT');
-          return res.json(cachedSummary);
-        }
-
-        // Get cart summary from storage
-        const summary = await storage.getCartSummary(userId);
-
-        // Cache summary for 2 minutes
-        await redisCache.set(cacheKey, summary, 120);
-
-        res.setHeader('X-Cache', 'MISS');
-        res.json(summary);
-      } catch (error) {
-        console.error("Cart summary error:", error);
-        res.status(500).json({ 
-          message: "Failed to get cart summary", 
-          error: error.message,
-          timestamp: new Date().toISOString()
-        });
-      }
-    });
 
   // Order routes with enterprise cache invalidation
   app.post('/api/orders', 
