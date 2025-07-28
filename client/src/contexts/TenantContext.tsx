@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useAuth } from '@/hooks/useAuth';
 
 export type Currency = 'EUR' | 'KM';
 export type TenantType = 'admin' | 'eur-shop' | 'km-shop';

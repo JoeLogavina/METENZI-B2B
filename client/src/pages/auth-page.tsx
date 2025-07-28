@@ -26,17 +26,25 @@ export default function AuthPage() {
   // Redirect based on authentication and redirect parameter
   useEffect(() => {
     if (!isLoading && isAuthenticated && user) {
+      console.log('Auth redirect logic:', { redirectParam, userTenant: user.tenantId, userRole: user.role });
+      
       if (redirectParam === 'admin' && ['admin', 'super_admin'].includes(user.role)) {
+        console.log('Redirecting to admin panel');
         window.location.href = '/admin-panel';
       } else if (redirectParam === 'eur' && user.tenantId === 'eur') {
+        console.log('Redirecting to EUR shop');
         window.location.href = '/shop/eur';
       } else if (redirectParam === 'km' && user.tenantId === 'km') {
+        console.log('Redirecting to KM shop');
         window.location.href = '/shop/km';
       } else if (user.tenantId === 'eur') {
+        console.log('Default redirect to EUR shop for EUR user');
         window.location.href = '/shop/eur';
       } else if (user.tenantId === 'km') {
+        console.log('Default redirect to KM shop for KM user');
         window.location.href = '/shop/km';
       } else {
+        console.log('Default redirect to home');
         window.location.href = '/';
       }
     }
