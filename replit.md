@@ -5,6 +5,12 @@
 This is a full-stack B2B software license management platform built with React, Express, and PostgreSQL. The application provides enterprise customers with a streamlined interface to browse, purchase, and manage software licenses, while offering administrators comprehensive tools for inventory and user management. The system now uses custom username/password authentication and displays all prices in EUR currency.
 
 ## Recent Changes (January 2025)
+- **SHARED LICENSE KEY POOL IMPLEMENTED** (January 28, 2025):
+  - **CRITICAL ARCHITECTURE DECISION**: Both EUR and KM tenants now share the same license key inventory pool
+  - **INVENTORY ISOLATION REMOVED**: License keys are no longer filtered by tenant, enabling cross-tenant key usage
+  - **ORDER CREATION FIXED**: Resolved "No license keys available" errors by removing tenant-based key isolation
+  - **BUSINESS LOGIC ALIGNED**: License keys are shared resources while maintaining pricing and data separation for orders/wallets
+  - **STOCK AVAILABILITY CORRECTED**: Both panels can now access the full license key inventory regardless of tenant type
 - **CACHE-ASIDE PATTERN IMPLEMENTED** (January 28, 2025):
   - **ROOT CAUSE ELIMINATED**: Removed read caching for orders and wallet endpoints to prevent race conditions
   - **SYNCHRONOUS CACHE INVALIDATION**: Cache invalidation now happens immediately on successful operations

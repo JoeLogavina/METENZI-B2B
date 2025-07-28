@@ -559,10 +559,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const transactionCartItems = [];
       for (const cartItem of cartItems) {
         for (let i = 0; i < cartItem.quantity; i++) {
-          // Get available license key with tenant isolation
-          const licenseKey = await storage.getAvailableKey(cartItem.productId, tenantId);
+          // Get available license key from shared pool (no tenant isolation for inventory)
+          const licenseKey = await storage.getAvailableKey(cartItem.productId);
           if (!licenseKey) {
-            throw new Error(`No license keys available for product: ${cartItem.product.name} in ${tenantId.toUpperCase()} tenant`);
+            throw new Error(`No license keys available for product: ${cartItem.product.name}`);
           }
 
           // Use tenant-specific pricing for the transaction

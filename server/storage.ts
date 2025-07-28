@@ -335,15 +335,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAvailableKey(productId: string, tenantId?: string): Promise<LicenseKey | undefined> {
+    // SHARED LICENSE KEY POOL: Both EUR and KM tenants share the same license keys
     const whereConditions = [
       eq(licenseKeys.productId, productId),
       eq(licenseKeys.isUsed, false)
     ];
     
-    // Add tenant filter for license key isolation
-    if (tenantId) {
-      whereConditions.push(eq(licenseKeys.tenantId, tenantId));
-    }
+    // License keys are shared across tenants - no tenant isolation for inventory
     
     const [key] = await db
       .select()
