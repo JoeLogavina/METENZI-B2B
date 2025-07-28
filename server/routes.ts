@@ -261,41 +261,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Auth routes
 
-  // Product routes with caching and performance monitoring
-  app.get('/api/products', 
-    productsCacheMiddleware,
-    async (req, res) => {
-      try {
-        const { region, platform, category, search, priceMin, priceMax } = req.query;
-        const filters = {
-          region: region as string,
-          platform: platform as string,
-          category: category as string,
-          search: search as string,
-          priceMin: priceMin ? parseFloat(priceMin as string) : undefined,
-          priceMax: priceMax ? parseFloat(priceMax as string) : undefined,
-        };
-
-        // Try cache first for performance
-        const cachedProducts = await cacheHelpers.getProducts(filters);
-        if (cachedProducts) {
-          res.setHeader('X-Cache', 'HIT');
-          return res.json(cachedProducts);
-        }
-
-        // Fetch from database
-        const products = await storage.getProducts(filters);
-
-        // Cache the results for future requests
-        await cacheHelpers.setProducts(filters, products);
-
-        res.setHeader('X-Cache', 'MISS');
-        res.json(products);
-      } catch (error) {
-        console.error("Error fetching products:", error);
-        res.status(500).json({ message: "Failed to fetch products" });
-      }
-    });
+  // Product routes with caching and performance monitoring - REMOVED DUPLICATE
 
   app.get('/api/products/:id', async (req, res) => {
     try {
