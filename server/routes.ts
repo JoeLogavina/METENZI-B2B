@@ -628,10 +628,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Wallet routes with real data
+  // Wallet routes with real data - TENANT-AWARE
   app.get('/api/wallet', isAuthenticated, async (req: any, res) => {
     try {
-      const wallet = await storage.getWallet(req.user.id);
+      const tenantId = req.user.tenantId; // Get tenant from authenticated user
+      const wallet = await storage.getWallet(req.user.id, tenantId);
       res.json({ data: wallet });
     } catch (error) {
       console.error("Error fetching wallet:", error);
@@ -641,7 +642,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/wallet/transactions', isAuthenticated, async (req: any, res) => {
     try {
-      const transactions = await storage.getWalletTransactions(req.user.id);
+      const tenantId = req.user.tenantId; // Get tenant from authenticated user  
+      const transactions = await storage.getWalletTransactions(req.user.id, tenantId);
       res.json({ data: transactions });
     } catch (error) {
       console.error("Error fetching transactions:", error);

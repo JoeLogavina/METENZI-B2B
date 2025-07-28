@@ -75,8 +75,8 @@ export interface IStorage {
   createOrder(order: InsertOrder): Promise<Order>;
   
   // Wallet operations
-  getWallet(userId: string): Promise<any>;
-  getWalletTransactions(userId: string): Promise<any[]>;
+  getWallet(userId: string, tenantId?: string): Promise<any>;
+  getWalletTransactions(userId: string, tenantId?: string): Promise<any[]>;
   getOrdersWithDetails(userId?: string): Promise<any[]>;
   createOrderItem(item: InsertOrderItem): Promise<OrderItem>;
   getOrders(userId?: string): Promise<(Order & { items: (OrderItem & { product: Product })[] })[]>;
@@ -776,24 +776,31 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Wallet operations
-  async getWallet(userId: string): Promise<any> {
+  async getWallet(userId: string, tenantId?: string): Promise<any> {
     try {
-      // Calculate actual balance based on completed orders
+      // Get user's tenant if not provided
+      if (!tenantId) {
+        const [user] = await db.select({ tenantId: users.tenantId }).from(users).where(eq(users.id, userId));
+        tenantId = user?.tenantId || 'eur';
+      }
+
+      // Calculate actual balance based on completed orders FOR THIS TENANT
       const completedOrdersResult = await db
         .select({ total: sql<string>`COALESCE(SUM(CAST(total_amount AS DECIMAL)), 0)` })
         .from(orders)
         .where(and(
           eq(orders.userId, userId),
+          eq(orders.tenantId, tenantId), // TENANT ISOLATION ADDED
           eq(orders.status, 'completed')
         ));
       
       const totalSpent = parseFloat(completedOrdersResult[0]?.total || '0');
       
-      // Assuming starting balance was €5000 
-      const startingBalance = 5000.00;
+      // Tenant-specific starting balances
+      const startingBalance = tenantId === 'km' ? 5000.00 : 5000.00; // Same amount but could be different
       const remainingBalance = Math.max(0, startingBalance - totalSpent);
       const creditUsed = Math.max(0, totalSpent - startingBalance);
-      const creditLimit = 5000.00;
+      const creditLimit = tenantId === 'km' ? 5000.00 : 5000.00; // Tenant-specific credit limits
       const availableCredit = Math.max(0, creditLimit - creditUsed);
       const totalAvailable = remainingBalance + availableCredit;
       const isOverlimit = creditUsed > creditLimit;
@@ -801,6 +808,7 @@ export class DatabaseStorage implements IStorage {
       return {
         id: userId,
         userId: userId,
+        tenantId: tenantId, // TENANT ID INCLUDED
         depositBalance: remainingBalance.toFixed(2),
         creditLimit: creditLimit.toFixed(2),
         creditUsed: creditUsed.toFixed(2),
@@ -820,20 +828,28 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getWalletTransactions(userId: string): Promise<any[]> {
+  async getWalletTransactions(userId: string, tenantId?: string): Promise<any[]> {
     try {
-      // Get actual order transactions from database
+      // Get user's tenant if not provided
+      if (!tenantId) {
+        const [user] = await db.select({ tenantId: users.tenantId }).from(users).where(eq(users.id, userId));
+        tenantId = user?.tenantId || 'eur';
+      }
+
+      // Get actual order transactions from database FOR THIS TENANT
       const completedOrders = await db
         .select({
           id: orders.id,
           orderNumber: orders.orderNumber,
           totalAmount: orders.totalAmount,
           createdAt: orders.createdAt,
-          paymentMethod: orders.paymentMethod
+          paymentMethod: orders.paymentMethod,
+          tenantId: orders.tenantId
         })
         .from(orders)
         .where(and(
           eq(orders.userId, userId),
+          eq(orders.tenantId, tenantId), // TENANT ISOLATION ADDED
           eq(orders.status, 'completed'),
           eq(orders.paymentMethod, 'wallet')
         ))
