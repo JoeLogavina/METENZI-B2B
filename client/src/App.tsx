@@ -66,6 +66,18 @@ function Router() {
               <B2BShop />
             </Suspense>
           )} />
+          
+          {/* Root redirects to EUR shop by default */}
+          <Route path="/eur" component={() => (
+            <Suspense fallback={<ShopLoadingFallback />}>
+              <B2BShop />
+            </Suspense>
+          )} />
+          <Route path="/km" component={() => (
+            <Suspense fallback={<ShopLoadingFallback />}>
+              <B2BShop />
+            </Suspense>
+          )} />
           {/* Tenant-specific B2B Shop Routes */}
           <Route path="/shop/eur" component={() => (
             <Suspense fallback={<ShopLoadingFallback />}>
