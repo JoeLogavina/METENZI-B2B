@@ -96,17 +96,22 @@ export default function EURShop() {
       const res = await apiRequest("GET", `/api/products${params.toString() ? `?${params.toString()}` : ''}`);
       const data = await res.json();
       
-      console.log('EUR Shop: Products fetched:', data.length, 'products');
+      console.log('EUR Shop: Products fetched:', data.length, 'products', data);
       
       // Ensure we're getting EUR pricing for EUR shop
-      return data.map((product: any) => ({
+      const mappedProducts = data.map((product: any) => ({
         ...product,
         // Use EUR price as primary price for EUR shop
         displayPrice: product.price,
         currency: 'EUR'
       }));
+      
+      console.log('EUR Shop: Products mapped:', mappedProducts.length, 'products', mappedProducts);
+      return mappedProducts;
     },
     enabled: isAuthenticated && user?.tenantId === 'eur',
+    retry: 1,
+    staleTime: 0,
   });
 
   // Fetch EUR user's cart
@@ -193,6 +198,17 @@ export default function EURShop() {
   };
 
   const cartItemCount = cartItems.reduce((sum: number, item: any) => sum + item.quantity, 0);
+
+  // Debug logging for products state
+  console.log('EUR Shop Debug - Products state:', {
+    products: products,
+    productsLength: products?.length,
+    productsLoading,
+    productsError,
+    isAuthenticated,
+    userTenantId: user?.tenantId,
+    queryEnabled: isAuthenticated && user?.tenantId === 'eur'
+  });
 
   if (isLoading) {
     return (
