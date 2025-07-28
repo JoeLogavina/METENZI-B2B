@@ -432,46 +432,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     isAuthenticated, 
     async (req: any, res) => {
       const userId = req.user.id;
-      const cacheKey = `cart:${userId}`;
 
       try {
         console.log(`🛒 API DEBUG: GET /api/cart called for user ${userId}`);
 
-        // Check for force refresh parameter
-        const forceRefresh = req.query.refresh === 'true';
-
-        // Check cache first (unless forced refresh or recent cart modification)
-        let cachedCart = null;
-        if (!forceRefresh) {
-          cachedCart = await redisCache.get(cacheKey);
-          
-          // Additional check: if cache is empty but we recently added items, force refresh
-          if (Array.isArray(cachedCart) && cachedCart.length === 0) {
-            const recentActivityKey = `cart:activity:${userId}`;
-            const recentActivity = await redisCache.get(recentActivityKey);
-            if (recentActivity) {
-              console.log(`🛒 API DEBUG: Recent cart activity detected, forcing refresh despite cache`);
-              cachedCart = null; // Force database fetch
-            }
-          }
-        }
-
-        if (cachedCart && !forceRefresh && Array.isArray(cachedCart) && cachedCart.length > 0) {
-          console.log(`🛒 API DEBUG: Cache HIT - returning ${cachedCart.length} items`);
-          
-          console.log(`🛒🔍 CACHE DEBUG: Cached items:`, cachedCart.map(item => ({ 
-            id: item.id, 
-            quantity: item.quantity,
-            productName: item.product?.name 
-          })));
-          
-          res.setHeader('X-Cache', 'HIT');
-          return res.json(cachedCart);
-        }
-
-        console.log(`🛒 API DEBUG: Cache ${forceRefresh ? 'FORCED REFRESH' : 'MISS'} - fetching from database`);
-
-        // Fetch from database with full transaction safety  
+        // ALWAYS fetch fresh from database - NO CACHING for debugging
         const cartItems = await storage.getCartItems(userId);
 
         console.log(`🛒 API DEBUG: Database returned ${cartItems.length} items`);
@@ -485,10 +450,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           })));
         }
 
-        // Cache result for 2 minutes (reduced time due to cache issues)
-        await redisCache.set(cacheKey, cartItems, 120);
-
-        res.setHeader('X-Cache', forceRefresh ? 'REFRESH' : 'MISS');
+        res.setHeader('X-Cache', 'DISABLED');
         res.json(cartItems);
       } catch (error) {
         console.error("❌ Cart fetch error:", error);
