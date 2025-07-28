@@ -28,6 +28,7 @@ interface WalletUser {
   lastName: string;
   email: string;
   role: string;
+  tenantId: string;
   balance: WalletBalance;
 }
 
@@ -91,7 +92,17 @@ export default function WalletManagement() {
     },
   });
 
-  const formatCurrency = (amount: string) => `€${parseFloat(amount).toFixed(2)}`;
+  // Format currency based on user's tenant
+  const formatCurrency = (amount: string, userTenantId?: string) => {
+    const numAmount = parseFloat(amount).toFixed(2);
+    
+    // Use tenant-specific currency formatting
+    if (userTenantId === 'km') {
+      return `${numAmount} KM`;
+    } else {
+      return `€${numAmount}`;
+    }
+  };
 
   const getTransactionTypeColor = (type: string) => {
     switch (type) {
@@ -213,7 +224,7 @@ export default function WalletManagement() {
                       </div>
                       <div className="text-right">
                         <p className="font-semibold text-[#FFB20F]">
-                          {formatCurrency(user.balance?.totalAvailable || "0")}
+                          {formatCurrency(user.balance?.totalAvailable || "0", user.tenantId)}
                         </p>
                         <p className="text-xs text-gray-500">Available</p>
                       </div>
@@ -269,7 +280,7 @@ export default function WalletManagement() {
                       <div>
                         <p className="text-sm font-medium text-green-800">Deposit Balance</p>
                         <p className="text-lg font-semibold text-green-600">
-                          {formatCurrency(selectedUser.balance?.depositBalance || "0")}
+                          {formatCurrency(selectedUser.balance?.depositBalance || "0", selectedUser.tenantId)}
                         </p>
                       </div>
                     </div>
@@ -281,7 +292,7 @@ export default function WalletManagement() {
                       <div>
                         <p className="text-sm font-medium text-blue-800">Available Credit</p>
                         <p className="text-lg font-semibold text-blue-600">
-                          {formatCurrency(selectedUser.balance?.availableCredit || "0")}
+                          {formatCurrency(selectedUser.balance?.availableCredit || "0", selectedUser.tenantId)}
                         </p>
                       </div>
                     </div>
@@ -293,7 +304,7 @@ export default function WalletManagement() {
                       <div>
                         <p className="text-sm font-medium text-[#6E6F71]">Total Available</p>
                         <p className="text-lg font-semibold text-[#FFB20F]">
-                          {formatCurrency(selectedUser.balance?.totalAvailable || "0")}
+                          {formatCurrency(selectedUser.balance?.totalAvailable || "0", selectedUser.tenantId)}
                         </p>
                       </div>
                     </div>
@@ -305,7 +316,7 @@ export default function WalletManagement() {
                       <div>
                         <p className="text-sm font-medium text-gray-800">Credit Limit</p>
                         <p className="text-lg font-semibold text-gray-600">
-                          {formatCurrency(selectedUser.balance?.creditLimit || "0")}
+                          {formatCurrency(selectedUser.balance?.creditLimit || "0", selectedUser.tenantId)}
                         </p>
                       </div>
                     </div>
@@ -343,7 +354,7 @@ export default function WalletManagement() {
                                 : 'text-red-600'
                             }`}>
                               {transaction.type === 'deposit' || transaction.type === 'refund' ? '+' : '-'}
-                              {formatCurrency(transaction.amount)}
+                              {formatCurrency(transaction.amount, selectedUser.tenantId)}
                             </p>
                             <p className="text-xs text-gray-500">
                               {new Date(transaction.createdAt).toLocaleDateString()}

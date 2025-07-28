@@ -102,12 +102,18 @@ export class AdminWalletController {
 
       const finalDescription = description || `${type.charAt(0).toUpperCase() + type.slice(1).replace('_', ' ')} by admin ${adminUsername}`;
 
-      // For now, only support deposit operations (add funds)
+      // Support all transaction types including credit limit
       let result;
       switch (type) {
         case 'deposit':
         case 'adjustment':
         case 'refund':
+          result = await walletService.addFunds(userId, user.tenantId, amountNum, adminUserId, finalDescription);
+          break;
+        case 'credit_limit':
+          result = await walletService.setCreditLimit(userId, user.tenantId, amountNum, adminUserId, finalDescription);
+          break;
+        case 'credit_payment':
           result = await walletService.addFunds(userId, user.tenantId, amountNum, adminUserId, finalDescription);
           break;
         default:

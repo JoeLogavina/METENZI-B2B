@@ -302,6 +302,56 @@ export class WalletService {
   }
 
   /**
+   * Set credit limit for a wallet (admin operation)
+   */
+  async setCreditLimit(
+    userId: string,
+    tenantId: string,
+    creditLimit: number,
+    adminId: string,
+    description: string
+  ): Promise<{ success: boolean; newBalance: number; error?: string }> {
+    return await db.transaction(async (tx) => {
+      // Get wallet
+      const [wallet] = await tx
+        .select()
+        .from(wallets)
+        .where(and(
+          eq(wallets.userId, userId),
+          eq(wallets.tenantId, tenantId)
+        ));
+
+      if (!wallet) {
+        return { success: false, newBalance: 0, error: 'Wallet not found' };
+      }
+
+      // Update wallet credit limit
+      await tx
+        .update(wallets)
+        .set({
+          creditLimit: creditLimit.toFixed(2),
+          updatedAt: new Date()
+        })
+        .where(eq(wallets.id, wallet.id));
+
+      // Create transaction record
+      await tx
+        .insert(walletTransactions)
+        .values({
+          walletId: wallet.id,
+          userId: userId,
+          type: 'credit_limit',
+          amount: creditLimit.toFixed(2),
+          balanceAfter: wallet.depositBalance, // Balance doesn't change, just credit limit
+          description: description,
+          adminId: adminId
+        });
+
+      return { success: true, newBalance: parseFloat(wallet.depositBalance), error: undefined };
+    });
+  }
+
+  /**
    * Get all wallets for admin (cross-tenant view)
    */
   async getAllWallets(adminRole: string): Promise<WalletData[]> {
@@ -316,7 +366,10 @@ export class WalletService {
         creditUsed: wallets.creditUsed,
         isActive: wallets.isActive,
         username: users.username,
-        email: users.email
+        firstName: users.firstName,
+        lastName: users.lastName,
+        email: users.email,
+        role: users.role
       })
       .from(wallets)
       .innerJoin(users, eq(wallets.userId, users.id))
@@ -331,13 +384,13 @@ export class WalletService {
       const isOverlimit = creditUsed > creditLimit;
 
       return {
-        id: wallet.id,
-        userId: wallet.userId,
+        id: wallet.userId, // Use userId as the main id for compatibility
+        username: wallet.username,
+        firstName: wallet.firstName,
+        lastName: wallet.lastName,
+        email: wallet.email,
+        role: wallet.role,
         tenantId: wallet.tenantId,
-        depositBalance: depositBalance.toFixed(2),
-        creditLimit: creditLimit.toFixed(2),
-        creditUsed: creditUsed.toFixed(2),
-        isActive: wallet.isActive,
         balance: {
           depositBalance: depositBalance.toFixed(2),
           creditLimit: creditLimit.toFixed(2),
