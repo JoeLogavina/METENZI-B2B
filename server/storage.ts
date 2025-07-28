@@ -177,10 +177,10 @@ export class DatabaseStorage implements IStorage {
         );
       }
       if (filters?.priceMin !== undefined) {
-        whereConditions.push(gte(products.price, filters.priceMin));
+        whereConditions.push(gte(products.price, filters.priceMin.toString()));
       }
       if (filters?.priceMax !== undefined) {
-        whereConditions.push(lte(products.price, filters.priceMax));
+        whereConditions.push(lte(products.price, filters.priceMax.toString()));
       }
 
     try {
@@ -195,6 +195,8 @@ export class DatabaseStorage implements IStorage {
           region: products.region,
           platform: products.platform,
           imageUrl: products.imageUrl,
+          warranty: products.warranty,
+          htmlDescription: products.htmlDescription,
           isActive: products.isActive,
           createdAt: products.createdAt,
           updatedAt: products.updatedAt,
@@ -223,6 +225,8 @@ export class DatabaseStorage implements IStorage {
         name: products.name,
         description: products.description,
         price: products.price,
+        warranty: products.warranty,
+        htmlDescription: products.htmlDescription,
         categoryId: products.categoryId,
         region: products.region,
         platform: products.platform,
