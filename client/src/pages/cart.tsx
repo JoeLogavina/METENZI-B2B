@@ -152,7 +152,7 @@ export default function CartPage() {
     },
   });
 
-  // ENTERPRISE CLEAR CART - SIMPLIFIED SERVER-FIRST APPROACH
+  // ENTERPRISE CLEAR CART - ENHANCED WITH FORCE REFRESH
   const clearCartMutation = useMutation({
     mutationFn: async () => {
       console.log("🗑️ Client: Clearing cart...");
@@ -161,12 +161,23 @@ export default function CartPage() {
       return response;
     },
     onSuccess: () => {
-      console.log("🗑️ Client: Cart cleared successfully, invalidating cache...");
-      // Clear cache immediately
+      console.log("🗑️ Client: Cart cleared successfully, force refreshing...");
+      
+      // AGGRESSIVE CACHE CLEARING
       queryClient.setQueryData(["/api/cart"], []);
-      // Force invalidate and refetch cart data
+      queryClient.removeQueries({ queryKey: ["/api/cart"] });
+      
+      // Force fresh data fetch with refresh parameter
       queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
-      queryClient.refetchQueries({ queryKey: ["/api/cart"] });
+      
+      // Additional force refresh after a brief delay
+      setTimeout(() => {
+        queryClient.refetchQueries({ 
+          queryKey: ["/api/cart"],
+          type: 'active'
+        });
+      }, 200);
+      
       toast({
         title: "Cart Cleared",
         description: "All items removed from cart",
