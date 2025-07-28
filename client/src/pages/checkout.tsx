@@ -5,6 +5,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { useWallet, emitWalletEvent } from "@/contexts/WalletContext";
+import { useTenant } from "@/contexts/TenantContext";
 import { useOptimisticOrders } from "@/hooks/use-orders-optimistic";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -79,6 +80,7 @@ type CheckoutFormData = z.infer<typeof checkoutSchema>;
 export default function CheckoutPage() {
   const { user, isLoading, isAuthenticated } = useAuth();
   const { toast } = useToast();
+  const { formatPrice } = useTenant();
   const { updateOrderOptimistically } = useOptimisticOrders();
   const [, setLocation] = useLocation();
   const [step, setStep] = useState<'checkout' | 'processing' | 'success'>('checkout');
@@ -351,7 +353,7 @@ export default function CheckoutPage() {
             </div>
           </div>
           <div className="text-sm">
-            <span className="font-mono font-medium">{totalItems}</span> items • €{finalAmount.toFixed(2)}
+            <span className="font-mono font-medium">{totalItems}</span> items • {formatPrice(finalAmount)}
           </div>
         </div>
       </header>
@@ -829,11 +831,11 @@ export default function CheckoutPage() {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-[#4D585A] truncate">{item.product.name}</p>
                         <p className="text-xs text-gray-500">
-                          €{item.product.price} × <span className="font-mono">{item.quantity}</span>
+                          {formatPrice(item.product.price)} × <span className="font-mono">{item.quantity}</span>
                         </p>
                       </div>
                       <div className="text-sm font-mono font-semibold text-[#4D585A]">
-                        €{(item.product.price * item.quantity).toFixed(2)}
+                        {formatPrice(item.product.price * item.quantity)}
                       </div>
                     </div>
                   ))}
@@ -843,17 +845,17 @@ export default function CheckoutPage() {
                 <div className="space-y-3 border-t border-[#e5e5e5] pt-4">
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600">Subtotal ({totalItems} items)</span>
-                    <span className="font-mono font-semibold">€{totalAmount.toFixed(2)}</span>
+                    <span className="font-mono font-semibold">{formatPrice(totalAmount)}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600">Tax (21%)</span>
-                    <span className="font-mono font-semibold">€{taxAmount.toFixed(2)}</span>
+                    <span className="font-mono font-semibold">{formatPrice(taxAmount)}</span>
                   </div>
                   <div className="border-t border-[#e5e5e5] pt-3">
                     <div className="flex justify-between items-center">
                       <span className="font-semibold text-[#4D585A] uppercase tracking-[0.5px]">Total</span>
                       <span className="font-mono font-semibold text-xl text-[#4D585A]">
-                        €{finalAmount.toFixed(2)}
+                        {formatPrice(finalAmount)}
                       </span>
                     </div>
                   </div>
@@ -866,7 +868,7 @@ export default function CheckoutPage() {
                     disabled={placeOrderMutation.isPending}
                     className="w-full bg-[#4D9DE0] hover:bg-[#3ba3e8] text-white rounded-[5px] font-semibold uppercase tracking-[0.5px] py-4 text-lg transition-colors duration-200"
                   >
-                    {placeOrderMutation.isPending ? "Processing..." : `Place Order • €${finalAmount.toFixed(2)}`}
+                    {placeOrderMutation.isPending ? "Processing..." : `Place Order • ${formatPrice(finalAmount)}`}
                   </Button>
                 </div>
               </CardContent>

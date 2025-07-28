@@ -4,7 +4,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
-import { parsePrice, formatPrice, calculateTotal } from "@/lib/price-utils";
+import { parsePrice, calculateTotal } from "@/lib/price-utils";
+import { useTenant } from "@/contexts/TenantContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,6 +33,7 @@ interface CartItem {
 export default function CartPage() {
   const { user, isLoading, isAuthenticated } = useAuth();
   const { toast } = useToast();
+  const { formatPrice } = useTenant();
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -423,17 +425,17 @@ export default function CartPage() {
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600">Items ({totalItems})</span>
-                      <span className="font-mono font-semibold">€{totalAmount.toFixed(2)}</span>
+                      <span className="font-mono font-semibold">{formatPrice(totalAmount)}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600">Tax</span>
-                      <span className="font-mono font-semibold">€{(totalAmount * 0.21).toFixed(2)}</span>
+                      <span className="font-mono font-semibold">{formatPrice(totalAmount * 0.21)}</span>
                     </div>
                     <div className="border-t border-[#e5e5e5] pt-4">
                       <div className="flex justify-between items-center">
                         <span className="font-semibold text-[#4D585A] uppercase tracking-[0.5px]">Total</span>
                         <span className="font-mono font-semibold text-xl text-[#4D585A]">
-                          €{(totalAmount * 1.21).toFixed(2)}
+                          {formatPrice(totalAmount * 1.21)}
                         </span>
                       </div>
                     </div>
