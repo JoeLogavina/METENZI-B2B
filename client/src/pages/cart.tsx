@@ -61,13 +61,29 @@ export default function CartPage() {
     },
   });
 
+  // Debug cart data changes
+  useEffect(() => {
+    console.log(`🛒🔍 Cart data changed:`, {
+      itemCount: cartItems.length,
+      items: cartItems.map(item => ({ 
+        id: item.id, 
+        productId: item.productId, 
+        productName: item.product?.name,
+        quantity: item.quantity 
+      }))
+    });
+  }, [cartItems]);
+
   // ENTERPRISE UPDATE QUANTITY - SIMPLIFIED SERVER-FIRST APPROACH
   const updateQuantityMutation = useMutation({
     mutationFn: async ({ itemId, quantity }: { itemId: string; quantity: number }) => {
+      console.log(`🛒🔄 Client: Updating item ${itemId} to quantity ${quantity}`);
       const response = await apiRequest("PATCH", `/api/cart/${itemId}`, { quantity });
+      console.log(`🛒🔄 Client: Update response:`, response);
       return response;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      console.log(`🛒✅ Client: Update successful for item ${variables.itemId}`);
       // Force invalidate and refetch cart data
       queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
       queryClient.refetchQueries({ queryKey: ["/api/cart"] });
@@ -76,7 +92,9 @@ export default function CartPage() {
         description: "Quantity updated successfully",
       });
     },
-    onError: (error) => {
+    onError: (error, variables) => {
+      console.log(`🛒❌ Client: Update failed for item ${variables.itemId}:`, error);
+      
       if (isUnauthorizedError(error)) {
         toast({
           title: "Unauthorized",
@@ -89,7 +107,7 @@ export default function CartPage() {
       
       toast({
         title: "Error",
-        description: "Failed to update quantity. Please try again.",
+        description: `Failed to update quantity: ${error.message || 'Unknown error'}`,
         variant: "destructive",
       });
     },
@@ -98,10 +116,13 @@ export default function CartPage() {
   // ENTERPRISE REMOVE ITEM - SIMPLIFIED SERVER-FIRST APPROACH
   const removeItemMutation = useMutation({
     mutationFn: async (itemId: string) => {
+      console.log(`🛒🗑️ Client: Removing item ${itemId}`);
       const response = await apiRequest("DELETE", `/api/cart/${itemId}`);
+      console.log(`🛒🗑️ Client: Remove response:`, response);
       return response;
     },
     onSuccess: (response, itemId) => {
+      console.log(`🛒✅ Client: Remove successful for item ${itemId}`);
       // Force invalidate and refetch cart data
       queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
       queryClient.refetchQueries({ queryKey: ["/api/cart"] });
@@ -110,7 +131,9 @@ export default function CartPage() {
         description: "Item removed from cart",
       });
     },
-    onError: (error) => {
+    onError: (error, itemId) => {
+      console.log(`🛒❌ Client: Remove failed for item ${itemId}:`, error);
+      
       if (isUnauthorizedError(error)) {
         toast({
           title: "Unauthorized", 
@@ -123,7 +146,7 @@ export default function CartPage() {
       
       toast({
         title: "Error",
-        description: "Failed to remove item. Please try again.",
+        description: `Failed to remove item: ${error.message || 'Unknown error'}`,
         variant: "destructive",
       });
     },
@@ -169,11 +192,47 @@ export default function CartPage() {
   });
 
   const handleQuantityChange = (itemId: string, newQuantity: number) => {
-    if (newQuantity < 1) return;
+    console.log(`🛒🔄 Client: handleQuantityChange called - itemId: ${itemId}, newQuantity: ${newQuantity}`);
+    
+    if (newQuantity < 1) {
+      console.log(`🛒❌ Client: Invalid quantity ${newQuantity}, ignoring`);
+      return;
+    }
+
+    // Check if item still exists in current cart
+    const currentItem = cartItems.find(item => item.id === itemId);
+    if (!currentItem) {
+      console.log(`🛒❌ Client: Item ${itemId} not found in current cart:`, cartItems.map(item => ({ id: item.id, quantity: item.quantity })));
+      toast({
+        title: "Error",
+        description: "Cart item not found. Refreshing cart...",
+        variant: "destructive",
+      });
+      queryClient.refetchQueries({ queryKey: ["/api/cart"] });
+      return;
+    }
+
+    console.log(`🛒🔄 Client: Found item in cart:`, { id: currentItem.id, currentQuantity: currentItem.quantity, newQuantity });
     updateQuantityMutation.mutate({ itemId, quantity: newQuantity });
   };
 
   const handleRemoveItem = (itemId: string) => {
+    console.log(`🛒🗑️ Client: handleRemoveItem called - itemId: ${itemId}`);
+    
+    // Check if item still exists in current cart
+    const currentItem = cartItems.find(item => item.id === itemId);
+    if (!currentItem) {
+      console.log(`🛒❌ Client: Item ${itemId} not found in current cart:`, cartItems.map(item => ({ id: item.id, quantity: item.quantity })));
+      toast({
+        title: "Error",
+        description: "Cart item not found. Refreshing cart...",
+        variant: "destructive",
+      });
+      queryClient.refetchQueries({ queryKey: ["/api/cart"] });
+      return;
+    }
+
+    console.log(`🛒🗑️ Client: Found item to remove:`, { id: currentItem.id, quantity: currentItem.quantity });
     removeItemMutation.mutate(itemId);
   };
 

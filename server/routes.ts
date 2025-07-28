@@ -548,12 +548,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       const cacheKey = `cart:${userId}`;
 
+      console.log(`🛒🗑️ DELETE /api/cart (CLEAR ALL) - User: ${userId}`);
+
       try {
+        // First, let's see what's in the cart
+        const currentCart = await storage.getCartItems(userId);
+        console.log(`🛒🗑️ Current cart before clear:`, currentCart.map(item => ({ id: item.id, quantity: item.quantity })));
+
         // Clear cart with atomic operation
         const itemsRemoved = await storage.clearCart(userId);
+        console.log(`🛒🗑️ Items removed: ${itemsRemoved}`);
 
         // Atomic cache invalidation
         await redisCache.del(cacheKey);
+        console.log(`🛒🗑️ Cache cleared for user ${userId}`);
+
+        // Verify cart is empty
+        const cartAfterClear = await storage.getCartItems(userId);
+        console.log(`🛒🗑️ Cart after clear:`, cartAfterClear.length, 'items remaining');
 
         res.json({ 
           success: true, 
@@ -561,7 +573,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: `Cart cleared successfully. ${itemsRemoved} items removed.`
         });
       } catch (error) {
-        console.error("Cart clear error:", error);
+        console.error("🛒❌ Cart clear error:", error);
         res.status(500).json({ 
           message: "Failed to clear cart", 
           error: error.message,
@@ -569,6 +581,482 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
     });
+
+  /**
+   * GET /api/cart/summary - Get cart summary with totals
+   */
+  app.get('/api/cart/summary', 
+    isAuthenticated, 
+    async (req: any, res) => {
+      const userId = req.user.id;
+      const cacheKey = `cart:summary:${userId}`;
+
+      try {
+        // Check cache first
+        const cachedSummary = await redisCache.get(cacheKey);
+        if (cachedSummary) {
+          res.setHeader('X-Cache', 'HIT');
+          return res.json(cachedSummary);
+        }
+
+        // Get cart summary from storage
+        const summary = await storage.getCartSummary(userId);
+
+        // Cache summary for 2 minutes
+        await redisCache.set(cacheKey, summary, 120);
+
+        res.setHeader('X-Cache', 'MISS');
+        res.json(summary);
+      } catch (error) {
+        console.error("Cart summary error:", error);
+        res.status(500).json({ 
+          message: "Failed to get cart summary", 
+          error: error.message,
+          timestamp: new Date().toISOString()
+        });
+      }
+    });
+
+  // Order routes with enterprise cache invalidation
+  app.post('/api/orders', 
+    isAuthenticated,
+    invalidateOrdersCache,
+    async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { billingInfo, paymentMethod, paymentDetails } = req.body;
+
+      const cartItems = await storage.getCartItems(userId);
+
+      if (cartItems.length === 0) {
+        return res.status(400).json({ message: "Cart is empty" });
+      }
+
+      // Calculate totals
+      const totalAmount = cartItems.reduce((sum, item) => 
+        sum + (parseFloat(item.product.price) * item.quantity), 0
+      );
+      const taxAmount = totalAmount * 0.21; // 21% tax
+      const finalAmount = totalAmount + taxAmount;
+
+      // Generate order number
+      const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
+
+      // Create order with billing information
+      const orderData = {
+        userId,
+        orderNumber,
+        totalAmount: totalAmount.toString(),
+        taxAmount: taxAmount.toString(),
+        finalAmount: finalAmount.toString(),
+        status: 'pending',
+        paymentMethod,
+        paymentStatus: 'pending',
+        ...billingInfo, // Includes companyName, firstName, lastName, email, phone, address, city, postalCode, country
+      };
+
+      const order = await storage.createOrder(orderData);
+
+      // Create order items and assign license keys
+      for (const cartItem of cartItems) {
+        for (let i = 0; i < cartItem.quantity; i++) {
+          const availableKey = await storage.getAvailableKey(cartItem.productId);
+          if (!availableKey) {
+            return res.status(400).json({ 
+              message: `Insufficient stock for ${cartItem.product.name}` 
+            });
+          }
+
+          await storage.createOrderItem({
+            orderId: order.id,
+            productId: cartItem.productId,
+            licenseKeyId: availableKey.id,
+            quantity: 1,
+            unitPrice: cartItem.product.price,
+            totalPrice: cartItem.product.price,
+          });
+
+          await storage.markKeyAsUsed(availableKey.id, userId);
+        }
+      }
+
+      // Clear cart
+      await storage.clearCart(userId);
+
+      // Process payment based on payment method
+      let updatedOrder = order;
+      if (paymentMethod === 'wallet') {
+        console.log(`Processing wallet payment for user ${userId}, amount: €${finalAmount}`);
+
+        // Import wallet service
+        const { walletService } = await import('./services/wallet.service');
+
+        // Process wallet payment
+        const paymentResult = await walletService.processPayment(
+          userId, 
+          finalAmount.toString(), 
+          order.id, 
+          `Payment for order ${orderNumber}`
+        );
+
+        console.log('Wallet payment result:', paymentResult);
+
+        if (paymentResult.success) {
+          console.log(`Wallet payment successful, updating order ${order.id} to completed`);
+          await storage.updateOrderStatus(order.id, 'completed');
+          await storage.updatePaymentStatus(order.id, 'paid');
+          updatedOrder = { ...order, status: 'completed', paymentStatus: 'paid' };
+        } else {
+          console.log('Wallet payment failed - insufficient funds');
+          return res.status(400).json({ 
+            message: "Insufficient wallet balance to complete the payment" 
+          });
+        }
+      } else if (paymentMethod === 'credit_card') {
+        // In a real app, this would integrate with Stripe, Square, etc.
+        // For demo purposes, we'll simulate successful payment
+        await storage.updateOrderStatus(order.id, 'completed');
+        await storage.updatePaymentStatus(order.id, 'paid');
+        updatedOrder = { ...order, status: 'completed', paymentStatus: 'paid' };
+      } else if (paymentMethod === 'purchase_order') {
+        // PO orders stay pending until manual approval
+        updatedOrder = { ...order, status: 'pending', paymentStatus: 'pending' };
+      } else if (paymentMethod === 'bank_transfer') {
+        // Bank transfer orders stay pending until payment received
+        updatedOrder = { ...order, status: 'pending', paymentStatus: 'pending' };
+      }
+
+      res.status(201).json({ ...updatedOrder, orderNumber });
+    } catch (error) {
+      console.error("Error creating order:", error);
+      // Send more specific error message
+      const errorMessage = error instanceof Error ? error.message : "Failed to create order";
+      res.status(500).json({ message: errorMessage });
+    }
+  });
+
+  app.get('/api/orders', 
+    isAuthenticated,
+    ordersCacheMiddleware,
+    async (req: any, res) => {
+    try {
+      console.log('Orders API called, user:', req.user?.username, 'ID:', req.user?.id);
+
+      if (!req.user?.id) {
+        console.error('No user ID found in request');
+        return res.status(401).json({ message: 'User not authenticated' });
+      }
+
+      const userId = req.user.id;
+
+      // Use direct pool connection to bypass Drizzle completely
+      const { pool } = await import('./db');
+
+      // Get user role directly with SQL to avoid Drizzle issues
+      const userQuery = `SELECT role FROM users WHERE id = $1`;
+      const userResult = await pool.query(userQuery, [userId]);
+      const userRole = userResult.rows[0]?.role || 'b2b_user';
+
+      const orderQuery = userRole === 'super_admin' || userRole === 'admin'
+        ? `SELECT * FROM orders ORDER BY created_at DESC`
+        : `SELECT * FROM orders WHERE user_id = $1 ORDER BY created_at DESC`;
+
+      const orderParams = userRole === 'super_admin' || userRole === 'admin' ? [] : [userId];
+      const orderResult = await pool.query(orderQuery, orderParams);
+      const orderRows = orderResult.rows;
+
+      console.log('Found orders:', orderRows.length);
+
+      if (orderRows.length > 0) {
+        console.log('Recent orders:', orderRows.slice(0, 2).map(o => ({
+          id: o.id,
+          orderNumber: o.order_number,
+          status: o.status,
+          paymentStatus: o.payment_status,
+          createdAt: o.created_at
+        })));
+      }
+
+      // Get order items with products and license keys for each order
+      const ordersWithDetails = await Promise.all(
+        orderRows.map(async (order: any) => {
+          // Get order items for this order
+          const itemsQuery = `
+            SELECT 
+              oi.*,
+              p.name as product_name,
+              p.description as product_description,
+              p.price as product_price,
+              p.platform as product_platform,
+              p.region as product_region,
+              lk.key_value as license_key,
+              lk.used_by,
+              lk.used_at as key_used_at,
+              lk.created_at as key_created_at
+            FROM order_items oi
+            LEFT JOIN products p ON oi.product_id = p.id
+            LEFT JOIN license_keys lk ON oi.license_key_id = lk.id
+            WHERE oi.order_id = $1
+          `;
+
+          const itemsResult = await pool.query(itemsQuery, [order.id]);
+          const itemRows = itemsResult.rows;
+
+          const items = itemRows.map((item: any) => ({
+            id: item.id,
+            orderId: item.order_id,
+            productId: item.product_id,
+            quantity: item.quantity,
+            unitPrice: item.unit_price,
+            totalPrice: item.total_price,
+            licenseKeyId: item.license_key_id,
+            product: {
+              id: item.product_id,
+              name: item.product_name,
+              description: item.product_description,
+              price: item.product_price,
+              platform: item.product_platform,
+              region: item.product_region,
+            },
+            licenseKey: item.license_key ? {
+              id: item.license_key_id,
+              productId: item.product_id,
+              licenseKey: item.license_key,
+              usedBy: item.used_by,
+              usedAt: item.key_used_at,
+              createdAt: item.key_created_at,
+              product: {
+                id: item.product_id,
+                name: item.product_name,
+                platform: item.product_platform,
+              }
+            } : null
+          }));
+
+          return {
+            id: order.id,
+            userId: order.user_id,
+            orderNumber: order.order_number,
+            status: order.status,
+            totalAmount: order.total_amount,
+            paymentMethod: order.payment_method,
+            paymentStatus: order.payment_status,
+            createdAt: order.created_at,
+            updatedAt: order.updated_at,
+            billingInfo: {
+              companyName: order.company_name,
+              firstName: order.first_name,
+              lastName: order.last_name,
+              email: order.email,
+              phone: order.phone,
+              address: order.address,
+              city: order.city,
+              postalCode: order.postal_code,
+              country: order.country,
+            },
+            items
+          };
+        })
+      );
+
+      console.log('Returning orders:', ordersWithDetails.length);
+      res.json(ordersWithDetails);
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+      console.error("Error details:", (error as Error).message);
+      console.error("Stack trace:", (error as Error).stack);
+      res.status(500).json({ message: "Failed to fetch orders", error: (error as Error).message });
+    }
+  });
+
+  // Admin routes
+  app.get('/api/admin/users', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || user.role !== 'super_admin') {
+        return res.status(403).json({ message: "Super admin access required" });
+      }
+
+      const users = await storage.getAllUsers();
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  app.put('/api/admin/users/:id/role', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || user.role !== 'super_admin') {
+        return res.status(403).json({ message: "Super admin access required" });
+      }
+
+      const { role } = req.body;
+      await storage.updateUserRole(req.params.id, role);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating user role:", error);
+      res.status(500).json({ message: "Failed to update user role" });
+    }
+  });
+
+  app.get('/api/admin/dashboard', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const stats = await storage.getDashboardStats();
+      res.json(stats);
+        } catch (error) {
+      console.error("Error fetching dashboard stats:", error);
+      res.status(500).json({ message: "Failed to fetch dashboard stats" });
+    }
+  });
+
+  // Admin product management routes
+  app.get("/api/admin/products", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const products = await storage.getAllProducts(); // Get ALL products for admin      res.json(products);
+    } catch (error) {
+      console.error("Error fetching admin products:", error);
+      res.status(500).json({ message: "Failed to fetch products" });
+    }
+  });
+
+  app.put("/api/admin/products/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      const productData = req.body;
+
+      console.log("Updating product with data:", productData);
+
+      const updatedProduct = await storage.updateProduct(id, productData);
+      console.log("Product updated successfully:", updatedProduct);
+
+      res.json(updatedProduct);
+    } catch (error) {
+      console.error("Error updating product:", error);
+      res.status(500).json({ message: "Failed to update product" });
+    }
+  });
+
+  app.post("/api/admin/products", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      const productData = req.body;
+
+      console.log("Creating product with data:", productData);
+
+      const newProduct = await storage.createProduct(productData);
+      console.log("Product created successfully:", newProduct);
+
+      res.status(201).json(newProduct);
+    } catch (error) {
+      console.error("Error creating product:", error);
+      res.status(500).json({ message: "Failed to create product" });
+    }
+  });
+
+  app.patch("/api/admin/products/:id/status", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { id } = req.params;
+      const { isActive } = req.body;
+
+      const updatedProduct = await storage.updateProduct(id, { isActive });
+      res.json(updatedProduct);
+    } catch (error) {
+      console.error("Error updating product status:", error);
+      res.status(500).json({ message: "Failed to update product status" });
+    }
+  });
+
+  // Products routes
+  app.get('/api/products', 
+    isAuthenticated,
+    productsCacheMiddleware,
+    async (req, res) => {
+    try {
+      console.log('GET /api/products - ROUTE HIT - query params:', req.query);
+      console.log('GET /api/products - User authenticated:', !!req.user);
+      console.log('GET /api/products - User details:', req.user ? { id: req.user.id, username: req.user.username, role: req.user.role } : 'No user');
+
+      const { region, platform, category, search, priceMin, priceMax } = req.query;
+
+      const filters = {
+        region: region as string,
+        platform: platform as string,
+        category: category as string,
+        search: search as string,
+        priceMin: priceMin ? parseFloat(priceMin as string) : undefined,
+        priceMax: priceMax ? parseFloat(priceMax as string) : undefined,
+      };
+
+      console.log('GET /api/products - using filters:', filters);
+
+      // Use productService.getActiveProducts for B2B users (only active products)
+      const products = await productService.getActiveProducts(filters);
+
+      console.log('GET /api/products - returning', products.length, 'products');
+      res.setHeader('Content-Type', 'application/json');
+      res.json(products);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      res.setHeader('Content-Type', 'application/json');
+      res.status(500).json({ 
+        error: 'Failed to fetch products',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Get current user
+  app.get("/api/user", async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    const userData = {
+      id: req.user.id,
+      username: req.user.username,
+      email: req.user.email,
+      firstName: req.user.firstName,
+      lastName: req.user.lastName,
+      profileImageUrl: req.user.profileImageUrl,
+      role: req.user.role,
+      isActive: req.user.isActive,
+      createdAt: req.user.createdAt,
+      updatedAt: req.user.updatedAt,
+    };
+
+    console.log('User data returned:', userData);
+    res.json(userData);
+  } catch (error) {
+    console.error('Error in /api/user:', error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 
   /**
    * GET /api/cart/summary - Get cart summary with totals
@@ -1045,37 +1533,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.status(500).json({ error: "Internal server error" });
   }
 });
-
-  /**
-   * DELETE /api/cart - Clear entire cart
-   */
-  app.delete('/api/cart', 
-    isAuthenticated, 
-    async (req: any, res) => {
-      const userId = req.user.id;
-      const cacheKey = `cart:${userId}`;
-
-      try {
-        // Clear cart with atomic operation
-        const itemsRemoved = await storage.clearCart(userId);
-
-        // Atomic cache invalidation
-        await redisCache.del(cacheKey);
-
-        res.json({ 
-          success: true, 
-          itemsRemoved,
-          message: `Cart cleared successfully. ${itemsRemoved} items removed.`
-        });
-      } catch (error) {
-        console.error("Cart clear error:", error);
-        res.status(500).json({ 
-          message: "Failed to clear cart", 
-          error: error.message,
-          timestamp: new Date().toISOString()
-        });
-      }
-    });
 
   // Global error handler (must be last middleware)
   app.use(errorHandler);
