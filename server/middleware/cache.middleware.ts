@@ -126,9 +126,9 @@ export const walletCacheMiddleware = cacheMiddleware({
   ttl: 120, // 2 minutes for financial data
   keyPrefix: 'wallet',
   skipCacheCondition: (req) => {
-    const user = req.user as any;
-    // Enable tenant-aware wallet caching for authenticated users
-    return !user?.id;
+    // CACHE-ASIDE PATTERN: Disable read caching for wallet data to ensure immediate consistency
+    // Write-through invalidation will still clean up any existing cached data
+    return true; // Always skip cache for wallet reads
   }
 });
 
@@ -146,8 +146,8 @@ export const ordersCacheMiddleware = cacheMiddleware({
   ttl: 300, // 5 minutes for orders (frequently updated)
   keyPrefix: 'orders',
   skipCacheCondition: (req) => {
-    const user = req.user as any;
-    // Enable tenant-aware orders caching - cache is now safe with tenant isolation
-    return !user?.id;
+    // CACHE-ASIDE PATTERN: Disable read caching for orders to ensure immediate consistency  
+    // This eliminates the race condition where new orders aren't visible immediately
+    return true; // Always skip cache for order reads
   }
 });

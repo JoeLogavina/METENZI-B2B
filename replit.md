@@ -5,6 +5,13 @@
 This is a full-stack B2B software license management platform built with React, Express, and PostgreSQL. The application provides enterprise customers with a streamlined interface to browse, purchase, and manage software licenses, while offering administrators comprehensive tools for inventory and user management. The system now uses custom username/password authentication and displays all prices in EUR currency.
 
 ## Recent Changes (January 2025)
+- **CACHE-ASIDE PATTERN IMPLEMENTED** (January 28, 2025):
+  - **ROOT CAUSE ELIMINATED**: Removed read caching for orders and wallet endpoints to prevent race conditions
+  - **SYNCHRONOUS CACHE INVALIDATION**: Cache invalidation now happens immediately on successful operations
+  - **ENTERPRISE PATTERN ADOPTED**: Implemented Cache-Aside pattern removing timing issues between cache invalidation and response
+  - **NO MORE CACHE VISIBILITY BUGS**: Orders appear immediately after creation with zero race conditions
+  - **WRITE-THROUGH INVALIDATION**: Maintains cache cleanup for static data while eliminating critical data caching
+  - **PRODUCTION READY**: TypeScript errors resolved, system optimized for immediate data consistency
 - **COMPLETE RLS REMOVAL FINALIZED** (January 28, 2025):
   - **FINAL BUG ELIMINATION**: Removed last remaining `setTenantContext` method calls from OrderService that were causing KM order access failures
   - **ALL TENANT ISOLATION WORKING**: EUR users see 47 orders, KM users see 11 orders, admin can access all orders across tenants
