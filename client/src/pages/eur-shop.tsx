@@ -82,8 +82,9 @@ export default function EURShop() {
     isLoading: productsLoading,
     error: productsError,
   } = useQuery({
-    queryKey: ["/api/products", debouncedFilters],
+    queryKey: ["/api/products", "eur-shop", debouncedFilters],
     queryFn: async () => {
+      console.log('EUR Shop: Fetching products...');
       const params = new URLSearchParams();
       
       Object.entries(debouncedFilters).forEach(([key, value]) => {
@@ -94,6 +95,8 @@ export default function EURShop() {
 
       const res = await apiRequest("GET", `/api/products${params.toString() ? `?${params.toString()}` : ''}`);
       const data = await res.json();
+      
+      console.log('EUR Shop: Products fetched:', data.length, 'products');
       
       // Ensure we're getting EUR pricing for EUR shop
       return data.map((product: any) => ({
