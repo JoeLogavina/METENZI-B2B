@@ -436,22 +436,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // ULTRA-FAST CART: Direct database operations only
         const startTime = Date.now();
         
-        const existingItem = await storage.getCartItem(userId, productId);
-        if (existingItem) {
-          const newQuantity = existingItem.quantity + quantity;
-          const updatedItem = await storage.updateCartItem(existingItem.id, { quantity: newQuantity });
-          const totalTime = Date.now() - startTime;
-          console.log(`⚡ ULTRA-FAST cart add completed in ${totalTime}ms`);
-          res.setHeader('X-Cart-Mode', 'ultra-fast');
-          return res.status(201).json(updatedItem);
-        } else {
-          const cartData = insertCartItemSchema.parse({ productId, quantity, userId });
-          const cartItem = await storage.addToCart(cartData);
-          const totalTime = Date.now() - startTime;
-          console.log(`⚡ ULTRA-FAST cart add completed in ${totalTime}ms`);
-          res.setHeader('X-Cart-Mode', 'ultra-fast');
-          return res.status(201).json(cartItem);
-        }
+        const cartData = insertCartItemSchema.parse({ productId, quantity, userId });
+        const cartItem = await storage.addToCart(cartData);
+        const totalTime = Date.now() - startTime;
+        console.log(`⚡ ULTRA-FAST cart add completed in ${totalTime}ms`);
+        res.setHeader('X-Cart-Mode', 'ultra-fast');
+        return res.status(201).json(cartItem);
       } catch (error) {
         console.error("Cart add error:", error);
         res.status(500).json({ 
@@ -480,7 +470,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // ULTRA-FAST CART UPDATE: Direct database operations
         const startTime = Date.now();
         
-        const existingItem = await storage.getCartItem(userId, productId);
+        const cartItems = await storage.getCartItems(userId);
+        const existingItem = cartItems.find(item => item.productId === productId);
+        
         if (!existingItem) {
           return res.status(404).json({ 
             success: false, 
@@ -488,7 +480,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
         
-        await storage.updateCartItem(existingItem.id, { quantity });
+        await storage.updateCartItem(existingItem.id, quantity);
         const totalTime = Date.now() - startTime;
         console.log(`⚡ ULTRA-FAST cart update completed in ${totalTime}ms`);
         
@@ -517,7 +509,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // ULTRA-FAST CART REMOVE: Direct database operations
         const startTime = Date.now();
         
-        const existingItem = await storage.getCartItem(userId, productId);
+        const cartItems = await storage.getCartItems(userId);
+        const existingItem = cartItems.find(item => item.productId === productId);
+        
         if (!existingItem) {
           return res.status(404).json({ 
             success: false, 
@@ -525,7 +519,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
         
-        await storage.removeCartItem(existingItem.id);
+        await storage.removeFromCart(existingItem.id);
         const totalTime = Date.now() - startTime;
         console.log(`⚡ ULTRA-FAST cart remove completed in ${totalTime}ms`);
         
