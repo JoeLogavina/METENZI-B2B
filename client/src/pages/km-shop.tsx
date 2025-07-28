@@ -345,7 +345,7 @@ export default function KMShop() {
                   <SelectValue placeholder="All Regions" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Regions</SelectItem>
+                  <SelectItem value="all">All Regions</SelectItem>
                   <SelectItem value="Worldwide">Worldwide</SelectItem>
                   <SelectItem value="Europe">Europe</SelectItem>
                   <SelectItem value="US">US</SelectItem>
@@ -360,7 +360,7 @@ export default function KMShop() {
                   <SelectValue placeholder="All Platforms" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Platforms</SelectItem>
+                  <SelectItem value="all">All Platforms</SelectItem>
                   <SelectItem value="Windows">Windows</SelectItem>
                   <SelectItem value="Mac">Mac</SelectItem>
                   <SelectItem value="Linux">Linux</SelectItem>
@@ -392,7 +392,7 @@ export default function KMShop() {
                       <SelectValue placeholder="Stock Level" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Stock Levels</SelectItem>
+                      <SelectItem value="all">All Stock Levels</SelectItem>
                       <SelectItem value="in_stock">In Stock</SelectItem>
                       <SelectItem value="low_stock">Low Stock</SelectItem>
                       <SelectItem value="out_of_stock">Out of Stock</SelectItem>

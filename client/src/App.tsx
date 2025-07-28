@@ -63,30 +63,12 @@ function Router() {
         </>
       ) : (
         <>
-          {/* Root route - redirect based on tenant */}
-          <Route path="/" component={() => {
-            const { user } = useAuth();
-            const [location, setLocation] = useLocation();
-            
-            useEffect(() => {
-              if (user?.tenantId === 'km') {
-                setLocation('/shop/km');
-              } else if (user?.tenantId === 'eur') {
-                setLocation('/shop/eur');
-              } else {
-                setLocation('/shop/eur'); // Default to EUR
-              }
-            }, [user, setLocation]);
-            
-            return (
-              <div className="min-h-screen flex items-center justify-center">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-                  <p className="mt-2 text-gray-600">Redirecting to your tenant...</p>
-                </div>
-              </div>
-            );
-          }} />
+          {/* Default route */}
+          <Route path="/" component={() => (
+            <Suspense fallback={<ShopLoadingFallback />}>
+              <B2BShop />
+            </Suspense>
+          )} />
           
           {/* Tenant-specific B2B Shop Routes */}
           <Route path="/shop/eur" component={() => (
@@ -100,29 +82,22 @@ function Router() {
             </Suspense>
           )} />
           
-          {/* Legacy routes redirect to tenant-specific shops */}
-          <Route path="/eur" component={() => {
-            const [, setLocation] = useLocation();
-            useEffect(() => setLocation('/shop/eur'), [setLocation]);
-            return null;
-          }} />
-          <Route path="/km" component={() => {
-            const [, setLocation] = useLocation();
-            useEffect(() => setLocation('/shop/km'), [setLocation]);
-            return null;
-          }} />
-          <Route path="/b2b-shop" component={() => {
-            const { user } = useAuth();
-            const [, setLocation] = useLocation();
-            useEffect(() => {
-              if (user?.tenantId === 'km') {
-                setLocation('/shop/km');
-              } else {
-                setLocation('/shop/eur');
-              }
-            }, [user, setLocation]);
-            return null;
-          }} />
+          {/* Legacy routes */}
+          <Route path="/eur" component={() => (
+            <Suspense fallback={<ShopLoadingFallback />}>
+              <EURShop />
+            </Suspense>
+          )} />
+          <Route path="/km" component={() => (
+            <Suspense fallback={<ShopLoadingFallback />}>
+              <KMShop />
+            </Suspense>
+          )} />
+          <Route path="/b2b-shop" component={() => (
+            <Suspense fallback={<ShopLoadingFallback />}>
+              <B2BShop />
+            </Suspense>
+          )} />
           <Route path="/cart" component={() => (
             <Suspense fallback={<CartLoadingFallback />}>
               <CartPage />
