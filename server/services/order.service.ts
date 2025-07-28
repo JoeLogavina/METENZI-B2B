@@ -159,8 +159,7 @@ export class OrderService {
    * Get all orders for admin users (cross-tenant view)
    */
   async getAllOrders(adminRole: string): Promise<OrderData[]> {
-    await this.setTenantContext('admin', adminRole);
-
+    // Admin can access all orders across tenants
     const allOrders = await db
       .select({
         id: orders.id,
@@ -300,8 +299,6 @@ export class OrderService {
   }) {
     // Start database transaction for bulletproof consistency
     return await db.transaction(async (tx) => {
-      // Set tenant context within transaction
-
       // Create the order
       const [newOrder] = await tx
         .insert(orders)
@@ -428,8 +425,6 @@ export class OrderService {
   ) {
     // Start complete transaction for entire order process
     return await db.transaction(async (tx) => {
-      // Set tenant context within transaction
-
       // Create the order with verification
       const [newOrder] = await tx
         .insert(orders)
