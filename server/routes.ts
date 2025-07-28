@@ -433,21 +433,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.setHeader('Content-Type', 'application/json');
         res.setHeader('Cache-Control', 'no-cache');
         
-        // Try event sourcing first, fallback to traditional cart
-        try {
-          const { cartEventSourcingService } = await import('./services/cart-event-sourcing.service');
-          const cartItem = await cartEventSourcingService.addToCart(userId, productId, quantity);
-          
-          res.setHeader('X-Cart-Mode', 'event-sourcing');
-          return res.status(201).json(cartItem);
-        } catch (eventSourcingError) {
-          console.log('Event sourcing not ready, using traditional cart');
-          
-          // Fallback to traditional cart system
+        // ULTRA-FAST CART: Direct database operations only
+        const startTime = Date.now();
+        
+        const existingItem = await storage.getCartItem(userId, productId);
+        if (existingItem) {
+          const newQuantity = existingItem.quantity + quantity;
+          const updatedItem = await storage.updateCartItem(existingItem.id, { quantity: newQuantity });
+          const totalTime = Date.now() - startTime;
+          console.log(`⚡ ULTRA-FAST cart add completed in ${totalTime}ms`);
+          res.setHeader('X-Cart-Mode', 'ultra-fast');
+          return res.status(201).json(updatedItem);
+        } else {
           const cartData = insertCartItemSchema.parse({ productId, quantity, userId });
           const cartItem = await storage.addToCart(cartData);
-          
-          res.setHeader('X-Cart-Mode', 'traditional');
+          const totalTime = Date.now() - startTime;
+          console.log(`⚡ ULTRA-FAST cart add completed in ${totalTime}ms`);
+          res.setHeader('X-Cart-Mode', 'ultra-fast');
           return res.status(201).json(cartItem);
         }
       } catch (error) {
@@ -475,11 +477,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
 
-        // ENTERPRISE EVENT SOURCING: Ultra-fast cart updates
-        const { cartEventSourcingService } = await import('./services/cart-event-sourcing.service');
-        await cartEventSourcingService.updateCartItem(userId, productId, quantity);
-
-        res.setHeader('X-Cart-Mode', 'event-sourcing');
+        // ULTRA-FAST CART UPDATE: Direct database operations
+        const startTime = Date.now();
+        
+        const existingItem = await storage.getCartItem(userId, productId);
+        if (!existingItem) {
+          return res.status(404).json({ 
+            success: false, 
+            message: "Cart item not found" 
+          });
+        }
+        
+        await storage.updateCartItem(existingItem.id, { quantity });
+        const totalTime = Date.now() - startTime;
+        console.log(`⚡ ULTRA-FAST cart update completed in ${totalTime}ms`);
+        
+        res.setHeader('X-Cart-Mode', 'ultra-fast');
         res.json({ 
           success: true, 
           message: "Cart item updated successfully"
@@ -501,11 +514,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       const productId = req.params.productId;
       try {
-        // ENTERPRISE EVENT SOURCING: Ultra-fast cart item removal
-        const { cartEventSourcingService } = await import('./services/cart-event-sourcing.service');
-        await cartEventSourcingService.removeCartItem(userId, productId);
-
-        res.setHeader('X-Cart-Mode', 'event-sourcing');
+        // ULTRA-FAST CART REMOVE: Direct database operations
+        const startTime = Date.now();
+        
+        const existingItem = await storage.getCartItem(userId, productId);
+        if (!existingItem) {
+          return res.status(404).json({ 
+            success: false, 
+            message: "Cart item not found" 
+          });
+        }
+        
+        await storage.removeCartItem(existingItem.id);
+        const totalTime = Date.now() - startTime;
+        console.log(`⚡ ULTRA-FAST cart remove completed in ${totalTime}ms`);
+        
+        res.setHeader('X-Cart-Mode', 'ultra-fast');
         res.json({ 
           success: true, 
           message: "Item removed from cart"
