@@ -545,24 +545,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const taxAmount = subtotal * taxRate;
       const finalAmount = subtotal + taxAmount;
 
-      // Process wallet payment if paymentMethod is wallet
-      if (paymentMethod === 'wallet') {
-        const { WalletService } = await import('./services/wallet.service');
-        const walletService = new WalletService();
-        const paymentResult = await walletService.processPayment(
-          userId,
-          tenantId,
-          finalAmount,
-          'temp-order-id', // Will be updated after order creation
-          `Order payment for ${cartItems.length} items`
-        );
-
-        if (!paymentResult.success) {
-          return res.status(400).json({ 
-            message: paymentResult.error || 'Insufficient funds'
-          });
-        }
-      }
+      // For wallet payments, we'll check balance during payment processing
 
       // Generate order number
       const timestamp = Date.now();
@@ -622,7 +605,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Clear cart
+      // Process wallet payment AFTER order creation
+      if (paymentMethod === 'wallet') {
+        const { WalletService } = await import('./services/wallet.service');
+        const walletService = new WalletService();
+        const paymentResult = await walletService.processPayment(
+          userId,
+          tenantId,
+          finalAmount,
+          order.id, // Now we have the real order ID
+          `Order payment for order ${orderNumber}`
+        );
+
+        if (!paymentResult.success) {
+          // Order created but payment failed - this is a critical state
+          console.error('Order created but wallet payment failed:', paymentResult.error);
+          return res.status(500).json({ 
+            message: 'Order created but payment processing failed. Please contact support.',
+            orderId: order.id
+          });
+        }
+      }
+
+      // Clear cart after successful payment
       await storage.clearCart(userId);
 
       // Return complete order data

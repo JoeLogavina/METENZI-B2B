@@ -238,7 +238,7 @@ export class WalletService {
         })
         .where(eq(wallets.id, wallet.id));
 
-      // Create transaction record
+      // Create transaction record (orderId will be updated after order creation)
       await tx
         .insert(walletTransactions)
         .values({
@@ -248,7 +248,7 @@ export class WalletService {
           amount: `-${amount.toFixed(2)}`,
           balanceAfter: newDepositBalance.toFixed(2),
           description: description,
-          orderId: orderId
+          orderId: orderId || null // Allow null temporarily
         });
 
       return { 
