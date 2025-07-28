@@ -109,6 +109,24 @@ router.delete('/:id',
   adminProductsController.deleteProduct.bind(adminProductsController)
 );
 
+// PATCH /api/admin/products/:id/pricing - Update product pricing
+const pricingUpdateSchema = z.object({
+  price: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
+  purchasePrice: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
+  resellerPrice: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
+  retailerPrice: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
+});
+
+router.patch('/:id/pricing',
+  authorize(Permissions.PRODUCT_UPDATE),
+  validateRequest({ 
+    params: productParamsSchema,
+    body: pricingUpdateSchema
+  }),
+  auditLog('admin:products:pricing-update'),
+  adminProductsController.updateProductPricing.bind(adminProductsController)
+);
+
 // PATCH /api/admin/products/:id/toggle-status - Toggle product active status
 router.patch('/:id/toggle-status',
   authorize(Permissions.PRODUCT_UPDATE),

@@ -177,6 +177,29 @@ export class AdminProductsController {
     }
   }
 
+  // PATCH /api/admin/products/:id/pricing - Update product pricing
+  async updateProductPricing(req: Request, res: Response) {
+    try {
+      const { id } = productParamsSchema.parse(req.params);
+      const pricingData = req.body;
+
+      const updatedProduct = await productService.updateProduct(id, pricingData);
+
+      res.json({
+        data: updatedProduct,
+        message: 'Product pricing updated successfully'
+      });
+    } catch (error) {
+      if (isServiceError(error)) {
+        return res.status(error.statusCode).json(formatErrorResponse(error));
+      }
+      res.status(500).json({
+        error: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to update product pricing'
+      });
+    }
+  }
+
   // GET /api/admin/products/analytics
   async getProductAnalytics(req: Request, res: Response) {
     try {

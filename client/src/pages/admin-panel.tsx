@@ -24,10 +24,12 @@ import {
   Plus,
   Edit,
   Trash2,
-  Wallet
+  Wallet,
+  DollarSign
 } from "lucide-react";
 import WalletManagement from "@/components/wallet-management";
 import UserForm from "@/components/user-form";
+import PriceManagementPage from "@/pages/admin/price-management";
 import { formatAdminPrice, convertEurToKm } from "@/lib/currency-utils";
 
 interface DashboardStats {
@@ -241,6 +243,7 @@ export default function AdminPanel() {
     { id: 'dashboard', icon: BarChart3, label: 'Dashboard', allowed: true },
     { id: 'users', icon: Users, label: 'User Management', allowed: (user as any)?.role === 'super_admin' },
     { id: 'products', icon: Package, label: 'Product Management', allowed: true },
+    { id: 'price-management', icon: DollarSign, label: 'Price Management', allowed: true },
     { id: 'edit-product', icon: Edit, label: 'Edit Product', allowed: true, hidden: !isEditProductPage },
     { id: 'keys', icon: Key, label: 'Key Management', allowed: true },
     { id: 'wallets', icon: Wallet, label: 'Wallet Management', allowed: true },
@@ -578,6 +581,10 @@ export default function AdminPanel() {
                   </div>
                 </div>
               </div>
+            )}
+
+            {activeSection === 'price-management' && (
+              <PriceManagementPage />
             )}
 
             {activeSection === 'products' && (
