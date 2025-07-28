@@ -13,6 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, Search, Filter, Grid, List, Plus, Minus, Package, User, Settings, BarChart3, FileText, Users, CreditCard, HelpCircle, ChevronDown, Calendar, LogOut, Loader2, Eye } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { type ProductWithStock } from "@shared/schema";
+import { useTenant } from '@/contexts/TenantContext';
+import { formatPrice } from '@/utils/price-utils';
 
 // TIER 1 ENTERPRISE OPTIMIZATION: Optimized Components with Memoization
 import ProductCard from "@/components/optimized/ProductCard";
@@ -21,6 +23,7 @@ import { ProductDetailModal } from "@/components/ProductDetailModal";
 
 export default function B2BShop() {
   const { user, isLoading, isAuthenticated, logout, isLoggingOut } = useAuth();
+  const { tenant, formatPrice: tenantFormatPrice } = useTenant();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [location, setLocation] = useLocation();
@@ -345,7 +348,9 @@ export default function B2BShop() {
             <div className="flex items-center space-x-4">
               <Package className="w-6 h-6 text-white" />
               <div>
-                <h1 className="text-2xl font-semibold text-white uppercase tracking-[0.5px]">B2B SOFTWARE SHOP</h1>
+                <h1 className="text-2xl font-semibold text-white uppercase tracking-[0.5px]">
+                  B2B SOFTWARE SHOP ({tenant.currency})
+                </h1>
                 <p className="text-sm text-gray-300">Enterprise Software Solutions</p>
               </div>
             </div>
@@ -412,10 +417,12 @@ export default function B2BShop() {
                             <div key={item.id} className="flex items-center justify-between">
                               <div className="flex-1">
                                 <p className="text-sm font-semibold text-[#6E6F71] truncate">{item.product?.name}</p>
-                                <p className="text-xs text-gray-500">€{item.product?.price} × {item.quantity}</p>
+                                <p className="text-xs text-gray-500">
+                                  {tenantFormatPrice(tenant.currency === 'KM' ? (item.product?.priceKm || item.product?.price) : item.product?.price)} × {item.quantity}
+                                </p>
                               </div>
                               <div className="text-sm font-mono font-semibold text-[#FFB20F]">
-                                €{(item.product?.price * item.quantity).toFixed(2)}
+                                {tenantFormatPrice((tenant.currency === 'KM' ? (item.product?.priceKm || item.product?.price) : item.product?.price) * item.quantity)}
                               </div>
                             </div>
                           ))}
@@ -432,7 +439,10 @@ export default function B2BShop() {
                         <div className="flex justify-between items-center mb-3">
                           <span className="text-sm font-semibold text-[#6E6F71]">Total:</span>
                           <span className="font-mono font-semibold text-[#FFB20F]">
-                            €{cartItems.reduce((sum: number, item: any) => sum + (item.product?.price * item.quantity), 0).toFixed(2)}
+                            {tenantFormatPrice(cartItems.reduce((sum: number, item: any) => {
+                              const price = tenant.currency === 'KM' ? (item.product?.priceKm || item.product?.price) : item.product?.price;
+                              return sum + (price * item.quantity);
+                            }, 0))}
                           </span>
                         </div>
                         <div className="text-xs text-gray-600 text-center">
@@ -519,7 +529,7 @@ export default function B2BShop() {
             <div className="mb-6">
               <div className="flex items-center mb-2">
                 <span className="w-3 h-3 mr-2">€</span>
-                <label className="text-sm font-semibold text-gray-700">Price (BAM)</label>
+                <label className="text-sm font-semibold text-gray-700">Price ({tenant.currency})</label>
               </div>
               <div className="space-y-2">
                 <Input
@@ -694,6 +704,7 @@ function ProductRow({ product, onAddToCart, onProductClick, isLoading }: {
   isLoading: boolean;
 }) {
   const [quantity, setQuantity] = useState(1);
+  const { tenant, formatPrice: tenantFormatPrice } = useTenant();
 
   return (
     <tr className="hover:bg-[#f8f8f8] transition-colors duration-200">
@@ -726,7 +737,9 @@ function ProductRow({ product, onAddToCart, onProductClick, isLoading }: {
         <div className="text-sm text-gray-500">{product.description}</div>
       </td>
       <td className="px-3 py-3 whitespace-nowrap text-center">
-        <div className="text-sm font-mono font-semibold text-[#FFB20F]">€{product.price}</div>
+        <div className="text-sm font-mono font-semibold text-[#FFB20F]">
+          {tenantFormatPrice(tenant.currency === 'KM' ? (product.priceKm || product.price) : product.price)}
+        </div>
         <div className="text-xs text-gray-500">per license</div>
       </td>
       <td className="px-3 py-3 whitespace-nowrap text-center">

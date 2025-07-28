@@ -15,6 +15,7 @@ export interface ProductFilters {
   priceMin?: number;
   priceMax?: number;
   isActive?: boolean;
+  currency?: 'EUR' | 'KM';
 }
 
 export interface ProductService {

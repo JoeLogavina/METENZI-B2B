@@ -19,6 +19,8 @@ import {
 import { invalidateOrdersCache } from "./middleware/cache-invalidation.middleware";
 import { redisCache } from "./cache/redis";
 import { upload, saveBase64Image, deleteUploadedFile } from "./middleware/upload";
+import { tenantResolutionMiddleware, requireTenantType } from './middleware/tenant.middleware';
+import type { Currency } from './middleware/tenant.middleware';
 import express from "express";
 import path from "path";
 
@@ -31,6 +33,9 @@ const isAuthenticated = (req: any, res: any, next: any) => {
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Add tenant resolution middleware to all routes
+  app.use(tenantResolutionMiddleware);
+
   // Health check endpoints (before auth middleware)
   app.get('/health', async (req, res) => {
     try {
@@ -346,13 +351,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Product routes
+  // Product routes with tenant-aware pricing
   app.get('/api/products', 
     isAuthenticated,
+    requireTenantType(['eur-shop', 'km-shop', 'admin']),
     productsCacheMiddleware,
-    async (req, res) => {
+    async (req: any, res) => {
     try {
       const { region, platform, category, search, priceMin, priceMax } = req.query;
+      const currency = req.tenant.currency;
 
       const filters = {
         region: region as string,
@@ -361,11 +368,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         search: search as string,
         priceMin: priceMin ? parseFloat(priceMin as string) : undefined,
         priceMax: priceMax ? parseFloat(priceMax as string) : undefined,
+        currency: currency // Add currency filter
       };
 
       const products = await productService.getActiveProducts(filters);
+      
+      // Transform products for tenant-specific pricing
+      const tenantProducts = products.map(product => ({
+        ...product,
+        price: currency === 'KM' ? product.priceKm || product.price : product.price,
+        displayCurrency: currency
+      }));
+
       res.setHeader('Content-Type', 'application/json');
-      res.json(products);
+      res.json(tenantProducts);
     } catch (error) {
       console.error('Error fetching products:', error);
       res.setHeader('Content-Type', 'application/json');

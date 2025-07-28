@@ -5,6 +5,16 @@
 This is a full-stack B2B software license management platform built with React, Express, and PostgreSQL. The application provides enterprise customers with a streamlined interface to browse, purchase, and manage software licenses, while offering administrators comprehensive tools for inventory and user management. The system now uses custom username/password authentication and displays all prices in EUR currency.
 
 ## Recent Changes (January 2025)
+- **OPTION 1: URL-BASED TENANT RESOLUTION IMPLEMENTED** (January 28, 2025):
+  - **Multi-Currency Architecture**: Complete tenant system supporting EUR and KM shops via URL-based routing (/shop/eur, /shop/km)
+  - **Tenant Middleware**: Server-side tenant resolution middleware automatically detects currency from URL paths
+  - **TenantContext Provider**: React context system providing tenant-aware formatting and currency handling across all components
+  - **Currency-Specific Pricing**: Products display appropriate pricing (EUR vs KM) with proper formatting based on tenant context
+  - **Admin Multi-Tenant Support**: Admin panel can switch between currencies and manage both tenant types
+  - **Enterprise Route Structure**: Clean separation with /shop/eur for EUR tenant, /shop/km for KM tenant, /admin for unified admin
+  - **Tenant-Aware Components**: TenantSwitcher, TenantIndicator, and TenantNavigation components for seamless user experience
+  - **Database Ready**: KM pricing fields (priceKm) already exist in products table, full currency support operational
+  - **Expected User Experience**: Users access different shops via URLs with appropriate currency display and pricing
 - **ULTRA-FAST CART SYSTEM IMPLEMENTED** (January 28, 2025):
   - **Performance Revolution**: Bypassed complex event sourcing for direct database operations achieving true 95% performance improvement
   - **Speed Achievement**: Cart operations now complete in 15-30ms instead of 200-500ms (actual 85-90% improvement delivered)

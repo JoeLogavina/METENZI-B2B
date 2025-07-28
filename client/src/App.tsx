@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import { WalletProvider } from "@/contexts/WalletContext";
+import { TenantProvider } from "@/contexts/TenantContext";
 import { usePreloadRoutes } from "@/hooks/usePreloadRoutes";
 import { useDataPreload } from "@/hooks/useDataPreload";
 import { 
@@ -65,6 +66,18 @@ function Router() {
               <B2BShop />
             </Suspense>
           )} />
+          {/* Tenant-specific B2B Shop Routes */}
+          <Route path="/shop/eur" component={() => (
+            <Suspense fallback={<ShopLoadingFallback />}>
+              <B2BShop />
+            </Suspense>
+          )} />
+          <Route path="/shop/km" component={() => (
+            <Suspense fallback={<ShopLoadingFallback />}>
+              <B2BShop />
+            </Suspense>
+          )} />
+          {/* Legacy route redirect */}
           <Route path="/b2b-shop" component={() => (
             <Suspense fallback={<ShopLoadingFallback />}>
               <B2BShop />
@@ -116,10 +129,12 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <WalletProvider>
-          <Toaster />
-          <Router />
-        </WalletProvider>
+        <TenantProvider>
+          <WalletProvider>
+            <Toaster />
+            <Router />
+          </WalletProvider>
+        </TenantProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );
