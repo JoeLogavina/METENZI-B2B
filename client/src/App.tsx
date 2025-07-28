@@ -63,13 +63,18 @@ function Router() {
         </>
       ) : (
         <>
-          {/* Default route - redirect to appropriate tenant shop */}
+          {/* Default route - redirect to appropriate dashboard/shop */}
           <Route path="/" component={() => {
             const { user } = useAuth();
             const [, setLocation] = useLocation();
             
             useEffect(() => {
-              if (user?.tenantId === 'km') {
+              // Redirect admin users to admin panel
+              if (user?.role === 'admin' || user?.role === 'super_admin') {
+                setLocation('/admin-panel');
+              } 
+              // Redirect B2B users to their tenant shop
+              else if (user?.tenantId === 'km') {
                 setLocation('/km');
               } else if (user?.tenantId === 'eur') {
                 setLocation('/eur');
@@ -80,7 +85,12 @@ function Router() {
               <div className="min-h-screen flex items-center justify-center">
                 <div className="text-center">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-                  <p className="mt-2 text-gray-600">Redirecting to your shop...</p>
+                  <p className="mt-2 text-gray-600">
+                    {user?.role === 'admin' || user?.role === 'super_admin' 
+                      ? 'Redirecting to admin panel...' 
+                      : 'Redirecting to your shop...'
+                    }
+                  </p>
                 </div>
               </div>
             );

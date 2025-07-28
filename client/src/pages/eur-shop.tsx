@@ -235,6 +235,8 @@ export default function EURShop() {
 
   // Note: Authentication is handled at route level
 
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+  
   const sidebarItems = [
     { icon: Package, label: "EUR SHOP", active: true, href: "/eur", allowed: true },
     { icon: Grid, label: "CATALOG", active: false, href: "/eur", allowed: true },
@@ -242,6 +244,8 @@ export default function EURShop() {
     { icon: CreditCard, label: "MY WALLET", active: false, href: "/wallet", allowed: true },
     { icon: Settings, label: "SETTINGS", active: false, href: "/eur", allowed: true },
     { icon: HelpCircle, label: "SUPPORT", active: false, href: "/eur", allowed: true },
+    // Admin-only items  
+    { icon: Settings, label: "ADMIN PANEL", active: false, href: "/admin-panel", allowed: isAdmin, admin: true },
   ].filter(item => item.allowed);
 
   const formatEURPrice = (amount: number | string): string => {
@@ -272,12 +276,17 @@ export default function EURShop() {
               className={`flex items-center px-4 py-3 text-lg transition-colors duration-200 cursor-pointer ${
                 item.active 
                   ? 'bg-[#FFB20F] text-white border-r-2 border-[#e6a00e]' 
+                  : (item as any).admin
+                  ? 'text-white hover:bg-[#5a5b5d] border-l-2 border-yellow-400'
                   : 'text-white hover:bg-[#7a7b7d]'
               }`}
               onClick={() => setLocation(item.href)}
             >
               <item.icon className="w-6 h-6 mr-3" />
               <span className="uppercase tracking-[0.5px] font-medium text-sm">{item.label}</span>
+              {(item as any).admin && (
+                <span className="ml-auto text-xs bg-yellow-400 text-black px-2 py-1 rounded">ADMIN</span>
+              )}
             </div>
           ))}
         </nav>
