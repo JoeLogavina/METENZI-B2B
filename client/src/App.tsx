@@ -55,9 +55,6 @@ function Router() {
 
   return (
     <Switch>
-      {/* Test route - temporarily outside auth */}
-      <Route path="/eur" component={EURShop} />
-      
       {!isAuthenticated ? (
         <>
           <Route path="/" component={Landing} />
