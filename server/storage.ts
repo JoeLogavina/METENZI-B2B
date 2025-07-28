@@ -375,10 +375,8 @@ export class DatabaseStorage implements IStorage {
         })
         .from(cartItems)
         .innerJoin(products, eq(cartItems.productId, products.id))
-        .where(and(
-          eq(cartItems.userId, userId),
-          eq(products.isActive, true) // Only active products
-        ))
+        .where(eq(cartItems.userId, userId))
+        // Remove isActive filter to test if this is the issue
         .orderBy(desc(cartItems.createdAt));
 
       console.log(`🔍 Cart query for user ${userId}: found ${rows.length} items`);
