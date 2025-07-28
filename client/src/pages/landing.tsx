@@ -36,55 +36,111 @@ export default function Landing() {
             Streamline your B2B software procurement with our comprehensive license key management platform. 
             Secure, scalable, and designed for enterprise needs.
           </p>
-          <div className="mt-5 max-w-md mx-auto sm:flex sm:justify-center md:mt-8">
-            <Button 
-              size="lg"
-              onClick={() => window.location.href = '/auth'}
-              className="w-full sm:w-auto"
-            >
-              Get Started
-            </Button>
+          <div className="mt-8 max-w-4xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* EUR Panel Access */}
+              <Card className="border-2 border-blue-200 hover:border-blue-400 transition-colors cursor-pointer">
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <Building2 className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">EUR Panel</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    European market B2B software licensing with EUR pricing
+                  </p>
+                  <Button 
+                    onClick={() => window.location.href = '/auth?redirect=eur'}
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                  >
+                    Access EUR Panel
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* KM Panel Access */}
+              <Card className="border-2 border-green-200 hover:border-green-400 transition-colors cursor-pointer">
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <Building2 className="h-6 w-6 text-green-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">KM Panel</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Bosnian market B2B software licensing with KM pricing
+                  </p>
+                  <Button 
+                    onClick={() => window.location.href = '/auth?redirect=km'}
+                    className="w-full bg-green-600 hover:bg-green-700"
+                  >
+                    Access KM Panel
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Admin Panel Access */}
+              <Card className="border-2 border-yellow-200 hover:border-yellow-400 transition-colors cursor-pointer">
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <Shield className="h-6 w-6 text-yellow-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Admin Panel</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Administrative control for both EUR and KM tenants
+                  </p>
+                  <Button 
+                    onClick={() => window.location.href = '/auth?redirect=admin'}
+                    className="w-full bg-yellow-600 hover:bg-yellow-700"
+                  >
+                    Access Admin Panel
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
 
         {/* Features */}
         <div className="mt-20">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Multi-Tenant Architecture</h2>
+            <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+              Complete separation between EUR and KM markets with unified administrative control. 
+              Each tenant has isolated data, pricing, and user management.
+            </p>
+          </div>
+          
           <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
             <Card>
               <CardContent className="p-6 text-center">
-                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <ShoppingCart className="h-6 w-6 text-primary" />
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                  <ShoppingCart className="h-6 w-6 text-blue-600" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">B2B Marketplace</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">EUR Marketplace</h3>
                 <p className="text-gray-600">
-                  Browse and purchase enterprise software licenses with instant delivery and automated key management.
+                  European B2B software licensing with EUR pricing, isolated cart, orders, and wallet system.
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardContent className="p-6 text-center">
-                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <Shield className="h-6 w-6 text-primary" />
+                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                  <ShoppingCart className="h-6 w-6 text-green-600" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Role-Based Access</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">KM Marketplace</h3>
                 <p className="text-gray-600">
-                  Secure role-based permissions system with B2B User, Admin, and Super Admin access levels.
+                  Bosnian B2B software licensing with KM pricing, completely separate from EUR tenant.
                 </p>
               </CardContent>
             </Card>
 
-            <Card 
-              className="cursor-pointer hover:shadow-lg transition-shadow duration-200 hover:bg-gray-50"
-              onClick={() => window.location.href = '/admin-login'}
-            >
+            <Card>
               <CardContent className="p-6 text-center">
-                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <Users className="h-6 w-6 text-primary" />
+                <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                  <Shield className="h-6 w-6 text-yellow-600" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Admin Dashboard</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Unified Admin Control</h3>
                 <p className="text-gray-600">
-                  Comprehensive admin panel for user management, product catalog, and license key operations.
+                  Administrative panel with access to both tenants for product management and user oversight.
                 </p>
               </CardContent>
             </Card>

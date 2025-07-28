@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Loader2, ShieldCheck } from "lucide-react";
+import { Loader2, ShieldCheck, Building2 } from "lucide-react";
 import { Redirect } from "wouter";
 
 export default function AuthPage() {
@@ -19,9 +19,36 @@ export default function AuthPage() {
     password: "",
   });
 
-  // Redirect if already logged in
-  if (!isLoading && isAuthenticated) {
-    return <Redirect to="/" />;
+  // Get redirect parameter from URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const redirectParam = urlParams.get('redirect');
+
+  // Redirect based on authentication and redirect parameter
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && user) {
+      if (redirectParam === 'admin' && ['admin', 'super_admin'].includes(user.role)) {
+        window.location.href = '/admin-panel';
+      } else if (redirectParam === 'eur' && user.tenantId === 'eur') {
+        window.location.href = '/shop/eur';
+      } else if (redirectParam === 'km' && user.tenantId === 'km') {
+        window.location.href = '/shop/km';
+      } else if (user.tenantId === 'eur') {
+        window.location.href = '/shop/eur';
+      } else if (user.tenantId === 'km') {
+        window.location.href = '/shop/km';
+      } else {
+        window.location.href = '/';
+      }
+    }
+  }, [isLoading, isAuthenticated, user, redirectParam]);
+
+  // Show loading if checking auth
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
   const loginMutation = useMutation({
@@ -29,12 +56,44 @@ export default function AuthPage() {
       const res = await apiRequest("POST", "/api/login", credentials);
       return await res.json();
     },
-    onSuccess: (user) => {
-      queryClient.setQueryData(["/api/user"], user);
+    onSuccess: (data) => {
+      queryClient.setQueryData(["/api/user"], data);
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      
+      // Validate tenant access for specific redirect parameters
+      const userTenant = data.tenantId;
+      const userRole = data.role;
+      
+      if (redirectParam === 'eur' && userTenant !== 'eur') {
+        toast({
+          title: "Access denied",
+          description: "Your account does not have access to the EUR panel.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (redirectParam === 'km' && userTenant !== 'km') {
+        toast({
+          title: "Access denied", 
+          description: "Your account does not have access to the KM panel.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (redirectParam === 'admin' && !['admin', 'super_admin'].includes(userRole)) {
+        toast({
+          title: "Access denied",
+          description: "Your account does not have administrative privileges.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       toast({
         title: "Login Successful",
-        description: "Welcome back!",
+        description: `Welcome to the ${redirectParam ? redirectParam.toUpperCase() : 'B2B'} panel!`,
       });
     },
     onError: (error: any) => {
@@ -82,13 +141,35 @@ export default function AuthPage() {
           <Card>
             <CardHeader className="text-center">
               <div className="mx-auto w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
-                <ShieldCheck className="h-6 w-6 text-primary" />
+                {redirectParam === 'admin' ? (
+                  <ShieldCheck className="h-6 w-6 text-primary" />
+                ) : redirectParam === 'eur' ? (
+                  <Building2 className="h-6 w-6 text-blue-600" />
+                ) : redirectParam === 'km' ? (
+                  <Building2 className="h-6 w-6 text-green-600" />
+                ) : (
+                  <ShieldCheck className="h-6 w-6 text-primary" />
+                )}
               </div>
               <CardTitle className="text-2xl font-bold text-gray-900">
-                Sign in to your account
+                {redirectParam === 'admin' 
+                  ? 'Admin Portal Access'
+                  : redirectParam === 'eur'
+                  ? 'EUR Panel Access'
+                  : redirectParam === 'km'
+                  ? 'KM Panel Access'
+                  : 'Sign in to your account'
+                }
               </CardTitle>
               <p className="text-sm text-gray-600 mt-2">
-                Access your B2B software license portal
+                {redirectParam === 'admin' 
+                  ? 'Administrative access for both EUR and KM tenants'
+                  : redirectParam === 'eur'
+                  ? 'European market B2B software licensing'
+                  : redirectParam === 'km'
+                  ? 'Bosnian market B2B software licensing'
+                  : 'Access your B2B software license portal'
+                }
               </p>
             </CardHeader>
             <CardContent>
