@@ -114,15 +114,17 @@ export class AdminProductsController {
 
       console.log('Updating product:', id, 'with data:', updateData);
 
-      const product = await this.productService.updateProduct(id, updateData);
+      const product = await productService.updateProduct(id, updateData);
 
       if (!product) {
         res.status(404).json({ message: 'Product not found' });
         return;
       }
 
-      res.setHeader('Content-Type', 'application/json');
-      res.json(product);
+      res.status(200).json({
+        data: product,
+        message: 'Product updated successfully'
+      });
     } catch (error) {
       console.error('Error updating product:', error);
       console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
