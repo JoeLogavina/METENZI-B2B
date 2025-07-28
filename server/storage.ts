@@ -339,6 +339,24 @@ export class DatabaseStorage implements IStorage {
    */
   async getCartItems(userId: string): Promise<(CartItem & { product: Product })[]> {
     try {
+      console.log(`🔍 CART DEBUG: Starting getCartItems for user ${userId}`);
+      
+      // First, check if cart items exist for this user
+      const cartItemsCount = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(cartItems)
+        .where(eq(cartItems.userId, userId));
+      
+      console.log(`🔍 CART DEBUG: Found ${cartItemsCount[0]?.count || 0} cart items in database`);
+
+      // Check if products exist
+      const productsCount = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(products)
+        .where(eq(products.isActive, true));
+      
+      console.log(`🔍 CART DEBUG: Found ${productsCount[0]?.count || 0} active products in database`);
+
       const rows = await db
         .select({
           // Cart item fields
@@ -376,14 +394,39 @@ export class DatabaseStorage implements IStorage {
         .where(eq(cartItems.userId, userId))
         .orderBy(desc(cartItems.createdAt));
 
-      console.log(`🔍 Cart query for user ${userId}: found ${rows.length} items`);
+      console.log(`🔍 CART DEBUG: JOIN query returned ${rows.length} items`);
       if (rows.length > 0) {
-        console.log('📦 Sample cart item:', {
+        console.log('📦 CART DEBUG: Sample cart item raw data:', {
           id: rows[0].id,
+          userId: rows[0].userId,
           productId: rows[0].productId,
           productName: rows[0].productName,
-          quantity: rows[0].quantity
+          quantity: rows[0].quantity,
+          productIsActive: rows[0].productIsActive
         });
+      } else {
+        console.log('❌ CART DEBUG: No items returned from JOIN query - checking raw cart items...');
+        
+        // Debug: Get raw cart items without JOIN
+        const rawCartItems = await db
+          .select()
+          .from(cartItems)
+          .where(eq(cartItems.userId, userId));
+        
+        console.log(`🔍 CART DEBUG: Raw cart items (no JOIN): ${rawCartItems.length} items`);
+        if (rawCartItems.length > 0) {
+          console.log('📦 CART DEBUG: Raw cart item sample:', rawCartItems[0]);
+          
+          // Check if products exist for these cart items
+          for (const item of rawCartItems) {
+            const product = await db
+              .select({ id: products.id, name: products.name, isActive: products.isActive })
+              .from(products)
+              .where(eq(products.id, item.productId));
+            
+            console.log(`🔍 CART DEBUG: Product ${item.productId} exists:`, product.length > 0, product[0]);
+          }
+        }
       }
 
       return rows.map(row => ({
@@ -429,12 +472,24 @@ export class DatabaseStorage implements IStorage {
    */
   async addToCart(item: InsertCartItem): Promise<CartItem> {
     try {
+      console.log(`🛒 CART DEBUG: Adding item to cart:`, {
+        userId: item.userId,
+        productId: item.productId,
+        quantity: item.quantity
+      });
+
       return await db.transaction(async (tx) => {
         // Validate product exists and is active
         const [product] = await tx
           .select({ id: products.id, stockCount: products.stockCount, isActive: products.isActive })
           .from(products)
           .where(eq(products.id, item.productId));
+
+        console.log(`🛒 CART DEBUG: Product validation:`, {
+          productId: item.productId,
+          found: !!product,
+          isActive: product?.isActive
+        });
 
         if (!product) {
           throw new Error('Product not found');
@@ -453,9 +508,17 @@ export class DatabaseStorage implements IStorage {
             eq(cartItems.productId, item.productId)
           ));
 
+        console.log(`🛒 CART DEBUG: Existing item check:`, {
+          found: !!existingItem,
+          existingId: existingItem?.id,
+          existingQuantity: existingItem?.quantity
+        });
+
         if (existingItem) {
           // Update existing item quantity
           const newQuantity = existingItem.quantity + item.quantity;
+
+          console.log(`🛒 CART DEBUG: Updating existing item quantity from ${existingItem.quantity} to ${newQuantity}`);
 
           const [updatedItem] = await tx
             .update(cartItems)
@@ -466,19 +529,23 @@ export class DatabaseStorage implements IStorage {
             .where(eq(cartItems.id, existingItem.id))
             .returning();
 
+          console.log(`🛒 CART DEBUG: Item updated successfully:`, updatedItem);
           return updatedItem;
         } else {
           // Insert new cart item
+          console.log(`🛒 CART DEBUG: Inserting new cart item`);
+
           const [newItem] = await tx
             .insert(cartItems)
             .values(item)
             .returning();
 
+          console.log(`🛒 CART DEBUG: New item inserted successfully:`, newItem);
           return newItem;
         }
       });
     } catch (error) {
-      console.error('Error adding to cart:', error);
+      console.error('❌ CART DEBUG: Error adding to cart:', error);
       throw new Error(`Failed to add item to cart: ${(error as Error).message}`);
     }
   }

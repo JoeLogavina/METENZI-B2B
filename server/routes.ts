@@ -250,6 +250,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Debug endpoint for cart/database issues
+  app.get('/api/debug-cart', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      
+      // Check cart_items table directly with raw SQL
+      const { pool } = await import('./db');
+      
+      const cartQuery = `SELECT * FROM cart_items WHERE user_id = $1`;
+      const cartResult = await pool.query(cartQuery, [userId]);
+      
+      const productsQuery = `SELECT id, name, is_active FROM products`;
+      const productsResult = await pool.query(productsQuery);
+      
+      res.json({
+        userId,
+        cartItems: cartResult.rows,
+        products: productsResult.rows,
+        cartItemsCount: cartResult.rows.length,
+        productsCount: productsResult.rows.length
+      });
+    } catch (error) {
+      console.error('Debug cart error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Mount wallet routes for B2B users
   const walletRouter = await import('./routes/wallet.routes');
   app.use('/api/wallet', (req, res, next) => {
@@ -392,15 +419,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const cacheKey = `cart:${userId}`;
 
       try {
+        console.log(`🛒 API DEBUG: GET /api/cart called for user ${userId}`);
+
         // Check cache first
         const cachedCart = await redisCache.get(cacheKey);
         if (cachedCart) {
+          console.log(`🛒 API DEBUG: Cache HIT - returning ${Array.isArray(cachedCart) ? cachedCart.length : 'non-array'} items`);
           res.setHeader('X-Cache', 'HIT');
           return res.json(cachedCart);
         }
 
+        console.log(`🛒 API DEBUG: Cache MISS - fetching from database`);
+
         // Fetch from database with full transaction safety  
         const cartItems = await storage.getCartItems(userId);
+
+        console.log(`🛒 API DEBUG: Database returned ${cartItems.length} items`);
 
         // Cache result for 3 minutes (cart changes frequently)
         await redisCache.set(cacheKey, cartItems, 180);
@@ -408,7 +442,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.setHeader('X-Cache', 'MISS');
         res.json(cartItems);
       } catch (error) {
-        console.error("Cart fetch error:", error);
+        console.error("❌ Cart fetch error:", error);
         res.status(500).json({ 
           message: "Failed to fetch cart", 
           error: error.message,
@@ -427,22 +461,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const cacheKey = `cart:${userId}`;
 
       try {
+        console.log(`🛒 API DEBUG: POST /api/cart called for user ${userId}`, req.body);
+
         // Validate request data
         const cartData = insertCartItemSchema.parse({ 
           ...req.body, 
           userId 
         });
 
+        console.log(`🛒 API DEBUG: Validated cart data:`, cartData);
+
         // Add to cart with transactional safety
         const cartItem = await storage.addToCart(cartData);
 
+        console.log(`🛒 API DEBUG: Item added successfully:`, cartItem);
+
         // Atomic cache invalidation
         await redisCache.del(cacheKey);
+        console.log(`🛒 API DEBUG: Cache invalidated for key: ${cacheKey}`);
 
         // Return the created item
         res.status(201).json(cartItem);
       } catch (error) {
-        console.error("Cart add error:", error);
+        console.error("❌ Cart add error:", error);
 
         // Handle validation errors specifically
         if (error.name === 'ZodError') {
