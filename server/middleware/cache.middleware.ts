@@ -26,22 +26,25 @@ export function cacheMiddleware(options: CacheOptions = {}) {
     const user = req.user as any;
     const tenantId = user?.tenantId || 'eur';
 
-    // Generate tenant-aware cache key
-    const cacheKey = generateCacheKey(keyPrefix, req.originalUrl, req.query, tenantId);
+    // Generate tenant-aware cache key with user role for additional context
+    const userRole = user?.role || 'guest';
+    const cacheKey = generateCacheKey(keyPrefix, req.originalUrl, req.query, tenantId, userRole);
     
     try {
       // Try to get cached response
       const cachedResponse = await redisCache.get(cacheKey);
       
       if (cachedResponse) {
-        
-        // Set cache headers
+        // Set cache headers with tenant information for monitoring
         res.set({
           'X-Cache': 'HIT',
-          'X-Cache-Key': cacheKey,
+          'X-Cache-Key': cacheKey.slice(-10), // Show last 10 chars for debugging
+          'X-Tenant-Id': tenantId,
+          'X-User-Role': userRole,
           'Cache-Control': `public, max-age=${ttl}`
         });
         
+        console.log(`🎯 Cache HIT for tenant ${tenantId}: ${keyPrefix}`);
         return res.json(cachedResponse);
       }
 
@@ -57,12 +60,16 @@ export function cacheMiddleware(options: CacheOptions = {}) {
           console.warn('Failed to cache response:', error);
         });
         
-        // Set cache headers
+        // Set cache headers with tenant monitoring
         res.set({
           'X-Cache': 'MISS',
-          'X-Cache-Key': cacheKey,
+          'X-Cache-Key': cacheKey.slice(-10),
+          'X-Tenant-Id': tenantId,
+          'X-User-Role': userRole,
           'Cache-Control': `public, max-age=${ttl}`
         });
+        
+        console.log(`💾 Cache MISS for tenant ${tenantId}: ${keyPrefix} - storing new data`);
         
         // Call original json method
         return originalJson(data);
@@ -95,10 +102,11 @@ export function invalidateCacheMiddleware(pattern: string) {
   };
 }
 
-function generateCacheKey(prefix: string, url: string, query: any, tenantId?: string): string {
+function generateCacheKey(prefix: string, url: string, query: any, tenantId?: string, userRole?: string): string {
   const queryString = Object.keys(query).length > 0 ? JSON.stringify(query) : '';
-  const tenantPrefix = tenantId ? `${tenantId}:` : '';
-  const keyData = `${tenantPrefix}${url}:${queryString}`;
+  const tenantPrefix = tenantId ? `${tenantId}:` : 'eur:'; // Default to EUR tenant
+  const rolePrefix = userRole ? `${userRole}:` : '';
+  const keyData = `${tenantPrefix}${rolePrefix}${url}:${queryString}`;
   return `${prefix}:${Buffer.from(keyData).toString('base64')}`;
 }
 
@@ -107,9 +115,10 @@ export const productsCacheMiddleware = cacheMiddleware({
   ttl: 300, // 5 minutes
   keyPrefix: 'products',
   skipCacheCondition: (req) => {
-    // Skip cache if user is admin (they might see different data)
-    // Also skip temporarily to ensure tenant pricing works correctly
-    return true; // Temporarily disabled for tenant-aware pricing
+    // Cache is now tenant-aware, safe to enable
+    const user = req.user as any;
+    // Skip cache only for unauthenticated users to ensure security
+    return !user?.id;
   }
 });
 
@@ -117,8 +126,9 @@ export const walletCacheMiddleware = cacheMiddleware({
   ttl: 120, // 2 minutes for financial data
   keyPrefix: 'wallet',
   skipCacheCondition: (req) => {
-    // CRITICAL: Disable wallet cache to ensure tenant financial isolation
-    return true;
+    const user = req.user as any;
+    // Enable tenant-aware wallet caching for authenticated users
+    return !user?.id;
   }
 });
 
@@ -136,10 +146,8 @@ export const ordersCacheMiddleware = cacheMiddleware({
   ttl: 300, // 5 minutes for orders (frequently updated)
   keyPrefix: 'orders',
   skipCacheCondition: (req) => {
-    // TEMPORARILY DISABLE ORDERS CACHE TO FIX TENANT ISOLATION BREACH
-    return true;
-    
-    // Future tenant-aware caching:
-    // return (req.user as any)?.role === 'admin' || (req.user as any)?.role === 'super_admin';
+    const user = req.user as any;
+    // Enable tenant-aware orders caching - cache is now safe with tenant isolation
+    return !user?.id;
   }
 });

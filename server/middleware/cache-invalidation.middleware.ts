@@ -107,23 +107,60 @@ export function cacheInvalidationMiddleware(options: CacheInvalidationOptions) {
   };
 }
 
-// Convenience middleware for common cache invalidation patterns
-export const invalidateOrdersCache = cacheInvalidationMiddleware({
-  patterns: ['orders:*', 'wallet:*'],
-  onSuccess: true
-});
+// Tenant-aware cache invalidation middleware
+export function invalidateOrdersCache(req: any, res: any, next: any) {
+  const user = req.user as any;
+  const tenantId = user?.tenantId || 'eur';
+  const userRole = user?.role || 'b2b_user';
+  
+  // Create tenant-specific invalidation patterns
+  const tenantPatterns = [
+    `orders:*${tenantId}:*`,
+    `wallet:*${tenantId}:*`
+  ];
+  
+  return cacheInvalidationMiddleware({
+    patterns: tenantPatterns,
+    onSuccess: true
+  })(req, res, next);
+}
 
-export const invalidateWalletCache = cacheInvalidationMiddleware({
-  patterns: ['wallet:*'],
-  onSuccess: true
-});
+export function invalidateWalletCache(req: any, res: any, next: any) {
+  const user = req.user as any;
+  const tenantId = user?.tenantId || 'eur';
+  
+  const tenantPatterns = [`wallet:*${tenantId}:*`];
+  
+  return cacheInvalidationMiddleware({
+    patterns: tenantPatterns,
+    onSuccess: true
+  })(req, res, next);
+}
 
-export const invalidateProductsCache = cacheInvalidationMiddleware({
-  patterns: ['products:*'],
-  onSuccess: true
-});
+export function invalidateProductsCache(req: any, res: any, next: any) {
+  const user = req.user as any;
+  const tenantId = user?.tenantId || 'eur';
+  
+  // For products, invalidate both tenant caches since product changes affect both
+  const patterns = [
+    `products:*eur:*`,
+    `products:*km:*`
+  ];
+  
+  return cacheInvalidationMiddleware({
+    patterns: patterns,
+    onSuccess: true
+  })(req, res, next);
+}
 
-export const invalidateCartCache = cacheInvalidationMiddleware({
-  patterns: ['cart:*'],
-  onSuccess: true
-});
+export function invalidateCartCache(req: any, res: any, next: any) {
+  const user = req.user as any;
+  const tenantId = user?.tenantId || 'eur';
+  
+  const tenantPatterns = [`cart:*${tenantId}:*`];
+  
+  return cacheInvalidationMiddleware({
+    patterns: tenantPatterns,
+    onSuccess: true
+  })(req, res, next);
+}
