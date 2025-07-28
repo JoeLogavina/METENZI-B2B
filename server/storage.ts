@@ -61,6 +61,7 @@ export interface IStorage {
   getLicenseKeys(productId?: string): Promise<LicenseKey[]>;
   createLicenseKey(key: InsertLicenseKey): Promise<LicenseKey>;
   getAvailableKey(productId: string): Promise<LicenseKey | undefined>;
+  getKeyById(keyId: string): Promise<LicenseKey | undefined>;
   markKeyAsUsed(keyId: string, userId: string): Promise<void>;
   getProductStock(productId: string): Promise<number>;
 
@@ -314,6 +315,14 @@ export class DatabaseStorage implements IStorage {
       .from(licenseKeys)
       .where(and(eq(licenseKeys.productId, productId), eq(licenseKeys.isUsed, false)))
       .limit(1);
+    return key;
+  }
+
+  async getKeyById(keyId: string): Promise<LicenseKey | undefined> {
+    const [key] = await db
+      .select()
+      .from(licenseKeys)
+      .where(eq(licenseKeys.id, keyId));
     return key;
   }
 

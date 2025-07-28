@@ -469,30 +469,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const randomSuffix = Math.random().toString(36).substring(2, 7).toUpperCase();
       const orderNumber = `ORD-${timestamp}-${randomSuffix}`;
 
-      // Create order
-      const order = await storage.createOrder({
-        userId,
-        tenantId,
-        orderNumber,
-        status: 'completed',
-        totalAmount: subtotal.toFixed(2),
-        taxAmount: taxAmount.toFixed(2),
-        finalAmount: finalAmount.toFixed(2),
-        paymentMethod: paymentMethod || 'wallet',
-        paymentStatus: 'paid',
-        companyName: billingInfo?.companyName || '',
-        firstName: billingInfo?.firstName || '',
-        lastName: billingInfo?.lastName || '',
-        email: billingInfo?.email || req.user.email,
-        phone: billingInfo?.phone || '',
-        address: billingInfo?.address || '',
-        city: billingInfo?.city || '',
-        postalCode: billingInfo?.postalCode || '',
-        country: billingInfo?.country || ''
-      });
+      // BULLETPROOF TRANSACTIONAL ORDER CREATION
+      console.log('🚀 Starting bulletproof order creation with transactional consistency');
+      
+      // Import OrderService for enterprise-grade order creation
+      const { OrderService } = await import('./services/order.service');
+      const orderService = new OrderService();
 
-      // Create order items and assign license keys
-      const orderItems = [];
+      // Prepare cart items for transaction
+      const transactionCartItems = [];
       for (const cartItem of cartItems) {
         for (let i = 0; i < cartItem.quantity; i++) {
           // Get available license key
@@ -501,25 +486,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
             throw new Error(`No license keys available for product: ${cartItem.product.name}`);
           }
 
-          // Mark key as used
-          await storage.markKeyAsUsed(licenseKey.id, userId);
-
-          // Create order item
-          const orderItem = await storage.createOrderItem({
-            orderId: order.id,
+          transactionCartItems.push({
             productId: cartItem.productId,
-            licenseKeyId: licenseKey.id,
             quantity: 1,
             unitPrice: cartItem.product.price,
-            totalPrice: cartItem.product.price
-          });
-
-          orderItems.push({
-            ...orderItem,
-            product: cartItem.product,
-            licenseKey
+            totalPrice: cartItem.product.price,
+            licenseKeyId: licenseKey.id
           });
         }
+      }
+
+      // Create complete order with bulletproof verification
+      const orderResult = await orderService.createCompleteOrder(
+        {
+          userId,
+          tenantId,
+          orderNumber,
+          status: 'completed',
+          totalAmount: subtotal.toFixed(2),
+          taxAmount: taxAmount.toFixed(2),
+          finalAmount: finalAmount.toFixed(2),
+          paymentMethod: paymentMethod || 'wallet',
+          paymentStatus: 'paid',
+          companyName: billingInfo?.companyName || '',
+          firstName: billingInfo?.firstName || '',
+          lastName: billingInfo?.lastName || '',
+          email: billingInfo?.email || req.user.email,
+          phone: billingInfo?.phone || '',
+          address: billingInfo?.address || '',
+          city: billingInfo?.city || '',
+          postalCode: billingInfo?.postalCode || '',
+          country: billingInfo?.country || ''
+        },
+        transactionCartItems
+      );
+
+      const order = orderResult.order;
+      
+      // Mark license keys as used after successful transaction
+      const orderItems = [];
+      for (let i = 0; i < transactionCartItems.length; i++) {
+        const item = transactionCartItems[i];
+        const licenseKey = await storage.getKeyById(item.licenseKeyId!);
+        
+        // Mark key as used
+        await storage.markKeyAsUsed(item.licenseKeyId!, userId);
+        
+        orderItems.push({
+          ...orderResult.items[i],
+          product: cartItems.find(ci => ci.productId === item.productId)?.product,
+          licenseKey
+        });
       }
 
       // Process wallet payment AFTER order creation
