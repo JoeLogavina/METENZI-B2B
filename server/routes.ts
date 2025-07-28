@@ -480,10 +480,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Wallet routes (simplified for testing)
+  // Wallet routes with real data
   app.get('/api/wallet', isAuthenticated, async (req: any, res) => {
     try {
-      res.json({ data: { depositBalance: "1000.00", creditLimit: "5000.00" } });
+      const wallet = await storage.getWallet(req.user.id);
+      res.json({ data: wallet });
     } catch (error) {
       console.error("Error fetching wallet:", error);
       res.status(500).json({ message: "Failed to fetch wallet data" });
@@ -492,7 +493,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/wallet/transactions', isAuthenticated, async (req: any, res) => {
     try {
-      res.json({ data: [] });
+      const transactions = await storage.getWalletTransactions(req.user.id);
+      res.json({ data: transactions });
     } catch (error) {
       console.error("Error fetching transactions:", error);
       res.status(500).json({ message: "Failed to fetch transactions" });

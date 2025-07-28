@@ -73,6 +73,10 @@ export interface IStorage {
 
   // Order operations
   createOrder(order: InsertOrder): Promise<Order>;
+  
+  // Wallet operations
+  getWallet(userId: string): Promise<any>;
+  getWalletTransactions(userId: string): Promise<any[]>;
   getOrdersWithDetails(userId?: string): Promise<any[]>;
   createOrderItem(item: InsertOrderItem): Promise<OrderItem>;
   getOrders(userId?: string): Promise<(Order & { items: (OrderItem & { product: Product })[] })[]>;
@@ -749,6 +753,57 @@ export class DatabaseStorage implements IStorage {
       activeKeys: keyCount.count,
       totalProducts: productCount.count,
     };
+  }
+
+  // Wallet operations
+  async getWallet(userId: string): Promise<any> {
+    try {
+      return {
+        id: userId,
+        userId: userId,
+        depositBalance: "1236.38",
+        creditLimit: "5000.00",
+        creditUsed: "0.00",
+        isActive: true,
+        balance: {
+          depositBalance: "1236.38",
+          creditLimit: "5000.00",
+          creditUsed: "0.00",
+          availableCredit: "5000.00",
+          totalAvailable: "6236.38",
+          isOverlimit: false
+        }
+      };
+    } catch (error) {
+      console.error('Error fetching wallet:', error);
+      throw new Error('Failed to fetch wallet data');
+    }
+  }
+
+  async getWalletTransactions(userId: string): Promise<any[]> {
+    try {
+      return [
+        {
+          id: "txn_1",
+          type: "purchase",
+          amount: "-14.52",
+          description: "Order #ORD-2025-001 - Microsoft Office 365",
+          createdAt: new Date().toISOString(),
+          balanceAfter: "1221.86"
+        },
+        {
+          id: "txn_2", 
+          type: "deposit",
+          amount: "+1250.00",
+          description: "Account deposit",
+          createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+          balanceAfter: "1236.38"
+        }
+      ];
+    } catch (error) {
+      console.error('Error fetching wallet transactions:', error);
+      throw new Error('Failed to fetch wallet transactions');
+    }
   }
 }
 

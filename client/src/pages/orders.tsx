@@ -551,7 +551,10 @@ export default function OrdersPage() {
                                   {order.orderNumber}
                                 </td>
                                 <td className="p-2 border-r">
-                                  {formatDate(new Date(new Date(item.licenseKey!.createdAt).getTime() + 365 * 24 * 60 * 60 * 1000).toISOString())}
+                                  {item.licenseKey?.createdAt ? 
+                                    formatDate(new Date(new Date(item.licenseKey.createdAt).getTime() + 365 * 24 * 60 * 60 * 1000).toISOString()) 
+                                    : 'N/A'
+                                  }
                                 </td>
                                 <td className="p-2 border-r">
                                   <Badge variant="secondary">{item.product.platform}</Badge>
