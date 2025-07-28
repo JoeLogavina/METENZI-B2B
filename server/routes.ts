@@ -432,11 +432,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userResult = await pool.query(userQuery, [userId]);
       const userRole = userResult.rows[0]?.role || 'b2b_user';
 
+      // Get user's tenant for proper filtering
+      const user = req.user as any;
+      const tenantId = user.tenantId || 'eur';
+
       const orderQuery = userRole === 'super_admin' || userRole === 'admin'
         ? `SELECT * FROM orders ORDER BY created_at DESC`
-        : `SELECT * FROM orders WHERE user_id = $1 ORDER BY created_at DESC`;
+        : `SELECT * FROM orders WHERE user_id = $1 AND tenant_id = $2 ORDER BY created_at DESC`;
 
-      const orderParams = userRole === 'super_admin' || userRole === 'admin' ? [] : [userId];
+      const orderParams = userRole === 'super_admin' || userRole === 'admin' ? [] : [userId, tenantId];
       const orderResult = await pool.query(orderQuery, orderParams);
       const orderRows = orderResult.rows;
 
