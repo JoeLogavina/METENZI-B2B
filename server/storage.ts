@@ -195,6 +195,7 @@ export class DatabaseStorage implements IStorage {
           name: products.name,
           description: products.description,
           price: products.price,
+          priceKm: products.priceKm, // Include KM pricing
           categoryId: products.categoryId,
           region: products.region,
           platform: products.platform,
@@ -229,6 +230,7 @@ export class DatabaseStorage implements IStorage {
         name: products.name,
         description: products.description,
         price: products.price,
+        priceKm: products.priceKm, // Include KM pricing for admin too
         warranty: products.warranty,
         htmlDescription: products.htmlDescription,
         categoryId: products.categoryId,

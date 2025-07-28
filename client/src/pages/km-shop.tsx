@@ -87,13 +87,17 @@ export default function KMShop() {
       const res = await apiRequest("GET", `/api/products?${params.toString()}`);
       const data = await res.json();
       
-      // Filter and transform for KM pricing
+      // Filter and transform for KM pricing - check all possible field names
       return data
-        .filter((product: any) => product.priceKm && product.priceKm > 0) // Only products with KM pricing
+        .filter((product: any) => {
+          // Check both priceKm and price_km field names
+          const kmPrice = product.priceKm || product.price_km;
+          return kmPrice && parseFloat(kmPrice) > 0;
+        })
         .map((product: any) => ({
           ...product,
-          price: parseFloat(product.priceKm), // Use KM price as primary price
-          displayPrice: parseFloat(product.priceKm),
+          price: parseFloat(product.priceKm || product.price_km), // Use KM price as primary price
+          displayPrice: parseFloat(product.priceKm || product.price_km),
           currency: 'KM'
         }));
     },
