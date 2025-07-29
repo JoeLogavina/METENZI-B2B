@@ -177,31 +177,47 @@ export class AdminProductsController {
     }
   }
 
-  // PATCH /api/admin/products/:id/pricing - Update product pricing
+  // PATCH /api/admin/products/:id/pricing - Update product pricing (CENTRAL PRICING AUTHORITY)
   async updateProductPricing(req: Request, res: Response) {
     try {
       const { id } = productParamsSchema.parse(req.params);
-      const { costPrice, resellerPrice, retailPrice } = req.body;
+      const { purchasePrice, b2bPrice, retailPrice } = req.body;
 
-      // Map to correct field names
+      // CENTRAL PRICING AUTHORITY: These changes sync across all systems
       const updateData: any = {};
-      if (costPrice !== undefined) updateData.purchasePrice = costPrice;
-      if (resellerPrice !== undefined) updateData.resellerPrice = resellerPrice;
-      if (retailPrice !== undefined) updateData.retailerPrice = retailPrice;
+      if (purchasePrice !== undefined) updateData.purchasePrice = purchasePrice.toString();
+      if (b2bPrice !== undefined) updateData.b2bPrice = b2bPrice.toString();
+      if (retailPrice !== undefined) updateData.retailPrice = retailPrice.toString();
+
+      console.log('🏛️ CENTRAL PRICING AUTHORITY UPDATE:', {
+        productId: id,
+        changes: updateData,
+        timestamp: new Date().toISOString()
+      });
 
       const updatedProduct = await productService.updateProduct(id, updateData);
 
+      console.log('✅ PRICING SYNCHRONIZED ACROSS PLATFORM:', {
+        productId: id,
+        newPricing: {
+          purchasePrice: updatedProduct.purchasePrice,
+          b2bPrice: updatedProduct.b2bPrice,
+          retailPrice: updatedProduct.retailPrice
+        }
+      });
+
       res.json({
         data: updatedProduct,
-        message: 'Product pricing updated successfully'
+        message: 'Central pricing authority updated - synchronized across all systems'
       });
     } catch (error) {
+      console.error('❌ CENTRAL PRICING UPDATE FAILED:', error);
       if (isServiceError(error)) {
         return res.status(error.statusCode).json(formatErrorResponse(error));
       }
       res.status(500).json({
         error: 'INTERNAL_SERVER_ERROR',
-        message: 'Failed to update product pricing'
+        message: 'Failed to update central pricing authority'
       });
     }
   }

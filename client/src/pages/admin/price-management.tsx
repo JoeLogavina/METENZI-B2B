@@ -120,16 +120,19 @@ export default function PriceManagementPage() {
     },
     onSuccess: (updatedProduct) => {
       toast({ 
-        title: "Pricing Authority Updated", 
-        description: "Product pricing synchronized across all platform systems" 
+        title: "Central Pricing Authority Updated", 
+        description: `Pricing synchronized across Edit Product, EUR Shop, and all platform systems` 
       });
-      // Invalidate all pricing-related queries to ensure synchronization
+      // COMPREHENSIVE PRICE SYNCHRONIZATION - invalidate all pricing-related queries
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/products"] });
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
       queryClient.invalidateQueries({ queryKey: ["/api/retail/product-offers"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/products/${updatedProduct.id}`] });
       queryClient.invalidateQueries({ queryKey: [`/api/products/${updatedProduct.id}`] });
       queryClient.invalidateQueries({ queryKey: [`/api/retail/product-offers/${updatedProduct.id}`] });
-      // Invalidate search results and category listings
+      // Invalidate shop and admin panel caches
       queryClient.invalidateQueries({ queryKey: ["/api/retail/products"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/license-keys"] });
       setEditingProduct(null);
     },
     onError: () => {
@@ -176,9 +179,9 @@ export default function PriceManagementPage() {
   };
 
   useEffect(() => {
-    if (products) {
+    if (products && Array.isArray(products)) {
       const initialData: Record<string, any> = {};
-      (products as Product[]).forEach(product => {
+      products.forEach(product => {
         const margins = calculateMargins(
           product.purchasePrice,
           product.b2bPrice,
@@ -393,9 +396,13 @@ export default function PriceManagementPage() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Product Pricing & Profit Calculator</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Central Price Management Hub</h1>
           <p className="text-muted-foreground">
-            Search products...
+            <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-sm font-medium mr-2">
+              <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
+              PRICING AUTHORITY
+            </span>
+            All price changes made here become the official prices across the entire platform
           </p>
         </div>
         <div className="flex gap-2">
@@ -405,6 +412,25 @@ export default function PriceManagementPage() {
           </Button>
         </div>
       </div>
+
+      {/* Pricing Authority Information Panel */}
+      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            <div className="bg-blue-600 rounded-full p-2 mt-1">
+              <Calculator className="w-4 h-4 text-white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-blue-900 mb-1">Central Pricing Authority</h3>
+              <p className="text-sm text-blue-700 leading-relaxed">
+                This interface serves as the authoritative source for all product pricing across the platform. 
+                Changes made here automatically synchronize to: <span className="font-medium">Edit Product Page, EUR Shop, Retail Store, Order Processing, Cart Systems, and API Responses</span>. 
+                All other pricing displays throughout the platform reference these values.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
