@@ -81,7 +81,7 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
   });
 
   // Extract products from API response
-  const products = Array.isArray(productsResponse?.data) ? productsResponse.data : [];
+  const products = Array.isArray(productsResponse?.data) ? productsResponse.data : (Array.isArray(productsResponse) ? productsResponse : []);
 
   // Fetch transaction history
   const { data: transactions = [] } = useQuery({
@@ -252,10 +252,60 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
     }
   });
 
+  // Delete single product mutation
+  const deleteProductMutation = useMutation({
+    mutationFn: async (productId: string) => {
+      return apiRequest('DELETE', `/api/admin/users/${userId}/pricing/${productId}`, {});
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Product removed successfully",
+      });
+      refetchPricing();
+      setSelectedProducts(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(deleteProductMutation.variables as string);
+        return newSet;
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to remove product",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Delete multiple products mutation
+  const deleteMultipleProductsMutation = useMutation({
+    mutationFn: async (productIds: string[]) => {
+      return apiRequest('DELETE', `/api/admin/users/${userId}/pricing`, { productIds });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Selected products removed successfully",
+      });
+      refetchPricing();
+      setSelectedProducts(new Set());
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to remove products",
+        variant: "destructive",
+      });
+    }
+  });
+
   // Handle profile save
   const handleProfileSave = () => {
     updateProfileMutation.mutate(profileData);
   };
+
+
 
   // Handle deposit addition
   const handleAddDeposit = () => {
@@ -311,8 +361,9 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
     }
 
     // Add products with default pricing and visibility
-    const promises = Array.from(selectedProducts).map(productId => {
-      const product = allProducts.find((p: any) => p.id === productId);
+    const productIdsArray = Array.from(selectedProducts);
+    const promises = productIdsArray.map(productId => {
+      const product = allProducts?.find((p: any) => p.id === productId);
       const defaultPrice = parseFloat(product?.b2bPrice || product?.price || "0").toString();
       
       return updatePricingMutation.mutateAsync({
@@ -328,7 +379,7 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
       refetchPricing();
       toast({
         title: "Products Added",
-        description: `${selectedProducts.size} products added successfully`,
+        description: `${productIdsArray.length} products added successfully`,
         variant: "default"
       });
     }).catch((error) => {
@@ -376,13 +427,13 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
           </Button>
           <div>
             <h3 className="text-lg font-semibold text-[#6E6F71] uppercase tracking-[0.5px]">
-              EDIT USER: {userData.firstName} {userData.lastName}
+              EDIT USER: {(userData as any)?.firstName} {(userData as any)?.lastName}
             </h3>
-            <p className="text-sm text-[#6E6F71]">@{userData.username} • {userData.email}</p>
+            <p className="text-sm text-[#6E6F71]">@{(userData as any)?.username} • {(userData as any)?.email}</p>
           </div>
         </div>
-        <Badge variant={userData.isActive ? "default" : "destructive"}>
-          {userData.isActive ? "Active" : "Inactive"}
+        <Badge variant={(userData as any)?.isActive ? "default" : "destructive"}>
+          {(userData as any)?.isActive ? "Active" : "Inactive"}
         </Badge>
       </div>
 
@@ -559,19 +610,19 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
                           <span className="text-gray-500">Deposit Balance:</span>
-                          <p className="font-medium text-[#FFB20F]">€{walletData.data.depositBalance}</p>
+                          <p className="font-medium text-[#FFB20F]">€{(walletData as any)?.data?.depositBalance || '0.00'}</p>
                         </div>
                         <div>
                           <span className="text-gray-500">Credit Used:</span>
-                          <p className="font-medium text-red-600">€{walletData.data.creditUsed}</p>
+                          <p className="font-medium text-red-600">€{(walletData as any)?.data?.creditUsed || '0.00'}</p>
                         </div>
                         <div>
                           <span className="text-gray-500">Credit Limit:</span>
-                          <p className="font-medium">€{walletData.data.creditLimit}</p>
+                          <p className="font-medium">€{(walletData as any)?.data?.creditLimit || '0.00'}</p>
                         </div>
                         <div>
                           <span className="text-gray-500">Total Available:</span>
-                          <p className="font-bold text-green-600">€{walletData.data.totalAvailable}</p>
+                          <p className="font-bold text-green-600">€{(walletData as any)?.data?.totalAvailable || '0.00'}</p>
                         </div>
                       </div>
                     </div>
@@ -645,14 +696,29 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-[#6E6F71]">Product Pricing & Visibility</CardTitle>
-              <Button
-                onClick={() => setShowAddProductModal(true)}
-                className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white"
-                size="sm"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add Product
-              </Button>
+              <div className="flex gap-2">
+                {selectedProducts.size > 0 && (
+                  <Button
+                    onClick={() => {
+                      deleteMultipleProductsMutation.mutate(Array.from(selectedProducts));
+                    }}
+                    variant="destructive"
+                    size="sm"
+                    disabled={deleteMultipleProductsMutation.isPending}
+                  >
+                    <Minus className="w-4 h-4 mr-2" />
+                    {deleteMultipleProductsMutation.isPending ? 'Deleting...' : `Delete Selected (${selectedProducts.size})`}
+                  </Button>
+                )}
+                <Button
+                  onClick={() => setShowAddProductModal(true)}
+                  className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white"
+                  size="sm"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Product
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {Array.isArray(userPricing) && userPricing.length > 0 ? (
@@ -660,6 +726,19 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
                   <table className="w-full border-collapse border border-gray-300">
                     <thead>
                       <tr className="bg-[#6E6F71] text-white">
+                        <th className="border border-gray-300 px-3 py-2 text-center text-sm font-medium w-12">
+                          <Checkbox
+                            checked={selectedProducts.size === userPricing.length && userPricing.length > 0}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedProducts(new Set(userPricing.map((p: any) => p.productId)));
+                              } else {
+                                setSelectedProducts(new Set());
+                              }
+                            }}
+                            className="border-white data-[state=checked]:bg-[#FFB20F] data-[state=checked]:border-[#FFB20F]"
+                          />
+                        </th>
                         <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium">#</th>
                         <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium">Product Name</th>
                         <th className="border border-gray-300 px-3 py-2 text-center text-sm font-medium">Purchase</th>
@@ -679,6 +758,21 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
                         
                         return (
                           <tr key={product.id} className="hover:bg-gray-50">
+                            <td className="border border-gray-300 px-3 py-2 text-center">
+                              <Checkbox
+                                checked={selectedProducts.has(product.id)}
+                                onCheckedChange={(checked) => {
+                                  const newSelected = new Set(selectedProducts);
+                                  if (checked) {
+                                    newSelected.add(product.id);
+                                  } else {
+                                    newSelected.delete(product.id);
+                                  }
+                                  setSelectedProducts(newSelected);
+                                }}
+                                className="data-[state=checked]:bg-[#FFB20F] data-[state=checked]:border-[#FFB20F]"
+                              />
+                            </td>
                             <td className="border border-gray-300 px-3 py-2 text-sm text-center font-medium">
                               {index + 1}
                             </td>
@@ -735,21 +829,34 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
                               </button>
                             </td>
                             <td className="border border-gray-300 px-3 py-2 text-center">
-                              <Button
-                                size="sm"
-                                onClick={() => {
-                                  const newPrice = productPrices[product.id] || customPrice;
-                                  updatePricingMutation.mutate({
-                                    productId: product.id,
-                                    customPrice: parseFloat(newPrice),
-                                    isVisible: isVisible
-                                  });
-                                }}
-                                className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white px-3 py-1 text-xs h-7"
-                                disabled={updatePricingMutation.isPending}
-                              >
-                                Save
-                              </Button>
+                              <div className="flex gap-1 justify-center">
+                                <Button
+                                  size="sm"
+                                  onClick={() => {
+                                    const newPrice = productPrices[product.id] || customPrice;
+                                    updatePricingMutation.mutate({
+                                      productId: product.id,
+                                      customPrice: parseFloat(newPrice),
+                                      isVisible: isVisible
+                                    });
+                                  }}
+                                  className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white px-2 py-1 text-xs h-6"
+                                  disabled={updatePricingMutation.isPending}
+                                >
+                                  Save
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  onClick={() => {
+                                    deleteProductMutation.mutate(product.id);
+                                  }}
+                                  variant="destructive"
+                                  className="px-2 py-1 text-xs h-6"
+                                  disabled={deleteProductMutation.isPending}
+                                >
+                                  <X className="w-3 h-3" />
+                                </Button>
+                              </div>
                             </td>
                           </tr>
                         );
@@ -898,25 +1005,23 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
                   <>
                     {products
                       .filter((product: any) => {
-                        // Filter out products already visible to user
-                        const hasCustomPricing = Array.isArray(userPricing) && (userPricing as any[]).some((p: any) => p.productId === product.id && p.isVisible);
-                        
-                        // Filter by search term
+                        // Only filter by search term - show ALL products
                         const matchesSearch = !searchTerm || 
                           product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           product.description.toLowerCase().includes(searchTerm.toLowerCase());
                         
-                        return !hasCustomPricing && matchesSearch;
+                        return matchesSearch;
                       })
                       .map((product: any) => {
                         const isSelected = selectedProducts.has(product.id);
+                        const isAlreadyAdded = Array.isArray(userPricing) && (userPricing as any[]).some((p: any) => p.productId === product.id);
                         
                         return (
                           <div
                             key={product.id}
                             className={`p-3 border-b border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors ${
                               isSelected ? 'bg-blue-50' : ''
-                            }`}
+                            } ${isAlreadyAdded ? 'bg-green-50 border-green-200' : ''}`}
                             onClick={() => {
                               const newSelected = new Set(selectedProducts);
                               if (isSelected) {
@@ -936,9 +1041,16 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center justify-between">
                                   <div>
-                                    <h4 className="font-medium text-[#6E6F71] truncate">
-                                      {product.name}
-                                    </h4>
+                                    <div className="flex items-center gap-2">
+                                      <h4 className="font-medium text-[#6E6F71] truncate">
+                                        {product.name}
+                                      </h4>
+                                      {isAlreadyAdded && (
+                                        <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs">
+                                          Added
+                                        </Badge>
+                                      )}
+                                    </div>
                                     <p className="text-sm text-gray-500 truncate max-w-md">
                                       {product.description}
                                     </p>
@@ -957,16 +1069,15 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
                       })}
                     
                     {products.filter((product: any) => {
-                      const hasCustomPricing = Array.isArray(userPricing) && (userPricing as any[]).some((p: any) => p.productId === product.id && p.isVisible);
                       const matchesSearch = !searchTerm || 
                         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                         product.description.toLowerCase().includes(searchTerm.toLowerCase());
-                      return !hasCustomPricing && matchesSearch;
+                      return matchesSearch;
                     }).length === 0 && (
                       <div className="p-6 text-center">
                         <Package className="mx-auto h-12 w-12 text-gray-400" />
                         <h3 className="mt-2 text-sm font-medium text-gray-900">
-                          {searchTerm ? 'No matching products found' : 'No available products'}
+                          {searchTerm ? 'No matching products found' : 'No products available'}
                         </h3>
                         <p className="mt-1 text-sm text-gray-500">
                         {searchTerm 

@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { db } from "../../db";
 import { users, wallets, walletTransactions, orders, orderItems, userProductPricing, products, licenseKeys } from "../../../shared/schema";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, inArray } from "drizzle-orm";
 import { z } from "zod";
 
 // Validation schemas
@@ -326,6 +326,55 @@ export class UserEditController {
     } catch (error) {
       console.error("Error fetching transaction history:", error);
       res.status(500).json({ error: "Failed to fetch transaction history" });
+    }
+  }
+
+  // Delete product pricing for user
+  static async deleteProductPricing(req: Request, res: Response) {
+    try {
+      const { userId, productId } = req.params;
+
+      // Delete the pricing record
+      const result = await db
+        .delete(userProductPricing)
+        .where(
+          and(
+            eq(userProductPricing.userId, userId),
+            eq(userProductPricing.productId, productId)
+          )
+        );
+
+      res.json({ success: true, message: "Product removed from user successfully" });
+    } catch (error) {
+      console.error("Error deleting product pricing:", error);
+      res.status(500).json({ error: "Failed to remove product from user" });
+    }
+  }
+
+  // Delete multiple product pricing for user
+  static async deleteMultipleProductPricing(req: Request, res: Response) {
+    try {
+      const { userId } = req.params;
+      const { productIds } = req.body;
+
+      if (!Array.isArray(productIds) || productIds.length === 0) {
+        return res.status(400).json({ error: "productIds must be a non-empty array" });
+      }
+
+      // Delete the pricing records
+      const result = await db
+        .delete(userProductPricing)
+        .where(
+          and(
+            eq(userProductPricing.userId, userId),
+            inArray(userProductPricing.productId, productIds)
+          )
+        );
+
+      res.json({ success: true, message: `${productIds.length} products removed from user successfully` });
+    } catch (error) {
+      console.error("Error deleting multiple product pricing:", error);
+      res.status(500).json({ error: "Failed to remove products from user" });
     }
   }
 

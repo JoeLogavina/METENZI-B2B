@@ -16,6 +16,8 @@ router.patch('/:userId/credit-limit', UserEditController.updateCreditLimit);
 // Product pricing endpoints
 router.get('/:userId/pricing', UserEditController.getUserPricing);
 router.post('/:userId/pricing', UserEditController.updateProductPricing);
+router.delete('/:userId/pricing/:productId', UserEditController.deleteProductPricing);
+router.delete('/:userId/pricing', UserEditController.deleteMultipleProductPricing);
 
 // Transaction and payment history endpoints
 router.get('/:userId/transactions', UserEditController.getTransactionHistory);
