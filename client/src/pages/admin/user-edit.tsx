@@ -74,11 +74,14 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
   });
 
   // Fetch all products for pricing management
-  const { data: products = [], isLoading: productsLoading, error: productsError } = useQuery({
+  const { data: productsResponse, isLoading: productsLoading, error: productsError } = useQuery({
     queryKey: ['/api/admin/products'],
     enabled: !!userId,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
+
+  // Extract products from API response
+  const products = Array.isArray(productsResponse?.data) ? productsResponse.data : [];
 
   // Fetch transaction history
   const { data: transactions = [] } = useQuery({
@@ -889,9 +892,9 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
               </div>
               
               <div className="max-h-96 overflow-y-auto">
-                {Array.isArray(allProducts) && allProducts.length > 0 ? (
+                {Array.isArray(products) && products.length > 0 ? (
                   <>
-                    {allProducts
+                    {products
                       .filter((product: any) => {
                         // Filter out products already visible to user
                         const hasCustomPricing = Array.isArray(userPricing) && (userPricing as any[]).some((p: any) => p.productId === product.id && p.isVisible);
@@ -951,7 +954,7 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
                         );
                       })}
                     
-                    {allProducts.filter((product: any) => {
+                    {products.filter((product: any) => {
                       const hasCustomPricing = Array.isArray(userPricing) && (userPricing as any[]).some((p: any) => p.productId === product.id && p.isVisible);
                       const matchesSearch = !searchTerm || 
                         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
