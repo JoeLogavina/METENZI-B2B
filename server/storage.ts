@@ -888,16 +888,27 @@ export class DatabaseStorage implements IStorage {
         )
       );
 
+    // Get stock counts for all products in one query
+    const stockCounts = await Promise.all(
+      userProducts.map(async (item) => {
+        const stock = await this.getProductStock(item.product.id);
+        return { productId: item.product.id, stockCount: stock };
+      })
+    );
+
     // Transform to ProductWithStock format and add custom pricing
-    return userProducts.map(item => ({
-      ...item.product,
-      // Use custom price if available, fallback to B2B price
-      price: item.customPrice?.toString() || item.product.b2bPrice || item.product.price,
-      b2bPrice: item.customPrice?.toString() || item.product.b2bPrice,
-      originalPrice: item.product.price,
-      isCustomPricing: !!item.customPrice,
-      stockCount: 0 // Will be calculated separately if needed
-    }));
+    return userProducts.map(item => {
+      const stockInfo = stockCounts.find(s => s.productId === item.product.id);
+      return {
+        ...item.product,
+        // Use custom price if available, fallback to B2B price
+        price: item.customPrice?.toString() || item.product.b2bPrice || item.product.price,
+        b2bPrice: item.customPrice?.toString() || item.product.b2bPrice,
+        originalPrice: item.product.price,
+        isCustomPricing: !!item.customPrice,
+        stockCount: stockInfo?.stockCount || 0
+      };
+    });
   }
 }
 
