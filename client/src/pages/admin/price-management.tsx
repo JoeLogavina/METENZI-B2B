@@ -102,30 +102,28 @@ export default function PriceManagementPage() {
 
   const updatePriceMutation = useMutation({
     mutationFn: async (data: PriceUpdate) => {
-      console.log('🚀 Sending complete pricing update to backend:', {
-        productId: data.productId,
-        purchasePrice: data.purchasePrice,
-        b2bPrice: data.b2bPrice,
-        retailPrice: data.retailPrice
+      console.log('🎯 MUTATION CALLED WITH DATA:', data);
+      console.log('🔍 Data Types:', {
+        purchasePrice: typeof data.purchasePrice,
+        b2bPrice: typeof data.b2bPrice,
+        retailPrice: typeof data.retailPrice
       });
       
-      const response = await fetch(`/api/admin/products/${data.productId}/pricing`, {
+      // Use apiRequest instead of direct fetch to avoid middleware issues
+      const result = await apiRequest(`/api/admin/products/${data.productId}/pricing`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           purchasePrice: data.purchasePrice,
           b2bPrice: data.b2bPrice,
           retailPrice: data.retailPrice
-        })
+        }),
+        headers: {
+          'Content-Type': 'application/json',
+        }
       });
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      return response.json();
+      console.log('✅ API REQUEST COMPLETED:', result);
+      return result;
     },
     onSuccess: (updatedProduct) => {
       toast({ 
