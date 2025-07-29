@@ -9,10 +9,11 @@ This is a full-stack B2B software license management platform built with React, 
   - **ROOT CAUSE IDENTIFIED**: API response wraps product data in `.data` property, but Edit Product component was accessing properties directly (e.g., `prod.b2bPrice` instead of `prod.data.b2bPrice`)
   - **DATA ACCESS PATTERN FIXED**: Added `const productData = prod.data || prod;` to handle both response formats correctly
   - **DISPLAY PRICE ARCHITECTURE CORRECTED**: Display Price now automatically syncs with B2B Price from Price Management (single source of truth)
-  - **FIELD MAPPING RESOLVED**: Eliminated duplicate pricing fields - Display Price is now read-only and auto-synced with B2B Price (€29.90)
+  - **FIELD MAPPING RESOLVED**: Eliminated duplicate pricing fields - Display Price is now read-only and auto-synced with B2B Price (€49.90)
   - **USER INTERFACE OPTIMIZED**: Display Price field is disabled with clear "Auto-synced from Price Management" label, B2B Price editing redirected to Price Management panel
-  - **ENTERPRISE PRICING AUTHORITY CONFIRMED**: Price Management serves as central pricing control, Edit Product displays those values automatically
-  - **COMPLETE DATA FLOW VERIFIED**: Console logs confirm correct synchronization - `"price":"29.90"` matches B2B price from database
+  - **DATABASE SYNCHRONIZATION FIXED**: Modified pricing update controller to update both `b2bPrice` and `price` fields when B2B price changes, ensuring user-facing display price matches Price Management
+  - **ENTERPRISE PRICING AUTHORITY CONFIRMED**: Price Management serves as central pricing control, Edit Product displays those values automatically, user-facing prices synchronized across all systems
+  - **COMPLETE DATA FLOW VERIFIED**: Console logs confirm correct synchronization - B2B price changes now update both backend pricing fields and user display prices
 - **SHARED LICENSE KEY POOL IMPLEMENTED** (January 28, 2025):
   - **CRITICAL ARCHITECTURE DECISION**: Both EUR and KM tenants now share the same license key inventory pool
   - **INVENTORY ISOLATION REMOVED**: License keys are no longer filtered by tenant, enabling cross-tenant key usage

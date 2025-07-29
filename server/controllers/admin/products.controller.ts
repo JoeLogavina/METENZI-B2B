@@ -214,7 +214,10 @@ export class AdminProductsController {
       }
       if (b2bPrice !== undefined && b2bPrice !== null) {
         updateData.b2bPrice = b2bPrice.toString();
+        // CRITICAL FIX: Update display price to match B2B price
+        updateData.price = b2bPrice.toString();
         console.log('✅ PROCESSING: b2bPrice =', b2bPrice);
+        console.log('🎯 DISPLAY PRICE SYNC: price field updated to match B2B price =', b2bPrice);
       }
       if (retailPrice !== undefined && retailPrice !== null) {
         updateData.retailPrice = retailPrice.toString();
