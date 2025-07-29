@@ -34,7 +34,6 @@ const KMShop = lazy(() => import("@/pages/km-shop"));
 const CartPage = lazy(() => import("@/pages/cart"));
 const CheckoutPage = lazy(() => import("@/pages/checkout"));
 const AdminPanel = lazy(() => import("@/pages/admin-panel"));
-const UserEditPage = lazy(() => import("@/pages/admin/user-edit"));
 const WalletPage = lazy(() => import("@/pages/wallet-page"));
 const OrdersPage = lazy(() => import("@/pages/orders"));
 
@@ -195,11 +194,6 @@ function Router() {
             );
           }} />
 
-          <Route path="/admin/users/edit" component={() => (
-            <Suspense fallback={<AdminLoadingFallback />}>
-              <UserEditPage />
-            </Suspense>
-          )} />
           <Route path="/admin" component={() => <Redirect to="/admin-panel" />} />
           <Route path="/admin-login" component={() => <Redirect to="/admin-panel" />} />
           <Route path="/auth" component={() => <Redirect to="/" />} />
