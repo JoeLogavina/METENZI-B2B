@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -92,7 +92,9 @@ export default function PriceManagementPage() {
     queryKey: ["/api/admin/products"],
   });
 
-  const products = productsRaw?.data || [];
+  const products = useMemo(() => {
+    return productsRaw?.data || [];
+  }, [productsRaw?.data]);
 
   const { data: categories } = useQuery({
     queryKey: ["/api/categories"],
@@ -123,6 +125,20 @@ export default function PriceManagementPage() {
         title: "Central Pricing Authority Updated", 
         description: `Pricing synchronized across Edit Product, EUR Shop, and all platform systems` 
       });
+      // Update local state with the new values to prevent reset
+      setPriceData(prev => {
+        const updated = { ...prev };
+        if (updated[updatedProduct.id]) {
+          updated[updatedProduct.id] = {
+            ...updated[updatedProduct.id],
+            purchasePrice: updatedProduct.purchasePrice,
+            b2bPrice: updatedProduct.b2bPrice,
+            retailPrice: updatedProduct.retailPrice
+          };
+        }
+        return updated;
+      });
+      
       // COMPREHENSIVE PRICE SYNCHRONIZATION - invalidate all pricing-related queries
       queryClient.invalidateQueries({ queryKey: ["/api/admin/products"] });
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
@@ -179,22 +195,29 @@ export default function PriceManagementPage() {
   };
 
   useEffect(() => {
-    if (products && Array.isArray(products)) {
+    if (products && Array.isArray(products) && products.length > 0) {
       const initialData: Record<string, any> = {};
       products.forEach(product => {
-        const margins = calculateMargins(
-          product.purchasePrice,
-          product.b2bPrice,
-          product.retailPrice
-        );
-        initialData[product.id] = {
-          purchasePrice: product.purchasePrice,
-          b2bPrice: product.b2bPrice,
-          retailPrice: product.retailPrice,
-          ...margins
-        };
+        // Only initialize if we don't already have data for this product
+        if (!priceData[product.id]) {
+          const margins = calculateMargins(
+            product.purchasePrice,
+            product.b2bPrice,
+            product.retailPrice
+          );
+          initialData[product.id] = {
+            purchasePrice: product.purchasePrice,
+            b2bPrice: product.b2bPrice,
+            retailPrice: product.retailPrice,
+            ...margins
+          };
+        }
       });
-      setPriceData(initialData);
+      
+      // Only update state if we have new data to add
+      if (Object.keys(initialData).length > 0) {
+        setPriceData(prev => ({ ...prev, ...initialData }));
+      }
     }
   }, [products]);
 
