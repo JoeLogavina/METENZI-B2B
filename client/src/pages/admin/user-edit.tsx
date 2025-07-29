@@ -74,9 +74,10 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
   });
 
   // Fetch all products for pricing management
-  const { data: products = [] } = useQuery({
+  const { data: products = [], isLoading: productsLoading, error: productsError } = useQuery({
     queryKey: ['/api/admin/products'],
-    enabled: !!userId && activeTab === 'products',
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Fetch transaction history
@@ -125,20 +126,37 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
   // Update pricing data when it loads
   useEffect(() => {
     if (Array.isArray(products) && Array.isArray(userPricing)) {
-      const pricingMap = new Map((userPricing as any[]).map((p: any) => [p.productId, p]));
-      setCustomPricing((products as any[]).map((product: any) => ({
+      const productsArray = products as any[];
+      const pricingArray = userPricing as any[];
+      const pricingMap = new Map(pricingArray.map((p: any) => [p.productId, p]));
+      
+      const newCustomPricing = productsArray.map((product: any) => ({
         ...product,
         customPrice: pricingMap.get(product.id)?.customPrice || product.b2bPrice || product.price,
         isVisible: pricingMap.get(product.id)?.isVisible ?? true,
         hasCustomPricing: pricingMap.has(product.id)
-      })));
+      }));
+      
+      // Only update if the data has actually changed
+      setCustomPricing(prev => {
+        if (JSON.stringify(prev) !== JSON.stringify(newCustomPricing)) {
+          return newCustomPricing;
+        }
+        return prev;
+      });
     }
   }, [products, userPricing]);
 
   // Set allProducts when products data is loaded
   useEffect(() => {
     if (Array.isArray(products) && products.length > 0) {
-      setAllProducts(products as any[]);
+      const productsArray = products as any[];
+      setAllProducts(prev => {
+        if (JSON.stringify(prev) !== JSON.stringify(productsArray)) {
+          return productsArray;
+        }
+        return prev;
+      });
     }
   }, [products]);
 
@@ -649,8 +667,8 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
                       </tr>
                     </thead>
                     <tbody>
-                      {products.map((product: any, index: number) => {
-                        const customPriceData = userPricing.find((p: any) => p.productId === product.id);
+                      {(products as any[]).map((product: any, index: number) => {
+                        const customPriceData = (userPricing as any[]).find((p: any) => p.productId === product.id);
                         const isVisible = customPriceData?.isVisible ?? true;
                         const customPrice = customPriceData?.customPrice || product.b2bPrice || product.price;
                         
@@ -753,9 +771,9 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
               <CardTitle className="text-[#6E6F71]">Transaction History</CardTitle>
             </CardHeader>
             <CardContent>
-              {transactions.length > 0 ? (
+              {(transactions as any[]).length > 0 ? (
                 <div className="space-y-2">
-                  {transactions.map((transaction: any) => (
+                  {(transactions as any[]).map((transaction: any) => (
                     <div key={transaction.id} className="flex items-center justify-between p-3 border rounded-lg">
                       <div className="flex-1">
                         <div className="flex items-center space-x-3">
@@ -801,9 +819,9 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
               <CardTitle className="text-[#6E6F71]">Payment History</CardTitle>
             </CardHeader>
             <CardContent>
-              {payments.length > 0 ? (
+              {(payments as any[]).length > 0 ? (
                 <div className="space-y-2">
-                  {payments.map((payment: any) => (
+                  {(payments as any[]).map((payment: any) => (
                     <div key={payment.id} className="flex items-center justify-between p-3 border rounded-lg">
                       <div className="flex-1">
                         <div className="flex items-center space-x-3">
@@ -871,83 +889,97 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
               </div>
               
               <div className="max-h-96 overflow-y-auto">
-                {allProducts
-                  .filter((product: any) => {
-                    // Filter out products already visible to user
-                    const hasCustomPricing = userPricing.some((p: any) => p.productId === product.id && p.isVisible);
-                    
-                    // Filter by search term
-                    const matchesSearch = !searchTerm || 
-                      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                      product.description.toLowerCase().includes(searchTerm.toLowerCase());
-                    
-                    return !hasCustomPricing && matchesSearch;
-                  })
-                  .map((product: any) => {
-                    const isSelected = selectedProducts.has(product.id);
-                    
-                    return (
-                      <div
-                        key={product.id}
-                        className={`p-3 border-b border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors ${
-                          isSelected ? 'bg-blue-50' : ''
-                        }`}
-                        onClick={() => {
-                          const newSelected = new Set(selectedProducts);
-                          if (isSelected) {
-                            newSelected.delete(product.id);
-                          } else {
-                            newSelected.add(product.id);
-                          }
-                          setSelectedProducts(newSelected);
-                        }}
-                      >
-                        <div className="flex items-center space-x-3">
-                          <Checkbox
-                            checked={isSelected}
-                            onChange={() => {}} // Handled by parent div click
-                            className="pointer-events-none"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <h4 className="font-medium text-[#6E6F71] truncate">
-                                  {product.name}
-                                </h4>
-                                <p className="text-sm text-gray-500 truncate max-w-md">
-                                  {product.description}
-                                </p>
-                              </div>
-                              <div className="text-right">
-                                <p className="text-sm font-medium text-[#FFB20F]">
-                                  €{parseFloat(product.b2bPrice || product.price || "0").toFixed(2)}
-                                </p>
-                                <p className="text-xs text-gray-500">B2B Price</p>
+                {Array.isArray(allProducts) && allProducts.length > 0 ? (
+                  <>
+                    {allProducts
+                      .filter((product: any) => {
+                        // Filter out products already visible to user
+                        const hasCustomPricing = Array.isArray(userPricing) && (userPricing as any[]).some((p: any) => p.productId === product.id && p.isVisible);
+                        
+                        // Filter by search term
+                        const matchesSearch = !searchTerm || 
+                          product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          product.description.toLowerCase().includes(searchTerm.toLowerCase());
+                        
+                        return !hasCustomPricing && matchesSearch;
+                      })
+                      .map((product: any) => {
+                        const isSelected = selectedProducts.has(product.id);
+                        
+                        return (
+                          <div
+                            key={product.id}
+                            className={`p-3 border-b border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors ${
+                              isSelected ? 'bg-blue-50' : ''
+                            }`}
+                            onClick={() => {
+                              const newSelected = new Set(selectedProducts);
+                              if (isSelected) {
+                                newSelected.delete(product.id);
+                              } else {
+                                newSelected.add(product.id);
+                              }
+                              setSelectedProducts(newSelected);
+                            }}
+                          >
+                            <div className="flex items-center space-x-3">
+                              <Checkbox
+                                checked={isSelected}
+                                onChange={() => {}} // Handled by parent div click
+                                className="pointer-events-none"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <h4 className="font-medium text-[#6E6F71] truncate">
+                                      {product.name}
+                                    </h4>
+                                    <p className="text-sm text-gray-500 truncate max-w-md">
+                                      {product.description}
+                                    </p>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="text-sm font-medium text-[#FFB20F]">
+                                      €{parseFloat(product.b2bPrice || product.price || "0").toFixed(2)}
+                                    </p>
+                                    <p className="text-xs text-gray-500">B2B Price</p>
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
+                        );
+                      })}
+                    
+                    {allProducts.filter((product: any) => {
+                      const hasCustomPricing = Array.isArray(userPricing) && (userPricing as any[]).some((p: any) => p.productId === product.id && p.isVisible);
+                      const matchesSearch = !searchTerm || 
+                        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        product.description.toLowerCase().includes(searchTerm.toLowerCase());
+                      return !hasCustomPricing && matchesSearch;
+                    }).length === 0 && (
+                      <div className="p-6 text-center">
+                        <Package className="mx-auto h-12 w-12 text-gray-400" />
+                        <h3 className="mt-2 text-sm font-medium text-gray-900">
+                          {searchTerm ? 'No matching products found' : 'No available products'}
+                        </h3>
+                        <p className="mt-1 text-sm text-gray-500">
+                        {searchTerm 
+                          ? 'Try adjusting your search terms.' 
+                          : 'All products are already visible to this user.'
+                        }
+                        </p>
                       </div>
-                    );
-                  })}
-                
-                {allProducts.filter((product: any) => {
-                  const hasCustomPricing = userPricing.some((p: any) => p.productId === product.id && p.isVisible);
-                  const matchesSearch = !searchTerm || 
-                    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    product.description.toLowerCase().includes(searchTerm.toLowerCase());
-                  return !hasCustomPricing && matchesSearch;
-                }).length === 0 && (
+                    )}
+                  </>
+                ) : (
                   <div className="p-6 text-center">
                     <Package className="mx-auto h-12 w-12 text-gray-400" />
                     <h3 className="mt-2 text-sm font-medium text-gray-900">
-                      {searchTerm ? 'No matching products found' : 'No available products'}
+                      No available products
                     </h3>
                     <p className="mt-1 text-sm text-gray-500">
-                      {searchTerm 
-                        ? 'Try adjusting your search terms.' 
-                        : 'All products are already visible to this user.'
-                      }
+                      Loading products or no products found.
                     </p>
                   </div>
                 )}
