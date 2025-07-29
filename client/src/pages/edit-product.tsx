@@ -86,9 +86,11 @@ export default function EditProduct() {
 
   // Update form data when product loads
   useEffect(() => {
+    console.log('🔍 useEffect triggered - product:', !!product, 'type:', typeof product);
     if (product && typeof product === 'object') {
       const prod = product as any;
       console.log('Loading product data for edit:', prod);
+      console.log('🔍 Setting EUR pricing with b2bPrice:', prod.b2bPrice);
       
       setFormData({
         name: prod.name || '',
@@ -100,16 +102,22 @@ export default function EditProduct() {
         isActive: prod.isActive ?? true
       });
 
-      console.log('🔍 Setting EUR pricing with b2bPrice:', prod.b2bPrice);
       const newEurPricing = {
         price: prod.price || '',
         purchasePrice: prod.purchasePrice || '',
         b2bPrice: prod.b2bPrice || '',
         retailPrice: prod.retailPrice || '',
-        stock: prod.stock?.toString() || ''
+        stock: prod.stockCount?.toString() || ''
       };
       console.log('🔍 New EUR pricing state:', newEurPricing);
-      setEurPricing(newEurPricing);
+      console.log('🔍 About to call setEurPricing with b2bPrice:', newEurPricing.b2bPrice);
+      
+      // Force state update with direct object spread to ensure reactivity
+      setEurPricing(prev => {
+        console.log('🔍 Previous EUR pricing state:', prev);
+        console.log('🔍 New EUR pricing state being set:', newEurPricing);
+        return { ...newEurPricing };
+      });
 
       setKmPricing({
         priceKm: prod.priceKm || '',
