@@ -183,15 +183,30 @@ export class AdminProductsController {
       const { id } = productParamsSchema.parse(req.params);
       const { purchasePrice, b2bPrice, retailPrice } = req.body;
 
-      // CENTRAL PRICING AUTHORITY: These changes sync across all systems
+      console.log('🏛️ CENTRAL PRICING AUTHORITY - Received Request:', {
+        productId: id,
+        body: req.body,
+        timestamp: new Date().toISOString()
+      });
+
+      // CRITICAL: Build complete update data with all pricing fields
       const updateData: any = {};
-      if (purchasePrice !== undefined) updateData.purchasePrice = purchasePrice.toString();
-      if (b2bPrice !== undefined) updateData.b2bPrice = b2bPrice.toString();
-      if (retailPrice !== undefined) updateData.retailPrice = retailPrice.toString();
+      
+      // Always update all three pricing fields to ensure complete synchronization
+      if (purchasePrice !== undefined && purchasePrice !== null) {
+        updateData.purchasePrice = purchasePrice.toString();
+      }
+      if (b2bPrice !== undefined && b2bPrice !== null) {
+        updateData.b2bPrice = b2bPrice.toString();
+      }
+      if (retailPrice !== undefined && retailPrice !== null) {
+        updateData.retailPrice = retailPrice.toString();
+      }
 
       console.log('🏛️ CENTRAL PRICING AUTHORITY UPDATE:', {
         productId: id,
         changes: updateData,
+        fieldsReceived: Object.keys(req.body),
         timestamp: new Date().toISOString()
       });
 
