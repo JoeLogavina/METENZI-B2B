@@ -11,7 +11,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, User, CreditCard, Package, History, Plus, Minus, Save, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, User, CreditCard, Package, History, Plus, Minus, Save, Eye, EyeOff, Search, X } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { formatAdminPrice } from "@/lib/currency-utils";
 
 interface UserEditProps {
@@ -48,6 +50,10 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
   // Product pricing state
   const [customPricing, setCustomPricing] = useState<any[]>([]);
   const [allProducts, setAllProducts] = useState<any[]>([]);
+  const [productPrices, setProductPrices] = useState<{[key: string]: string}>({});
+  const [showAddProductModal, setShowAddProductModal] = useState(false);
+  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Fetch user data
   const { data: userData, isLoading: userLoading } = useQuery({
@@ -87,36 +93,40 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
 
   // Update profile data when user data loads
   useEffect(() => {
-    if (userData) {
+    if (userData && typeof userData === 'object') {
+      const user = userData as any;
       setProfileData({
-        firstName: userData.firstName || '',
-        lastName: userData.lastName || '',
-        email: userData.email || '',
-        companyName: userData.companyName || '',
-        contactPerson: userData.contactPerson || '',
-        companyDescription: userData.companyDescription || '',
-        phone: userData.phone || '',
-        country: userData.country || '',
-        city: userData.city || '',
-        address: userData.address || '',
-        vatOrRegistrationNo: userData.vatOrRegistrationNo || '',
-        isActive: userData.isActive ?? true
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        email: user.email || '',
+        companyName: user.companyName || '',
+        contactPerson: user.contactPerson || '',
+        companyDescription: user.companyDescription || '',
+        phone: user.phone || '',
+        country: user.country || '',
+        city: user.city || '',
+        address: user.address || '',
+        vatOrRegistrationNo: user.vatOrRegistrationNo || '',
+        isActive: user.isActive ?? true
       });
     }
   }, [userData]);
 
   // Update wallet form when wallet data loads
   useEffect(() => {
-    if (walletData?.data) {
-      setCreditLimit(walletData.data.creditLimit || '0.00');
+    if (walletData && typeof walletData === 'object') {
+      const wallet = walletData as any;
+      if (wallet.data) {
+        setCreditLimit(wallet.data.creditLimit || '0.00');
+      }
     }
   }, [walletData]);
 
   // Update pricing data when it loads
   useEffect(() => {
-    if (products.length && userPricing.length) {
-      const pricingMap = new Map(userPricing.map((p: any) => [p.productId, p]));
-      setCustomPricing(products.map((product: any) => ({
+    if (Array.isArray(products) && Array.isArray(userPricing)) {
+      const pricingMap = new Map((userPricing as any[]).map((p: any) => [p.productId, p]));
+      setCustomPricing((products as any[]).map((product: any) => ({
         ...product,
         customPrice: pricingMap.get(product.id)?.customPrice || product.b2bPrice || product.price,
         isVisible: pricingMap.get(product.id)?.isVisible ?? true,
@@ -124,6 +134,13 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
       })));
     }
   }, [products, userPricing]);
+
+  // Set allProducts when products data is loaded
+  useEffect(() => {
+    if (Array.isArray(products) && products.length > 0) {
+      setAllProducts(products as any[]);
+    }
+  }, [products]);
 
   // Profile update mutation
   const updateProfileMutation = useMutation({
@@ -258,6 +275,47 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
       productId,
       customPrice: parseFloat(customPrice),
       isVisible
+    });
+  };
+
+  // Handle adding selected products to user
+  const handleAddSelectedProducts = () => {
+    if (selectedProducts.size === 0) {
+      toast({
+        title: "No Products Selected",
+        description: "Please select at least one product to add.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Add products with default pricing and visibility
+    const promises = Array.from(selectedProducts).map(productId => {
+      const product = allProducts.find((p: any) => p.id === productId);
+      const defaultPrice = parseFloat(product?.b2bPrice || product?.price || "0").toString();
+      
+      return updatePricingMutation.mutateAsync({
+        productId,
+        customPrice: parseFloat(defaultPrice),
+        isVisible: true
+      });
+    });
+
+    Promise.all(promises).then(() => {
+      setSelectedProducts(new Set());
+      setShowAddProductModal(false);
+      refetchPricing();
+      toast({
+        title: "Products Added",
+        description: `${selectedProducts.size} products added successfully`,
+        variant: "default"
+      });
+    }).catch((error) => {
+      toast({
+        title: "Error",
+        description: "Failed to add some products. Please try again.",
+        variant: "destructive"
+      });
     });
   };
 
@@ -564,61 +622,124 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
         {/* Company Products */}
         <TabsContent value="products" className="space-y-6">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-[#6E6F71]">Product Pricing & Visibility</CardTitle>
+              <Button
+                onClick={() => setShowAddProductModal(true)}
+                className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white"
+                size="sm"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Product
+              </Button>
             </CardHeader>
             <CardContent>
-              {customPricing.length > 0 ? (
-                <div className="space-y-2">
-                  {customPricing.map((product: any) => (
-                    <div key={product.id} className="flex items-center space-x-4 p-3 border rounded-lg">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-[#6E6F71] truncate">{product.name}</p>
-                        <p className="text-sm text-gray-500">Default: €{product.b2bPrice || product.price}</p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={product.customPrice}
-                          onChange={(e) => {
-                            const newPricing = customPricing.map(p => 
-                              p.id === product.id ? { ...p, customPrice: e.target.value } : p
-                            );
-                            setCustomPricing(newPricing);
-                          }}
-                          className="w-24"
-                        />
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            const newPricing = customPricing.map(p => 
-                              p.id === product.id ? { ...p, isVisible: !p.isVisible } : p
-                            );
-                            setCustomPricing(newPricing);
-                          }}
-                          className={product.isVisible ? "text-green-600" : "text-red-600"}
-                        >
-                          {product.isVisible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => handlePricingUpdate(product.id, product.customPrice, product.isVisible)}
-                          disabled={updatePricingMutation.isPending}
-                          className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white"
-                        >
-                          Save
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+              {products.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse border border-gray-300">
+                    <thead>
+                      <tr className="bg-[#6E6F71] text-white">
+                        <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium">#</th>
+                        <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium">Product Name</th>
+                        <th className="border border-gray-300 px-3 py-2 text-center text-sm font-medium">Purchase</th>
+                        <th className="border border-gray-300 px-3 py-2 text-center text-sm font-medium">B2B Price</th>
+                        <th className="border border-gray-300 px-3 py-2 text-center text-sm font-medium">Retail Price</th>
+                        <th className="border border-gray-300 px-3 py-2 text-center text-sm font-medium">Visible</th>
+                        <th className="border border-gray-300 px-3 py-2 text-center text-sm font-medium">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {products.map((product: any, index: number) => {
+                        const customPriceData = userPricing.find((p: any) => p.productId === product.id);
+                        const isVisible = customPriceData?.isVisible ?? true;
+                        const customPrice = customPriceData?.customPrice || product.b2bPrice || product.price;
+                        
+                        return (
+                          <tr key={product.id} className="hover:bg-gray-50">
+                            <td className="border border-gray-300 px-3 py-2 text-sm text-center font-medium">
+                              {index + 1}
+                            </td>
+                            <td className="border border-gray-300 px-3 py-2">
+                              <div className="max-w-xs">
+                                <div className="text-sm font-medium text-[#6E6F71] truncate">{product.name}</div>
+                                <div className="text-xs text-gray-500 truncate">
+                                  {product.description}
+                                </div>
+                              </div>
+                            </td>
+                            <td className="border border-gray-300 px-3 py-2 text-center">
+                              <span className="text-sm font-medium">
+                                €{parseFloat(product.purchasePrice || "0").toFixed(2)}
+                              </span>
+                            </td>
+                            <td className="border border-gray-300 px-3 py-2 text-center">
+                              <Input
+                                type="number"
+                                step="0.01"
+                                value={productPrices[product.id] || customPrice}
+                                onChange={(e) => {
+                                  setProductPrices(prev => ({
+                                    ...prev,
+                                    [product.id]: e.target.value
+                                  }));
+                                }}
+                                data-product={product.id}
+                                className="w-20 text-sm text-center border-[#FFB20F] focus:border-[#FFB20F] focus:ring-[#FFB20F]"
+                              />
+                            </td>
+                            <td className="border border-gray-300 px-3 py-2 text-center">
+                              <span className="text-sm font-medium">
+                                €{parseFloat(product.retailerPrice || product.price || "0").toFixed(2)}
+                              </span>
+                            </td>
+                            <td className="border border-gray-300 px-3 py-2 text-center">
+                              <button
+                                onClick={() => {
+                                  const newVisibility = !isVisible;
+                                  updatePricingMutation.mutate({
+                                    productId: product.id,
+                                    customPrice: parseFloat(customPrice),
+                                    isVisible: newVisibility
+                                  });
+                                }}
+                                className={`p-2 rounded-full transition-colors ${
+                                  isVisible 
+                                    ? 'bg-green-100 text-green-600 hover:bg-green-200' 
+                                    : 'bg-red-100 text-red-600 hover:bg-red-200'
+                                }`}
+                              >
+                                {isVisible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                              </button>
+                            </td>
+                            <td className="border border-gray-300 px-3 py-2 text-center">
+                              <Button
+                                size="sm"
+                                onClick={() => {
+                                  const newPrice = productPrices[product.id] || customPrice;
+                                  updatePricingMutation.mutate({
+                                    productId: product.id,
+                                    customPrice: parseFloat(newPrice),
+                                    isVisible: isVisible
+                                  });
+                                }}
+                                className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white px-3 py-1 text-xs h-7"
+                                disabled={updatePricingMutation.isPending}
+                              >
+                                Save
+                              </Button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <Package className="mx-auto h-12 w-12 text-gray-400" />
-                  <h3 className="mt-2 text-sm font-medium text-[#6E6F71]">No products found</h3>
-                  <p className="mt-1 text-sm text-gray-500">Products will appear here when available.</p>
+                <div className="text-center py-12">
+                  <Package className="mx-auto h-16 w-16 text-gray-400" />
+                  <h3 className="mt-4 text-lg font-medium text-[#6E6F71]">No products found</h3>
+                  <p className="mt-2 text-sm text-gray-500">Products will appear here when available.</p>
+                  <p className="mt-1 text-xs text-gray-400">Add products to allow this user to see them in the B2B shop.</p>
                 </div>
               )}
             </CardContent>
@@ -715,6 +836,164 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Add Product Modal */}
+      <Dialog open={showAddProductModal} onOpenChange={setShowAddProductModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-[#6E6F71]">Add Products to User</DialogTitle>
+            <DialogDescription>
+              Select products to make them visible to this user in their B2B shop.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Search Bar */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input
+                placeholder="Search products..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            {/* Products List */}
+            <div className="border rounded-lg">
+              <div className="bg-[#6E6F71] text-white p-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">Available Products</span>
+                  <span className="text-sm">
+                    {selectedProducts.size} selected
+                  </span>
+                </div>
+              </div>
+              
+              <div className="max-h-96 overflow-y-auto">
+                {allProducts
+                  .filter((product: any) => {
+                    // Filter out products already visible to user
+                    const hasCustomPricing = userPricing.some((p: any) => p.productId === product.id && p.isVisible);
+                    
+                    // Filter by search term
+                    const matchesSearch = !searchTerm || 
+                      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      product.description.toLowerCase().includes(searchTerm.toLowerCase());
+                    
+                    return !hasCustomPricing && matchesSearch;
+                  })
+                  .map((product: any) => {
+                    const isSelected = selectedProducts.has(product.id);
+                    
+                    return (
+                      <div
+                        key={product.id}
+                        className={`p-3 border-b border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors ${
+                          isSelected ? 'bg-blue-50' : ''
+                        }`}
+                        onClick={() => {
+                          const newSelected = new Set(selectedProducts);
+                          if (isSelected) {
+                            newSelected.delete(product.id);
+                          } else {
+                            newSelected.add(product.id);
+                          }
+                          setSelectedProducts(newSelected);
+                        }}
+                      >
+                        <div className="flex items-center space-x-3">
+                          <Checkbox
+                            checked={isSelected}
+                            onChange={() => {}} // Handled by parent div click
+                            className="pointer-events-none"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <h4 className="font-medium text-[#6E6F71] truncate">
+                                  {product.name}
+                                </h4>
+                                <p className="text-sm text-gray-500 truncate max-w-md">
+                                  {product.description}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-sm font-medium text-[#FFB20F]">
+                                  €{parseFloat(product.b2bPrice || product.price || "0").toFixed(2)}
+                                </p>
+                                <p className="text-xs text-gray-500">B2B Price</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                
+                {allProducts.filter((product: any) => {
+                  const hasCustomPricing = userPricing.some((p: any) => p.productId === product.id && p.isVisible);
+                  const matchesSearch = !searchTerm || 
+                    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    product.description.toLowerCase().includes(searchTerm.toLowerCase());
+                  return !hasCustomPricing && matchesSearch;
+                }).length === 0 && (
+                  <div className="p-6 text-center">
+                    <Package className="mx-auto h-12 w-12 text-gray-400" />
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">
+                      {searchTerm ? 'No matching products found' : 'No available products'}
+                    </h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                      {searchTerm 
+                        ? 'Try adjusting your search terms.' 
+                        : 'All products are already visible to this user.'
+                      }
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center justify-between pt-4 border-t">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowAddProductModal(false);
+                  setSelectedProducts(new Set());
+                  setSearchTerm('');
+                }}
+              >
+                <X className="w-4 h-4 mr-2" />
+                Cancel
+              </Button>
+              
+              <div className="flex items-center space-x-3">
+                <span className="text-sm text-gray-500">
+                  {selectedProducts.size} products selected
+                </span>
+                <Button
+                  onClick={handleAddSelectedProducts}
+                  disabled={selectedProducts.size === 0 || updatePricingMutation.isPending}
+                  className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white"
+                >
+                  {updatePricingMutation.isPending ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Adding...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Products ({selectedProducts.size})
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
