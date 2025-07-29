@@ -655,7 +655,7 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
               </Button>
             </CardHeader>
             <CardContent>
-              {products.length > 0 ? (
+              {Array.isArray(userPricing) && userPricing.length > 0 ? (
                 <div className="overflow-x-auto">
                   <table className="w-full border-collapse border border-gray-300">
                     <thead>
@@ -670,10 +670,12 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
                       </tr>
                     </thead>
                     <tbody>
-                      {(products as any[]).map((product: any, index: number) => {
-                        const customPriceData = (userPricing as any[]).find((p: any) => p.productId === product.id);
-                        const isVisible = customPriceData?.isVisible ?? true;
-                        const customPrice = customPriceData?.customPrice || product.b2bPrice || product.price;
+                      {(userPricing as any[]).map((pricingData: any, index: number) => {
+                        const product = (products as any[]).find((p: any) => p.id === pricingData.productId);
+                        if (!product) return null;
+                        
+                        const isVisible = pricingData.isVisible ?? true;
+                        const customPrice = pricingData.customPrice || product.b2bPrice || product.price;
                         
                         return (
                           <tr key={product.id} className="hover:bg-gray-50">
@@ -758,9 +760,9 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
               ) : (
                 <div className="text-center py-12">
                   <Package className="mx-auto h-16 w-16 text-gray-400" />
-                  <h3 className="mt-4 text-lg font-medium text-[#6E6F71]">No products found</h3>
-                  <p className="mt-2 text-sm text-gray-500">Products will appear here when available.</p>
-                  <p className="mt-1 text-xs text-gray-400">Add products to allow this user to see them in the B2B shop.</p>
+                  <h3 className="mt-4 text-lg font-medium text-[#6E6F71]">No products added yet</h3>
+                  <p className="mt-2 text-sm text-gray-500">This user has no visible products in their B2B shop.</p>
+                  <p className="mt-1 text-xs text-gray-400">Click "Add Product" to make products visible to this user.</p>
                 </div>
               )}
             </CardContent>
