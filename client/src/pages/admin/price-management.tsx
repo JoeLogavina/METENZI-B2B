@@ -128,12 +128,12 @@ export default function PriceManagementPage() {
       // Update local state with the new values to prevent reset
       setPriceData(prev => {
         const updated = { ...prev };
-        if (updated[updatedProduct.id]) {
-          updated[updatedProduct.id] = {
-            ...updated[updatedProduct.id],
-            purchasePrice: updatedProduct.purchasePrice,
-            b2bPrice: updatedProduct.b2bPrice,
-            retailPrice: updatedProduct.retailPrice
+        if (updated[updatedProduct.data.id]) {
+          updated[updatedProduct.data.id] = {
+            ...updated[updatedProduct.data.id],
+            purchasePrice: updatedProduct.data.purchasePrice,
+            b2bPrice: updatedProduct.data.b2bPrice,
+            retailPrice: updatedProduct.data.retailPrice
           };
         }
         return updated;
@@ -143,9 +143,9 @@ export default function PriceManagementPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/products"] });
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
       queryClient.invalidateQueries({ queryKey: ["/api/retail/product-offers"] });
-      queryClient.invalidateQueries({ queryKey: [`/api/admin/products/${updatedProduct.id}`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/products/${updatedProduct.id}`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/retail/product-offers/${updatedProduct.id}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/products/${updatedProduct.data.id}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/products/${updatedProduct.data.id}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/retail/product-offers/${updatedProduct.data.id}`] });
       // Invalidate shop and admin panel caches
       queryClient.invalidateQueries({ queryKey: ["/api/retail/products"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/license-keys"] });
@@ -264,12 +264,17 @@ export default function PriceManagementPage() {
   const handleSave = (product: Product) => {
     const data = priceData[product.id];
     if (data) {
-      updatePriceMutation.mutate({
+      // CRITICAL: Always send ALL pricing fields to ensure complete synchronization
+      const pricingUpdate = {
         productId: product.id,
-        purchasePrice: parseFloat(data.purchasePrice),
-        b2bPrice: parseFloat(data.b2bPrice),
-        retailPrice: parseFloat(data.retailPrice)
-      });
+        purchasePrice: parseFloat(data.purchasePrice || '0'),
+        b2bPrice: parseFloat(data.b2bPrice || '0'),
+        retailPrice: parseFloat(data.retailPrice || '0')
+      };
+      
+      console.log('🏛️ CENTRAL PRICING AUTHORITY - Single Product Update:', pricingUpdate);
+      
+      updatePriceMutation.mutate(pricingUpdate);
     }
   };
 
