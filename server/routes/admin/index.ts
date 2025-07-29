@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { adminProductsRouter } from './products.routes';
 import { adminUsersRouter } from './users.routes';
+import { userEditRouter } from './user-edit.routes';
 import licenseKeysRoutes from './license-keys.routes';
 import walletRoutes from './wallet.routes';
 import { authenticate, requireRole, rateLimit } from '../../middleware/auth.middleware';
@@ -38,7 +39,7 @@ router.get('/dashboard', async (req, res) => {
 
 // Mount sub-routers
 router.use('/products', adminProductsRouter);
-router.use('/users', adminUsersRouter);
+router.use('/users', adminUsersRouter, userEditRouter);
 router.use('/license-keys', licenseKeysRoutes);
 router.use('/wallets', walletRoutes);
 

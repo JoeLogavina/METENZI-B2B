@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
@@ -25,12 +26,16 @@ import {
   Edit,
   Trash2,
   Wallet,
-  DollarSign
+  DollarSign,
+  CreditCard,
+  History
 } from "lucide-react";
 import WalletManagement from "@/components/wallet-management";
 import UserForm from "@/components/user-form";
 import PriceManagementPage from "@/pages/admin/price-management";
 import { formatAdminPrice, convertEurToKm } from "@/lib/currency-utils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 
 interface DashboardStats {
   totalUsers: number;
@@ -43,6 +48,7 @@ export default function AdminPanel() {
   const { user, isLoading, isAuthenticated, logout, isLoggingOut } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
   
   // Check if we're on the edit product page
   const urlParams = new URLSearchParams(window.location.search);
@@ -57,7 +63,7 @@ export default function AdminPanel() {
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [showUserForm, setShowUserForm] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
-  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
   
   // Edit product states
   const [editProductFormData, setEditProductFormData] = useState({
@@ -496,11 +502,16 @@ export default function AdminPanel() {
                                       </div>
                                     </div>
                                     <div className="ml-4">
-                                      <div 
-                                        className="text-sm font-medium text-[#6E6F71] cursor-pointer hover:text-[#FFB20F] hover:underline"
-                                        onClick={() => setEditingUserId(userData.id)}
-                                      >
-                                        {userData.firstName} {userData.lastName}
+                                      <div className="text-sm font-medium text-[#6E6F71]">
+                                        <button
+                                          onClick={() => {
+                                            console.log('User clicked:', userData);
+                                            setSelectedUser(userData);
+                                          }}
+                                          className="text-[#FFB20F] hover:text-[#e6a00e] underline cursor-pointer"
+                                        >
+                                          {userData.firstName} {userData.lastName}
+                                        </button>
                                       </div>
                                       <div className="text-sm text-gray-500">@{userData.username}</div>
                                     </div>
@@ -585,18 +596,6 @@ export default function AdminPanel() {
                   </div>
                 </div>
               </div>
-            )}
-
-            {/* Integrated User Editing Section */}
-            {editingUserId && (
-              <UserEditingSection 
-                userId={editingUserId}
-                onClose={() => setEditingUserId(null)}
-                onUserUpdated={() => {
-                  queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
-                  queryClient.invalidateQueries({ queryKey: ['/api/admin/wallets'] });
-                }}
-              />
             )}
 
             {activeSection === 'price-management' && (
@@ -2330,541 +2329,440 @@ XYZ12-ABC34-DEF56-GHI78-JKL90
           </DialogContent>
         </Dialog>
       )}
+      
+      {/* Integrated User Editing Modal */}
+      {selectedUser && (
+        <>
+          {console.log('Rendering modal for user:', selectedUser)}
+          <UserEditModal 
+            user={selectedUser} 
+            onClose={() => setSelectedUser(null)} 
+          />
+        </>
+      )}
     </div>
   );
 }
 
-// Comprehensive User Editing Component
-function UserEditingSection({ userId, onClose, onUserUpdated }: { 
-  userId: string; 
-  onClose: () => void; 
-  onUserUpdated: () => void;
-}) {
+// Integrated User Edit Modal Component
+function UserEditModal({ user, onClose }: { user: any; onClose: () => void }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('profile');
-  const [userFormData, setUserFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    companyName: '',
-    contactPerson: '',
-    companyDescription: '',
-    phone: '',
-    country: '',
-    city: '',
-    address: '',
-    vatOrRegistrationNo: ''
-  });
-  const [creditFormData, setCreditFormData] = useState({
-    depositAmount: '',
-    creditLimit: ''
+  const [formData, setFormData] = useState<any>({});
+  const [newDeposit, setNewDeposit] = useState('');
+  const [newCreditLimit, setNewCreditLimit] = useState('');
+
+  // Fetch user data
+  const { data: userData, isLoading: userLoading } = useQuery({
+    queryKey: ['/api/admin/users', user.id],
+    queryFn: async () => {
+      const response = await fetch(`/api/admin/users/${user.id}`, {
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to fetch user');
+      return response.json();
+    },
+    enabled: !!user.id,
   });
 
-  // Fetch user details
-  const { data: userDetails, isLoading: userLoading } = useQuery({
-    queryKey: ['/api/admin/users', userId],
-    queryFn: () => apiRequest(`/api/admin/users/${userId}`),
-    enabled: !!userId,
+  // Fetch user's wallet data
+  const { data: walletData } = useQuery({
+    queryKey: ['/api/admin/users', user.id, 'wallet'],
+    queryFn: async () => {
+      const response = await fetch(`/api/admin/users/${user.id}/wallet`, {
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to fetch wallet');
+      return response.json();
+    },
+    enabled: !!user.id,
   });
 
-  // Fetch user orders for transactions and payments
-  const { data: userOrders } = useQuery({
-    queryKey: ['/api/admin/users', userId, 'orders'],
-    queryFn: () => apiRequest(`/api/admin/users/${userId}/orders`),
-    enabled: !!userId,
+  // Fetch all products for custom pricing tab
+  const { data: productsData } = useQuery({
+    queryKey: ['/api/admin/products'],
+    queryFn: async () => {
+      const response = await fetch('/api/admin/products', {
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to fetch products');
+      return response.json();
+    },
   });
 
-  // Fetch user wallet transactions
-  const { data: userTransactions } = useQuery({
-    queryKey: ['/api/admin/users', userId, 'transactions'],
-    queryFn: () => apiRequest(`/api/admin/users/${userId}/transactions`),
-    enabled: !!userId,
+  // Fetch user's custom pricing
+  const { data: userPricingData } = useQuery({
+    queryKey: ['/api/admin/users', user.id, 'pricing'],
+    queryFn: async () => {
+      const response = await fetch(`/api/admin/users/${user.id}/pricing`, {
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to fetch pricing');
+      return response.json();
+    },
+    enabled: !!user.id,
   });
 
-  // Fetch user wallet data
-  const { data: userWallet } = useQuery({
-    queryKey: ['/api/admin/users', userId, 'wallet'],
-    queryFn: () => apiRequest(`/api/admin/users/${userId}/wallet`),
-    enabled: !!userId,
+  // Fetch user's transactions
+  const { data: transactionsData } = useQuery({
+    queryKey: ['/api/admin/users', user.id, 'transactions'],
+    queryFn: async () => {
+      const response = await fetch(`/api/admin/users/${user.id}/transactions`, {
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to fetch transactions');
+      return response.json();
+    },
+    enabled: !!user.id,
   });
 
-  // Load user data into form when fetched
+  // Initialize form data when user data loads
   useEffect(() => {
-    if (userDetails?.data) {
-      const user = userDetails.data;
-      setUserFormData({
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        email: user.email || '',
-        companyName: user.companyName || '',
-        contactPerson: user.contactPerson || '',
-        companyDescription: user.companyDescription || '',
-        phone: user.phone || '',
-        country: user.country || '',
-        city: user.city || '',
-        address: user.address || '',
-        vatOrRegistrationNo: user.vatOrRegistrationNo || ''
-      });
+    if (userData?.data) {
+      setFormData(userData.data);
+      setNewCreditLimit(userData.data.creditLimit?.toString() || '0');
     }
-  }, [userDetails]);
+  }, [userData]);
 
-  // Update user profile mutation
-  const updateUserMutation = useMutation({
-    mutationFn: (data: any) => apiRequest(`/api/admin/users/${userId}`, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-      headers: { 'Content-Type': 'application/json' }
-    }),
+  // Add deposit mutation
+  const addDepositMutation = useMutation({
+    mutationFn: async ({ amount }: { amount: number }) => {
+      const response = await apiRequest(`/api/admin/users/${user.id}/deposit`, {
+        method: 'POST',
+        body: { amount },
+      });
+      return response;
+    },
     onSuccess: () => {
-      toast({ title: "Success", description: "User profile updated successfully" });
-      onUserUpdated();
+      toast({
+        title: "Success",
+        description: "Deposit added successfully",
+      });
+      setNewDeposit('');
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users', user.id, 'wallet'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users', user.id, 'transactions'] });
     },
     onError: (error: any) => {
-      toast({ 
-        title: "Error", 
-        description: error.message || "Failed to update user profile",
-        variant: "destructive" 
-      });
-    }
-  });
-
-  // Deposit funds mutation
-  const depositFundsMutation = useMutation({
-    mutationFn: (amount: number) => apiRequest(`/api/admin/users/${userId}/deposit`, {
-      method: 'POST',
-      body: JSON.stringify({ amount }),
-      headers: { 'Content-Type': 'application/json' }
-    }),
-    onSuccess: () => {
-      toast({ title: "Success", description: "Deposit added successfully" });
-      setCreditFormData({ ...creditFormData, depositAmount: '' });
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/users', userId, 'wallet'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/users', userId, 'transactions'] });
-    },
-    onError: (error: any) => {
-      toast({ 
-        title: "Error", 
+      toast({
+        title: "Error",
         description: error.message || "Failed to add deposit",
-        variant: "destructive" 
+        variant: "destructive",
       });
-    }
+    },
   });
 
-  // Update credit limit mutation  
+  // Update credit limit mutation
   const updateCreditMutation = useMutation({
-    mutationFn: (creditLimit: number) => apiRequest(`/api/admin/users/${userId}/credit-limit`, {
-      method: 'PATCH',
-      body: JSON.stringify({ creditLimit }),
-      headers: { 'Content-Type': 'application/json' }
-    }),
+    mutationFn: async ({ creditLimit }: { creditLimit: number }) => {
+      const response = await apiRequest(`/api/admin/users/${user.id}/credit-limit`, {
+        method: 'PUT',
+        body: { creditLimit },
+      });
+      return response;
+    },
     onSuccess: () => {
-      toast({ title: "Success", description: "Credit limit updated successfully" });
-      setCreditFormData({ ...creditFormData, creditLimit: '' });
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/users', userId, 'wallet'] });
+      toast({
+        title: "Success",
+        description: "Credit limit updated successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users', user.id, 'wallet'] });
     },
     onError: (error: any) => {
-      toast({ 
-        title: "Error", 
+      toast({
+        title: "Error",
         description: error.message || "Failed to update credit limit",
-        variant: "destructive" 
+        variant: "destructive",
       });
-    }
+    },
   });
 
-  const handleSaveProfile = () => {
-    updateUserMutation.mutate(userFormData);
-  };
-
-  const handleDeposit = () => {
-    const amount = parseFloat(creditFormData.depositAmount);
-    if (amount > 0) {
-      depositFundsMutation.mutate(amount);
+  const handleAddDeposit = () => {
+    const amount = parseFloat(newDeposit);
+    if (!amount || amount <= 0) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid deposit amount",
+        variant: "destructive",
+      });
+      return;
     }
+    addDepositMutation.mutate({ amount });
   };
 
-  const handleUpdateCredit = () => {
-    const creditLimit = parseFloat(creditFormData.creditLimit);
-    if (creditLimit >= 0) {
-      updateCreditMutation.mutate(creditLimit);
+  const handleUpdateCreditLimit = () => {
+    const creditLimit = parseFloat(newCreditLimit);
+    if (creditLimit < 0) {
+      toast({
+        title: "Error",
+        description: "Credit limit cannot be negative",
+        variant: "destructive",
+      });
+      return;
     }
+    updateCreditMutation.mutate({ creditLimit });
   };
-
-  if (userLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-[#6E6F71] uppercase tracking-[0.5px]">Loading User...</h3>
-          <Button onClick={onClose} variant="outline" className="px-6">BACK</Button>
-        </div>
-        <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB20F]"></div>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="space-y-6">
-      {/* Header with Back Button */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold text-[#6E6F71] uppercase tracking-[0.5px]">
-            EDIT USER: {userDetails?.data?.firstName} {userDetails?.data?.lastName}
-          </h3>
-          <p className="text-[#6E6F71]">@{userDetails?.data?.username}</p>
-        </div>
-        <Button onClick={onClose} variant="outline" className="px-6">
-          BACK TO USERS
-        </Button>
-      </div>
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-[#6E6F71] text-xl uppercase tracking-[0.5px] flex items-center justify-between">
+            <span>EDIT USER: {user.firstName} {user.lastName}</span>
+            <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+              @{user.username} • {user.email}
+            </Badge>
+          </DialogTitle>
+        </DialogHeader>
 
-      {/* Tab Navigation */}
-      <div className="bg-white rounded-lg border border-gray-200">
-        <div className="border-b border-gray-200">
-          <nav className="flex space-x-8 px-6">
-            {[
-              { id: 'profile', label: 'Profile & Credit' },
-              { id: 'products', label: 'Company Products' },
-              { id: 'transactions', label: 'Transaction History' },
-              { id: 'payments', label: 'Payment History' }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`py-4 px-1 border-b-2 font-medium text-sm uppercase tracking-[0.5px] ${
-                  activeTab === tab.id
-                    ? 'border-[#FFB20F] text-[#FFB20F]'
-                    : 'border-transparent text-[#6E6F71] hover:text-[#FFB20F] hover:border-gray-300'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </nav>
-        </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="profile" className="text-sm">
+              <DollarSign className="w-4 h-4 mr-2" />
+              Profile & Credit
+            </TabsTrigger>
+            <TabsTrigger value="products" className="text-sm">
+              <Package className="w-4 h-4 mr-2" />
+              Company Products
+            </TabsTrigger>
+            <TabsTrigger value="transactions" className="text-sm">
+              <History className="w-4 h-4 mr-2" />
+              Transaction History
+            </TabsTrigger>
+            <TabsTrigger value="payments" className="text-sm">
+              <CreditCard className="w-4 h-4 mr-2" />
+              Payment History
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Tab Content */}
-        <div className="p-6">
-          {/* Profile & Credit Tab */}
-          {activeTab === 'profile' && (
-            <div className="space-y-8">
-              {/* Profile Information Section */}
-              <div>
-                <h4 className="text-sm font-medium text-[#6E6F71] uppercase tracking-[0.5px] mb-4">PROFILE INFORMATION</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="firstName" className="text-xs font-medium text-[#6E6F71] uppercase tracking-[0.5px]">First Name *</Label>
-                    <Input
-                      id="firstName"
-                      value={userFormData.firstName}
-                      onChange={(e) => setUserFormData({...userFormData, firstName: e.target.value})}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="lastName" className="text-xs font-medium text-[#6E6F71] uppercase tracking-[0.5px]">Last Name *</Label>
-                    <Input
-                      id="lastName"
-                      value={userFormData.lastName}
-                      onChange={(e) => setUserFormData({...userFormData, lastName: e.target.value})}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="email" className="text-xs font-medium text-[#6E6F71] uppercase tracking-[0.5px]">Email *</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={userFormData.email}
-                      onChange={(e) => setUserFormData({...userFormData, email: e.target.value})}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="phone" className="text-xs font-medium text-[#6E6F71] uppercase tracking-[0.5px]">Phone *</Label>
-                    <Input
-                      id="phone"
-                      value={userFormData.phone}
-                      onChange={(e) => setUserFormData({...userFormData, phone: e.target.value})}
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                  <div>
-                    <Label htmlFor="companyName" className="text-xs font-medium text-[#6E6F71] uppercase tracking-[0.5px]">Company Name *</Label>
-                    <Input
-                      id="companyName"
-                      value={userFormData.companyName}
-                      onChange={(e) => setUserFormData({...userFormData, companyName: e.target.value})}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="contactPerson" className="text-xs font-medium text-[#6E6F71] uppercase tracking-[0.5px]">Contact Person</Label>
-                    <Input
-                      id="contactPerson"
-                      value={userFormData.contactPerson}
-                      onChange={(e) => setUserFormData({...userFormData, contactPerson: e.target.value})}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="country" className="text-xs font-medium text-[#6E6F71] uppercase tracking-[0.5px]">Country *</Label>
-                    <Input
-                      id="country"
-                      value={userFormData.country}
-                      onChange={(e) => setUserFormData({...userFormData, country: e.target.value})}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="city" className="text-xs font-medium text-[#6E6F71] uppercase tracking-[0.5px]">City *</Label>
-                    <Input
-                      id="city"
-                      value={userFormData.city}
-                      onChange={(e) => setUserFormData({...userFormData, city: e.target.value})}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="address" className="text-xs font-medium text-[#6E6F71] uppercase tracking-[0.5px]">Address *</Label>
-                    <Input
-                      id="address"
-                      value={userFormData.address}
-                      onChange={(e) => setUserFormData({...userFormData, address: e.target.value})}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="vatOrRegistrationNo" className="text-xs font-medium text-[#6E6F71] uppercase tracking-[0.5px]">VAT/Registration No. *</Label>
-                    <Input
-                      id="vatOrRegistrationNo"
-                      value={userFormData.vatOrRegistrationNo}
-                      onChange={(e) => setUserFormData({...userFormData, vatOrRegistrationNo: e.target.value})}
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
-
-                <div className="mt-4">
-                  <Label htmlFor="companyDescription" className="text-xs font-medium text-[#6E6F71] uppercase tracking-[0.5px]">Company Description</Label>
-                  <Textarea
-                    id="companyDescription"
-                    value={userFormData.companyDescription}
-                    onChange={(e) => setUserFormData({...userFormData, companyDescription: e.target.value})}
-                    className="mt-1"
-                    rows={3}
-                  />
-                </div>
-
-                <div className="flex justify-end mt-6">
-                  <Button
-                    onClick={handleSaveProfile}
-                    disabled={updateUserMutation.isPending}
-                    className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white px-6"
-                  >
-                    {updateUserMutation.isPending ? 'SAVING...' : 'SAVE PROFILE'}
-                  </Button>
-                </div>
-              </div>
-
-              {/* Credit Management Section */}
-              <div className="border-t border-gray-200 pt-8">
-                <h4 className="text-sm font-medium text-[#6E6F71] uppercase tracking-[0.5px] mb-4">CREDIT MANAGEMENT</h4>
-                
-                {/* Current Wallet Status */}
-                {userWallet?.data && (
-                  <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <p className="text-xs font-medium text-[#6E6F71] uppercase tracking-[0.5px]">Deposit Balance</p>
-                        <p className="text-lg font-semibold text-[#FFB20F]">€{userWallet.data.balance?.depositBalance || '0.00'}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs font-medium text-[#6E6F71] uppercase tracking-[0.5px]">Available Credit</p>
-                        <p className="text-lg font-semibold text-[#6E6F71]">€{userWallet.data.balance?.availableCredit || '0.00'}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs font-medium text-[#6E6F71] uppercase tracking-[0.5px]">Total Available</p>
-                        <p className="text-lg font-semibold text-green-600">€{userWallet.data.balance?.totalAvailable || '0.00'}</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Add Deposit */}
-                  <div>
-                    <Label htmlFor="depositAmount" className="text-xs font-medium text-[#6E6F71] uppercase tracking-[0.5px]">Add Deposit</Label>
-                    <div className="flex mt-1">
-                      <Input
-                        id="depositAmount"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="0.00"
-                        value={creditFormData.depositAmount}
-                        onChange={(e) => setCreditFormData({...creditFormData, depositAmount: e.target.value})}
-                        className="rounded-r-none"
+          <TabsContent value="profile" className="space-y-6 mt-6">
+            <div className="grid grid-cols-2 gap-8">
+              {/* Profile Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-[#6E6F71] flex items-center">
+                    <Edit className="w-5 h-5 mr-2" />
+                    Profile Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>First Name *</Label>
+                      <Input 
+                        value={formData.firstName || ''} 
+                        onChange={(e) => setFormData({...formData, firstName: e.target.value})}
                       />
-                      <Button
-                        onClick={handleDeposit}
-                        disabled={depositFundsMutation.isPending || !creditFormData.depositAmount}
-                        className="bg-green-600 hover:bg-green-700 text-white rounded-l-none"
-                      >
-                        {depositFundsMutation.isPending ? 'ADDING...' : 'ADD'}
-                      </Button>
                     </div>
-                  </div>
-
-                  {/* Update Credit Limit */}
-                  <div>
-                    <Label htmlFor="creditLimit" className="text-xs font-medium text-[#6E6F71] uppercase tracking-[0.5px]">Update Credit Limit</Label>
-                    <div className="flex mt-1">
-                      <Input
-                        id="creditLimit"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="0.00"
-                        value={creditFormData.creditLimit}
-                        onChange={(e) => setCreditFormData({...creditFormData, creditLimit: e.target.value})}
-                        className="rounded-r-none"
+                    <div>
+                      <Label>Last Name *</Label>
+                      <Input 
+                        value={formData.lastName || ''} 
+                        onChange={(e) => setFormData({...formData, lastName: e.target.value})}
                       />
-                      <Button
-                        onClick={handleUpdateCredit}
-                        disabled={updateCreditMutation.isPending || !creditFormData.creditLimit}
-                        className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white rounded-l-none"
-                      >
-                        {updateCreditMutation.isPending ? 'UPDATING...' : 'UPDATE'}
-                      </Button>
                     </div>
                   </div>
-                </div>
-              </div>
-            </div>
-          )}
+                  <div>
+                    <Label>Email *</Label>
+                    <Input 
+                      value={formData.email || ''} 
+                      onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label>Phone *</Label>
+                    <Input 
+                      value={formData.phone || ''} 
+                      onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label>Company Name *</Label>
+                    <Input 
+                      value={formData.companyName || ''} 
+                      onChange={(e) => setFormData({...formData, companyName: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label>Contact Person</Label>
+                    <Input 
+                      value={formData.contactPerson || ''} 
+                      onChange={(e) => setFormData({...formData, contactPerson: e.target.value})}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Country *</Label>
+                      <Input 
+                        value={formData.country || ''} 
+                        onChange={(e) => setFormData({...formData, country: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <Label>City *</Label>
+                      <Input 
+                        value={formData.city || ''} 
+                        onChange={(e) => setFormData({...formData, city: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Address *</Label>
+                    <Textarea 
+                      value={formData.address || ''} 
+                      onChange={(e) => setFormData({...formData, address: e.target.value})}
+                      rows={2}
+                    />
+                  </div>
+                  <div>
+                    <Label>VAT or Registration No. *</Label>
+                    <Input 
+                      value={formData.vatOrRegistrationNo || ''} 
+                      onChange={(e) => setFormData({...formData, vatOrRegistrationNo: e.target.value})}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
 
-          {/* Company Products Tab */}
-          {activeTab === 'products' && (
-            <div>
-              <h4 className="text-sm font-medium text-[#6E6F71] uppercase tracking-[0.5px] mb-4">COMPANY PRODUCTS</h4>
-              <div className="text-center py-12">
-                <Package className="mx-auto h-12 w-12 text-gray-400" />
-                <h5 className="mt-2 text-sm font-medium text-[#6E6F71]">Product Management Coming Soon</h5>
-                <p className="mt-1 text-sm text-[#6E6F71]">User-specific product access and pricing management will be available in the next update.</p>
-              </div>
+              {/* Credit & Wallet Management */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-[#6E6F71] flex items-center">
+                    <DollarSign className="w-5 h-5 mr-2" />
+                    Credit & Wallet Management
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {walletData?.data && (
+                    <>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>Deposit Balance</Label>
+                          <div className="text-2xl font-bold text-green-600">
+                            €{walletData.data.depositBalance}
+                          </div>
+                        </div>
+                        <div>
+                          <Label>Credit Limit</Label>
+                          <div className="text-2xl font-bold text-blue-600">
+                            €{walletData.data.creditLimit}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>Credit Used</Label>
+                          <div className="text-2xl font-bold text-red-600">
+                            €{walletData.data.creditUsed}
+                          </div>
+                        </div>
+                        <div>
+                          <Label>Total Available</Label>
+                          <div className="text-2xl font-bold text-[#FFB20F]">
+                            €{walletData.data.totalAvailable}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-3 pt-4 border-t">
+                        <div>
+                          <Label>Add Deposit</Label>
+                          <div className="flex gap-2">
+                            <Input 
+                              type="number" 
+                              step="0.01" 
+                              placeholder="0.00"
+                              value={newDeposit}
+                              onChange={(e) => setNewDeposit(e.target.value)}
+                            />
+                            <Button 
+                              onClick={handleAddDeposit}
+                              disabled={addDepositMutation.isPending}
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                            >
+                              Add
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <Label>Change Credit Limit</Label>
+                          <div className="flex gap-2">
+                            <Input 
+                              type="number" 
+                              step="0.01" 
+                              value={newCreditLimit}
+                              onChange={(e) => setNewCreditLimit(e.target.value)}
+                            />
+                            <Button 
+                              onClick={handleUpdateCreditLimit}
+                              disabled={updateCreditMutation.isPending}
+                              className="bg-blue-600 hover:bg-blue-700 text-white"
+                            >
+                              Update
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
             </div>
-          )}
+          </TabsContent>
 
-          {/* Transaction History Tab */}
-          {activeTab === 'transactions' && (
-            <div>
-              <h4 className="text-sm font-medium text-[#6E6F71] uppercase tracking-[0.5px] mb-4">TRANSACTION HISTORY</h4>
-              {userTransactions?.data && userTransactions.data.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-[#6E6F71]">
-                      <tr>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase">Date</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase">Type</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase">Amount</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase">Description</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {userTransactions.data.map((transaction: any) => (
-                        <tr key={transaction.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-2 whitespace-nowrap text-sm text-[#6E6F71]">
+          <TabsContent value="products" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-[#6E6F71]">Company Products & Custom Pricing</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">Custom product pricing functionality will be implemented here.</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="transactions" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-[#6E6F71]">Transaction History</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {transactionsData?.data && transactionsData.data.length > 0 ? (
+                  <div className="space-y-2">
+                    {transactionsData.data.map((transaction: any) => (
+                      <div key={transaction.id} className="flex justify-between items-center p-3 border rounded">
+                        <div>
+                          <div className="font-medium">{transaction.description}</div>
+                          <div className="text-sm text-gray-500">
                             {new Date(transaction.createdAt).toLocaleDateString()}
-                          </td>
-                          <td className="px-4 py-2 whitespace-nowrap">
-                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                              transaction.type === 'deposit' ? 'bg-green-100 text-green-800' :
-                              transaction.type === 'payment' ? 'bg-red-100 text-red-800' :
-                              'bg-blue-100 text-blue-800'
-                            }`}>
-                              {transaction.type}
-                            </span>
-                          </td>
-                          <td className="px-4 py-2 whitespace-nowrap text-sm font-mono">
-                            <span className={transaction.amount > 0 ? 'text-green-600' : 'text-red-600'}>
-                              €{Math.abs(transaction.amount).toFixed(2)}
-                            </span>
-                          </td>
-                          <td className="px-4 py-2 text-sm text-[#6E6F71]">
-                            {transaction.description || 'No description'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <FileText className="mx-auto h-12 w-12 text-gray-400" />
-                  <h5 className="mt-2 text-sm font-medium text-[#6E6F71]">No Transactions</h5>
-                  <p className="mt-1 text-sm text-[#6E6F71]">No transaction history found for this user.</p>
-                </div>
-              )}
-            </div>
-          )}
+                          </div>
+                        </div>
+                        <div className={`font-bold ${transaction.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          €{transaction.amount}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-600">No transactions found.</p>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-          {/* Payment History Tab */}
-          {activeTab === 'payments' && (
-            <div>
-              <h4 className="text-sm font-medium text-[#6E6F71] uppercase tracking-[0.5px] mb-4">PAYMENT HISTORY</h4>
-              {userOrders?.data && userOrders.data.filter((order: any) => order.paymentStatus === 'paid').length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-[#6E6F71]">
-                      <tr>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase">Order</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase">Date</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase">Amount</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase">Method</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {userOrders.data.filter((order: any) => order.paymentStatus === 'paid').map((order: any) => (
-                        <tr key={order.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-[#6E6F71]">
-                            {order.orderNumber}
-                          </td>
-                          <td className="px-4 py-2 whitespace-nowrap text-sm text-[#6E6F71]">
-                            {new Date(order.createdAt).toLocaleDateString()}
-                          </td>
-                          <td className="px-4 py-2 whitespace-nowrap text-sm font-mono text-green-600">
-                            €{order.finalAmount}
-                          </td>
-                          <td className="px-4 py-2 whitespace-nowrap text-sm text-[#6E6F71]">
-                            {order.paymentMethod || 'wallet'}
-                          </td>
-                          <td className="px-4 py-2 whitespace-nowrap">
-                            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                              Paid
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <DollarSign className="mx-auto h-12 w-12 text-gray-400" />
-                  <h5 className="mt-2 text-sm font-medium text-[#6E6F71]">No Payments</h5>
-                  <p className="mt-1 text-sm text-[#6E6F71]">No payment history found for this user.</p>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+          <TabsContent value="payments" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-[#6E6F71]">Payment History</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">Payment history functionality will be implemented here.</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </DialogContent>
+    </Dialog>
   );
 }

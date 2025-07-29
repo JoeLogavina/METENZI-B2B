@@ -354,7 +354,7 @@ export class WalletService {
   /**
    * Get all wallets for admin (cross-tenant view)
    */
-  async getAllWallets(adminRole: string): Promise<any[]> {
+  async getAllWallets(adminRole: string): Promise<WalletData[]> {
     // Admin access to all wallets across tenants
     const allWallets = await db
       .select({
@@ -401,72 +401,6 @@ export class WalletService {
         }
       };
     });
-  }
-
-  /**
-   * Add balance to user wallet (admin function)
-   */
-  async addBalance(userId: string, amount: number, tenantId: string): Promise<WalletData> {
-    // Initialize wallet if it doesn't exist
-    await this.initializeWallet(userId, tenantId);
-
-    // Update deposit balance
-    const [updatedWallet] = await db
-      .update(wallets)
-      .set({
-        depositBalance: sql`CAST(${wallets.depositBalance} AS DECIMAL) + ${amount}`,
-        updatedAt: new Date()
-      })
-      .where(and(
-        eq(wallets.userId, userId),
-        eq(wallets.tenantId, tenantId)
-      ))
-      .returning();
-
-    // Create transaction record
-    await db.insert(walletTransactions).values({
-      walletId: updatedWallet.id,
-      userId: userId,
-      type: 'deposit',
-      amount: amount.toString(),
-      description: `Admin deposit: +€${amount}`,
-      balanceAfter: updatedWallet.depositBalance
-    });
-
-    return this.getWallet(userId, tenantId);
-  }
-
-  /**
-   * Update credit limit for user wallet (admin function)
-   */
-  async updateCreditLimit(userId: string, creditLimit: number, tenantId: string): Promise<WalletData> {
-    // Initialize wallet if it doesn't exist
-    await this.initializeWallet(userId, tenantId);
-
-    // Update credit limit
-    const [updatedWallet] = await db
-      .update(wallets)
-      .set({
-        creditLimit: creditLimit.toString(),
-        updatedAt: new Date()
-      })
-      .where(and(
-        eq(wallets.userId, userId),
-        eq(wallets.tenantId, tenantId)
-      ))
-      .returning();
-
-    // Create transaction record
-    await db.insert(walletTransactions).values({
-      walletId: updatedWallet.id,
-      userId: userId,
-      type: 'adjustment',
-      amount: '0.00',
-      description: `Credit limit updated to €${creditLimit}`,
-      balanceAfter: updatedWallet.depositBalance
-    });
-
-    return this.getWallet(userId, tenantId);
   }
 }
 
