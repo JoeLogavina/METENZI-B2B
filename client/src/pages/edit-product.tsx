@@ -120,6 +120,12 @@ export default function EditProduct() {
     }
   }, [product]);
 
+  // Force re-render when eurPricing.b2bPrice changes  
+  useEffect(() => {
+    console.log('🔍 EUR Pricing state updated:', eurPricing);
+    console.log('🎯 Current B2B Price in state:', eurPricing.b2bPrice);
+  }, [eurPricing]);
+
   // Mark unsaved changes
   const handleFormChange = (section: string, field: string, value: any) => {
     setUnsavedChanges(true);
@@ -512,7 +518,7 @@ export default function EditProduct() {
 
                 <div>
                   <Label htmlFor="b2bPrice" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-                    B2B PRICE (€)
+                    B2B PRICE (€) - Current: {eurPricing.b2bPrice}
                   </Label>
                   <Input
                     id="b2bPrice"
