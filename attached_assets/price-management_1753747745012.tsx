@@ -21,19 +21,19 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Product {
-  id: string;
+  id: number;
   name: string;
-  sku: string;
-  purchasePrice: string;
-  b2bPrice: string;
+  code: string;
+  costPrice: string;
+  resellerPrice: string;
   retailPrice: string;
   categoryName: string;
 }
 
 interface PriceUpdate {
-  productId: string;
-  purchasePrice: number;
-  b2bPrice: number;
+  productId: number;
+  costPrice: number;
+  resellerPrice: number;
   retailPrice: number;
 }
 
@@ -56,10 +56,10 @@ const formatPercentage = (value: number) => {
 };
 
 export default function PriceManagementPage() {
-  const [editingProduct, setEditingProduct] = useState<string | null>(null);
-  const [priceData, setPriceData] = useState<Record<string, {
-    purchasePrice: string;
-    b2bPrice: string;
+  const [editingProduct, setEditingProduct] = useState<number | null>(null);
+  const [priceData, setPriceData] = useState<Record<number, {
+    costPrice: string;
+    resellerPrice: string;
     retailPrice: string;
     retailPriceWithVat: number;
     b2bMargin: number;
@@ -69,7 +69,7 @@ export default function PriceManagementPage() {
     fees: number;
     priceRange: string;
   }>>({});
-  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
+  const [selectedProducts, setSelectedProducts] = useState<Set<number>>(new Set());
   const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(null);
   const [bulkEditMode, setBulkEditMode] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -88,11 +88,12 @@ export default function PriceManagementPage() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  const { data: productsRaw, isLoading } = useQuery({
-    queryKey: ["/api/admin/products"],
+  const { data: products, isLoading } = useQuery({
+    queryKey: ["/api/products", { 
+      search: debouncedSearchTerm || undefined, 
+      categoryId: categoryFilter === 'all' ? undefined : categoryFilter 
+    }],
   });
-
-  const products = productsRaw?.data || [];
 
   const { data: categories } = useQuery({
     queryKey: ["/api/categories"],
@@ -106,8 +107,8 @@ export default function PriceManagementPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          purchasePrice: data.purchasePrice,
-          b2bPrice: data.b2bPrice,
+          costPrice: data.costPrice,
+          resellerPrice: data.resellerPrice,
           retailPrice: data.retailPrice
         })
       });
@@ -137,9 +138,9 @@ export default function PriceManagementPage() {
     },
   });
 
-  const calculateMargins = (purchasePrice: string, b2bPrice: string, retailPrice: string, fees: string = '0') => {
-    const cost = parseFloat(purchasePrice) || 0;
-    const b2bPriceNum = parseFloat(b2bPrice) || 0;
+  const calculateMargins = (costPrice: string, resellerPrice: string, retailPrice: string, fees: string = '0') => {
+    const cost = parseFloat(costPrice) || 0;
+    const b2bPrice = parseFloat(resellerPrice) || 0;
     const b2cPrice = parseFloat(retailPrice) || 0;
     const additionalFees = parseFloat(fees) || 0;
     const vatRate = 0.21; // 21% VAT rate
@@ -148,7 +149,7 @@ export default function PriceManagementPage() {
     const totalCost = cost + additionalFees;
     const retailPriceWithVat = b2cPrice * (1 + vatRate);
 
-    const b2bProfit = b2bPriceNum - totalCost;
+    const b2bProfit = b2bPrice - totalCost;
     const b2cProfit = b2cPrice - totalCost;
     const b2bMargin = totalCost > 0 ? ((b2bProfit / totalCost) * 100) : 0;
     const b2cMargin = totalCost > 0 ? ((b2cProfit / totalCost) * 100) : 0;
@@ -164,8 +165,8 @@ export default function PriceManagementPage() {
     };
   };
 
-  const calculatePriceFromMargin = (purchasePrice: string, margin: string, fees: string = '0') => {
-    const cost = parseFloat(purchasePrice) || 0;
+  const calculatePriceFromMargin = (costPrice: string, margin: string, fees: string = '0') => {
+    const cost = parseFloat(costPrice) || 0;
     const marginPercent = parseFloat(margin) || 0;
     const additionalFees = parseFloat(fees) || 0;
     const totalCost = cost + additionalFees;
@@ -177,16 +178,16 @@ export default function PriceManagementPage() {
 
   useEffect(() => {
     if (products) {
-      const initialData: Record<string, any> = {};
+      const initialData: Record<number, any> = {};
       (products as Product[]).forEach(product => {
         const margins = calculateMargins(
-          product.purchasePrice,
-          product.b2bPrice,
+          product.costPrice,
+          product.resellerPrice,
           product.retailPrice
         );
         initialData[product.id] = {
-          purchasePrice: product.purchasePrice,
-          b2bPrice: product.b2bPrice,
+          costPrice: product.costPrice,
+          resellerPrice: product.resellerPrice,
           retailPrice: product.retailPrice,
           ...margins
         };
@@ -195,7 +196,7 @@ export default function PriceManagementPage() {
     }
   }, [products]);
 
-  const handlePriceChange = (productId: string, field: string, value: string) => {
+  const handlePriceChange = (productId: number, field: string, value: string) => {
     setPriceData(prev => {
       const current = prev[productId] || {};
       let updated = { ...current, [field]: value };
@@ -203,14 +204,14 @@ export default function PriceManagementPage() {
       // If changing margin, calculate new price
       if (field === 'b2bMargin') {
         const newB2BPrice = calculatePriceFromMargin(
-          updated.purchasePrice || '0',
+          updated.costPrice || '0',
           value,
           updated.fees?.toString() || '0'
         );
-        updated.b2bPrice = newB2BPrice.toString();
+        updated.resellerPrice = newB2BPrice.toString();
       } else if (field === 'b2cMargin') {
         const newB2CPrice = calculatePriceFromMargin(
-          updated.purchasePrice || '0',
+          updated.costPrice || '0',
           value,
           updated.fees?.toString() || '0'
         );
@@ -219,8 +220,8 @@ export default function PriceManagementPage() {
       
       // Recalculate all margins and profits
       const margins = calculateMargins(
-        updated.purchasePrice || '0',
-        updated.b2bPrice || '0',
+        updated.costPrice || '0',
+        updated.resellerPrice || '0',
         updated.retailPrice || '0',
         updated.fees?.toString() || '0'
       );
@@ -240,8 +241,8 @@ export default function PriceManagementPage() {
     if (data) {
       updatePriceMutation.mutate({
         productId: product.id,
-        purchasePrice: parseFloat(data.purchasePrice),
-        b2bPrice: parseFloat(data.b2bPrice),
+        costPrice: parseFloat(data.costPrice),
+        resellerPrice: parseFloat(data.resellerPrice),
         retailPrice: parseFloat(data.retailPrice)
       });
     }
@@ -249,15 +250,15 @@ export default function PriceManagementPage() {
 
   const handleCancel = (product: Product) => {
     const margins = calculateMargins(
-      product.purchasePrice,
-      product.b2bPrice,
+      product.costPrice,
+      product.resellerPrice,
       product.retailPrice
     );
     setPriceData(prev => ({
       ...prev,
       [product.id]: {
-        purchasePrice: product.purchasePrice,
-        b2bPrice: product.b2bPrice,
+        costPrice: product.costPrice,
+        resellerPrice: product.resellerPrice,
         retailPrice: product.retailPrice,
         ...margins
       }
@@ -265,7 +266,7 @@ export default function PriceManagementPage() {
     setEditingProduct(null);
   };
 
-  const handleCheckboxChange = (productId: string, index: number, event: React.MouseEvent) => {
+  const handleCheckboxChange = (productId: number, index: number, event: React.MouseEvent) => {
     const isShiftPressed = event.shiftKey;
     
     setSelectedProducts(prev => {
@@ -312,15 +313,15 @@ export default function PriceManagementPage() {
       const product = (products as Product[])?.find(p => p.id === productId);
       if (product && !priceData[productId]) {
         const margins = calculateMargins(
-          product.purchasePrice,
-          product.b2bPrice,
+          product.costPrice,
+          product.resellerPrice,
           product.retailPrice
         );
         setPriceData(prev => ({
           ...prev,
           [productId]: {
-            purchasePrice: product.purchasePrice,
-            b2bPrice: product.b2bPrice,
+            costPrice: product.costPrice,
+            resellerPrice: product.resellerPrice,
             retailPrice: product.retailPrice,
             ...margins
           }
@@ -334,8 +335,8 @@ export default function PriceManagementPage() {
       const data = priceData[productId];
       return {
         productId,
-        purchasePrice: parseFloat(data.purchasePrice),
-        b2bPrice: parseFloat(data.b2bPrice),
+        costPrice: parseFloat(data.costPrice),
+        resellerPrice: parseFloat(data.resellerPrice),
         retailPrice: parseFloat(data.retailPrice)
       };
     });
@@ -379,6 +380,22 @@ export default function PriceManagementPage() {
     setShowAdvancedFilters(false);
   };
 
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'EUR',
+    }).format(amount);
+  };
+
+  const formatPercentage = (value: number) => {
+    const color = value >= 0 ? 'text-green-600' : 'text-red-600';
+    return (
+      <span className={`font-bold ${color}`}>
+        {value.toFixed(1)}%
+      </span>
+    );
+  };
+
   if (isLoading) {
     return (
       <div className="p-6">
@@ -393,9 +410,13 @@ export default function PriceManagementPage() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Product Pricing & Profit Calculator</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Central Price Management Hub</h1>
           <p className="text-muted-foreground">
-            Search products...
+            <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-sm font-medium mr-2">
+              <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
+              PRICING AUTHORITY
+            </span>
+            All price changes made here become the official prices across the entire platform
           </p>
         </div>
         <div className="flex gap-2">
@@ -405,6 +426,25 @@ export default function PriceManagementPage() {
           </Button>
         </div>
       </div>
+
+      {/* Pricing Authority Information Panel */}
+      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            <div className="bg-blue-600 rounded-full p-2 mt-1">
+              <Calculator className="w-4 h-4 text-white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-blue-900 mb-1">Central Pricing Authority</h3>
+              <p className="text-sm text-blue-700 leading-relaxed">
+                This interface serves as the authoritative source for all product pricing across the platform. 
+                Changes made here automatically synchronize to: <span className="font-medium">Retail Store, Reseller Portal, Order Processing, Cart Systems, and API Responses</span>. 
+                All other pricing displays throughout the platform reference these values.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -444,6 +484,7 @@ export default function PriceManagementPage() {
                 className="max-w-md"
                 value={searchTerm}
                 onChange={handleSearchInputChange}
+
               />
               {searchTerm && (
                 <Button variant="outline" size="sm" onClick={handleClearSearch}>
@@ -546,14 +587,14 @@ export default function PriceManagementPage() {
               <div className="divide-y-2 divide-slate-200">
                 {(products as Product[])?.map((product, index) => {
                   const data = priceData[product.id] || {
-                    purchasePrice: product.purchasePrice,
-                    b2bPrice: product.b2bPrice,
+                    costPrice: product.costPrice,
+                    resellerPrice: product.resellerPrice,
                     retailPrice: product.retailPrice,
                     retailPriceWithVat: parseFloat(product.retailPrice) * 1.21,
-                    b2bMargin: ((parseFloat(product.b2bPrice) - parseFloat(product.purchasePrice)) / parseFloat(product.purchasePrice)) * 100,
-                    b2cMargin: ((parseFloat(product.retailPrice) - parseFloat(product.purchasePrice)) / parseFloat(product.purchasePrice)) * 100,
-                    b2bProfit: parseFloat(product.b2bPrice) - parseFloat(product.purchasePrice),
-                    b2cProfit: parseFloat(product.retailPrice) - parseFloat(product.purchasePrice),
+                    b2bMargin: ((parseFloat(product.resellerPrice) - parseFloat(product.costPrice)) / parseFloat(product.costPrice)) * 100,
+                    b2cMargin: ((parseFloat(product.retailPrice) - parseFloat(product.costPrice)) / parseFloat(product.costPrice)) * 100,
+                    b2bProfit: parseFloat(product.resellerPrice) - parseFloat(product.costPrice),
+                    b2cProfit: parseFloat(product.retailPrice) - parseFloat(product.costPrice),
                     fees: 0,
                     priceRange: ''
                   };
@@ -606,14 +647,14 @@ export default function PriceManagementPage() {
                           <Input
                             type="number"
                             step="0.01"
-                            value={data.purchasePrice || ''}
-                            onChange={(e) => handlePriceChange(product.id, 'purchasePrice', e.target.value)}
+                            value={data.costPrice || ''}
+                            onChange={(e) => handlePriceChange(product.id, 'costPrice', e.target.value)}
                             className="w-full text-center font-mono text-sm h-8"
                             placeholder="0.00"
                           />
                         ) : (
                           <div className="bg-red-500 text-white rounded px-2 py-1 text-sm font-medium">
-                            {formatCurrency(parseFloat(data.purchasePrice || '0'))}
+                            {formatCurrency(parseFloat(data.costPrice || '0'))}
                           </div>
                         )}
                       </div>
@@ -624,14 +665,14 @@ export default function PriceManagementPage() {
                           <Input
                             type="number"
                             step="0.01"
-                            value={data.b2bPrice || ''}
-                            onChange={(e) => handlePriceChange(product.id, 'b2bPrice', e.target.value)}
+                            value={data.resellerPrice || ''}
+                            onChange={(e) => handlePriceChange(product.id, 'resellerPrice', e.target.value)}
                             className="w-full text-center font-mono text-sm h-8"
                             placeholder="0.00"
                           />
                         ) : (
                           <div className="bg-blue-500 text-white rounded px-2 py-1 text-sm font-medium">
-                            {formatCurrency(parseFloat(data.b2bPrice || '0'))}
+                            {formatCurrency(parseFloat(data.resellerPrice || '0'))}
                           </div>
                         )}
                       </div>
@@ -691,7 +732,7 @@ export default function PriceManagementPage() {
                             placeholder="0"
                           />
                         ) : (
-                          <div className="font-mono text-emerald-700 font-semibold text-sm">
+                          <div className="font-mono text-green-700 font-semibold text-sm">
                             {Math.round(data.b2cMargin || 0)}%
                           </div>
                         )}
@@ -699,12 +740,12 @@ export default function PriceManagementPage() {
 
                       {/* B2C Profit */}
                       <div className="text-center">
-                        <div className="font-mono text-emerald-700 font-semibold text-sm">
+                        <div className="font-mono text-green-700 font-semibold text-sm">
                           {formatCurrency(data.b2cProfit || 0)}
                         </div>
                       </div>
 
-                      {/* B2C + VAT */}
+                      {/* B2C+VAT */}
                       <div className="text-center">
                         <div className="bg-purple-600 text-white rounded px-2 py-1 text-sm font-medium">
                           {formatCurrency(data.retailPriceWithVat || 0)}
@@ -712,33 +753,33 @@ export default function PriceManagementPage() {
                       </div>
 
                       {/* Actions */}
-                      <div className="text-center">
-                        {editingProduct === product.id ? (
+                      <div className="flex items-center justify-center">
+                        {isEditing ? (
                           <div className="flex gap-1">
                             <Button
-                              onClick={() => handleSave(product)}
                               size="sm"
-                              variant="outline"
-                              className="w-8 h-8 p-0"
+                              variant="ghost"
+                              onClick={() => handleSave(product)}
                               disabled={updatePriceMutation.isPending}
+                              className="h-6 w-6 p-0 text-green-600 hover:text-green-700"
                             >
                               <Check className="w-3 h-3" />
                             </Button>
                             <Button
-                              onClick={() => handleCancel(product)}
                               size="sm"
-                              variant="outline"
-                              className="w-8 h-8 p-0"
+                              variant="ghost"
+                              onClick={() => handleCancel(product)}
+                              className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
                             >
                               <X className="w-3 h-3" />
                             </Button>
                           </div>
                         ) : (
                           <Button
-                            onClick={() => setEditingProduct(product.id)}
                             size="sm"
-                            variant="outline"
-                            className="w-8 h-8 p-0"
+                            variant="ghost"
+                            onClick={() => setEditingProduct(product.id)}
+                            className="h-6 w-6 p-0 text-blue-600 hover:text-blue-700"
                           >
                             <Edit className="w-3 h-3" />
                           </Button>
@@ -752,6 +793,57 @@ export default function PriceManagementPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Average B2B Margin</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">
+              {(() => {
+                const validMargins = Object.values(priceData).filter(d => d.b2bMargin && !isNaN(d.b2bMargin));
+                const avg = validMargins.length > 0 
+                  ? validMargins.reduce((sum, d) => sum + d.b2bMargin, 0) / validMargins.length 
+                  : 0;
+                return `${avg.toFixed(1)}%`;
+              })()}
+            </div>
+            <p className="text-xs text-muted-foreground">Reseller profit margin</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Average B2C Margin</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {(() => {
+                const validMargins = Object.values(priceData).filter(d => d.b2cMargin && !isNaN(d.b2cMargin));
+                const avg = validMargins.length > 0 
+                  ? validMargins.reduce((sum, d) => sum + d.b2cMargin, 0) / validMargins.length 
+                  : 0;
+                return `${avg.toFixed(1)}%`;
+              })()}
+            </div>
+            <p className="text-xs text-muted-foreground">Retail profit margin</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Total Products</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-slate-600">
+              {(products as Product[])?.length || 0}
+            </div>
+            <p className="text-xs text-muted-foreground">Products in catalog</p>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
