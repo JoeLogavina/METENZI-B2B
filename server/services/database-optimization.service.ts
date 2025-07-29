@@ -55,7 +55,7 @@ export class DatabaseOptimizationService {
     const timingId = performanceService.startTiming('create-indexes');
     
     try {
-      console.log('🚀 Creating performance indexes...');
+
 
       // Products indexes
       await this.createIndexSafely(
@@ -160,11 +160,11 @@ export class DatabaseOptimizationService {
 
   private async createIndexSafely(indexName: string, indexSql: any): Promise<void> {
     try {
-      console.log(`Creating index: ${indexName}`);
+
       await db.execute(indexSql);
     } catch (error) {
-      if (error.message?.includes('already exists')) {
-        console.log(`⚠️ Index already exists: ${indexName}`);
+      if ((error as any).message?.includes('already exists')) {
+
       } else {
         console.error(`❌ Failed to create index ${indexName}:`, error);
         throw error;
@@ -177,7 +177,7 @@ export class DatabaseOptimizationService {
     const timingId = performanceService.startTiming('update-statistics');
     
     try {
-      console.log('📊 Updating table statistics...');
+
       
       const tables = [
         'products', 'orders', 'order_items', 'wallet_transactions', 
@@ -275,7 +275,7 @@ export class DatabaseOptimizationService {
     const timingId = performanceService.startTiming('cleanup-old-data');
     
     try {
-      console.log('🧹 Cleaning up old data...');
+
       
       // Clean up old cart items (older than 30 days)
       await db.execute(sql`
@@ -291,7 +291,7 @@ export class DatabaseOptimizationService {
         `);
       } catch (error) {
         // Sessions table might not exist
-        console.log('Sessions table cleanup skipped');
+
       }
       
       

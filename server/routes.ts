@@ -463,12 +463,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userRole = req.user.role;
       const tenantId = req.user.tenantId || 'eur';
 
-      console.log('🛡️ TENANT ISOLATION CHECK:', {
-        userId,
-        userRole,
-        tenantId,
-        timestamp: new Date().toISOString()
-      });
+
 
       const { OrderService } = await import('./services/order.service');
       const orderService = new OrderService();
@@ -500,12 +495,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ordersData = filteredOrders;
       }
 
-      console.log('✅ TENANT ISOLATION VERIFIED:', {
-        userId,
-        tenantId,
-        orderCount: ordersData.length,
-        firstOrderTenant: ordersData[0]?.tenantId || 'none'
-      });
+
 
       res.json(ordersData);
     } catch (error) {

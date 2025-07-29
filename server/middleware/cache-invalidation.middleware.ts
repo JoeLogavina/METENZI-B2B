@@ -23,7 +23,7 @@ export function cacheInvalidationMiddleware(options: CacheInvalidationOptions) {
                               (!isSuccessful && options.onError === true);
       
       if (shouldInvalidate) {
-        console.log(`🔄 CACHE-ASIDE: Immediate invalidation for patterns: ${options.patterns.join(', ')}`);
+
         
         // CACHE-ASIDE PATTERN: Fire invalidation immediately (don't wait)
         const invalidationPromises = options.patterns.map(async (pattern) => {
@@ -31,15 +31,11 @@ export function cacheInvalidationMiddleware(options: CacheInvalidationOptions) {
             if (pattern.includes('orders')) {
               const userId = (req as any).user?.id;
               const tenantId = (req as any).user?.tenantId;
-              console.log(`📧 CACHE-ASIDE: Invalidating orders cache for user: ${userId}, tenant: ${tenantId}`);
               await cacheHelpers.invalidateOrdersData(userId);
-              console.log(`✅ CACHE-ASIDE: Orders cache invalidated for user: ${userId}`);
             } else if (pattern.includes('wallet')) {
               const userId = (req as any).user?.id;
               if (userId) {
-                console.log(`💰 CACHE-ASIDE: Invalidating wallet cache for user: ${userId}`);
                 await cacheHelpers.invalidateWalletData(userId);
-                console.log(`✅ CACHE-ASIDE: Wallet cache invalidated for user: ${userId}`);
               }
             } else if (pattern.includes('products')) {
               await cacheHelpers.invalidateProducts();
@@ -48,9 +44,7 @@ export function cacheInvalidationMiddleware(options: CacheInvalidationOptions) {
             } else if (pattern.includes('cart')) {
               const userId = (req as any).user?.id;
               if (userId) {
-                console.log(`🛒 CACHE-ASIDE: Invalidating cart cache for user: ${userId}`);
                 await cacheHelpers.invalidateCartData(userId);
-                console.log(`✅ CACHE-ASIDE: Cart cache invalidated for user: ${userId}`);
               }
             }
           } catch (error) {
@@ -59,9 +53,7 @@ export function cacheInvalidationMiddleware(options: CacheInvalidationOptions) {
         });
         
         // Execute invalidations immediately but don't block response
-        Promise.all(invalidationPromises).then(() => {
-          console.log(`🎯 CACHE-ASIDE: All invalidations completed`);
-        }).catch(error => {
+        Promise.all(invalidationPromises).catch(error => {
           console.warn('Cache invalidation error:', error);
         });
       }

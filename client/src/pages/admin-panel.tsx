@@ -1077,16 +1077,16 @@ function EditProductIntegratedSection({
   };
 
   const handleSaveKeys = () => {
-    const keys = editLicenseKeys.split('\n').filter(k => k.trim()).map(k => k.trim());
+    const keys = editLicenseKeys.split('\n').filter((k: string) => k.trim()).map((k: string) => k.trim());
     if (keys.length > 0) {
       saveKeysMutation.mutate(keys);
     }
   };
 
   const handleSaveKeysIgnoreDuplicates = () => {
-    const keys = editLicenseKeys.split('\n').filter(k => k.trim()).map(k => k.trim());
+    const keys = editLicenseKeys.split('\n').filter((k: string) => k.trim()).map((k: string) => k.trim());
     // Remove duplicates from the keys array
-    const uniqueKeys = keys.filter(key => !duplicateWarning.includes(key));
+    const uniqueKeys = keys.filter((key: string) => !duplicateWarning.includes(key));
     if (uniqueKeys.length > 0) {
       saveKeysMutation.mutate(uniqueKeys);
     }
@@ -1609,7 +1609,7 @@ XYZ12-ABC34-DEF56-GHI78-JKL90
 ...`}
                   />
                   <p className="mt-2 text-xs text-gray-500">
-                    {editLicenseKeys.split('\n').filter(k => k.trim()).length} keys ready to add
+                    {editLicenseKeys.split('\n').filter((k: string) => k.trim()).length} keys ready to add
                   </p>
                 </div>
 
@@ -1656,49 +1656,6 @@ XYZ12-ABC34-DEF56-GHI78-JKL90
           )}
         </CardContent>
       </Card>
-
-      {/* Duplicate Warning Dialog */}
-      {showDuplicateDialog && (
-        <Dialog open={showDuplicateDialog} onOpenChange={setShowDuplicateDialog}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle className="text-red-600 uppercase tracking-[0.5px]">
-                Duplicate Keys Found
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm text-gray-600 mb-3">
-                  The following keys already exist:
-                </p>
-                <div className="max-h-40 overflow-y-auto bg-gray-50 p-3 rounded-md">
-                  <ul className="text-xs font-mono space-y-1">
-                    {duplicateWarning.map((key, index) => (
-                      <li key={index} className="text-red-600">{key}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-              
-              <div className="flex justify-end space-x-3">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowDuplicateDialog(false)}
-                  className="px-4"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleSaveKeysIgnoreDuplicates}
-                  className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white px-4"
-                >
-                  Save Anyway
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
     </div>
   );
 }
@@ -2289,7 +2246,7 @@ XYZ12-ABC34-DEF56-GHI78-JKL90
 
             <div className="flex justify-between items-center pt-4 border-t">
               <div className="text-sm text-gray-600">
-                {licenseKeys.split('\n').filter(k => k.trim()).length} keys ready to add
+                {licenseKeys.split('\n').filter((k: string) => k.trim()).length} keys ready to add
               </div>
               
               <div className="flex space-x-3">
@@ -2331,7 +2288,7 @@ XYZ12-ABC34-DEF56-GHI78-JKL90
                 </p>
                 <div className="max-h-40 overflow-y-auto bg-gray-50 p-3 rounded-md">
                   <ul className="text-xs font-mono space-y-1">
-                    {duplicateWarning.map((key, index) => (
+                    {duplicateWarning.map((key: string, index: number) => (
                       <li key={index} className="text-red-600">{key}</li>
                     ))}
                   </ul>

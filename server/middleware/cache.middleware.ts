@@ -44,7 +44,7 @@ export function cacheMiddleware(options: CacheOptions = {}) {
           'Cache-Control': `public, max-age=${ttl}`
         });
         
-        console.log(`🎯 Cache HIT for tenant ${tenantId}: ${keyPrefix}`);
+
         return res.json(cachedResponse);
       }
 
@@ -69,7 +69,7 @@ export function cacheMiddleware(options: CacheOptions = {}) {
           'Cache-Control': `public, max-age=${ttl}`
         });
         
-        console.log(`💾 Cache MISS for tenant ${tenantId}: ${keyPrefix} - storing new data`);
+
         
         // Call original json method
         return originalJson(data);

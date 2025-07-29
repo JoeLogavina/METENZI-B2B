@@ -315,11 +315,11 @@ export class DatabaseStorage implements IStorage {
     // Since RLS policies are broken, we implement strict tenant filtering here
     if (userRole === 'admin' || userRole === 'super_admin') {
       // Admin can see all license keys across all tenants
-      console.log(`🔑 ADMIN ACCESS: User with role ${userRole} accessing all license keys`);
+
     } else if (tenantId) {
       // Regular users can only see keys from their specific tenant
       whereConditions.push(eq(licenseKeys.tenantId, tenantId));
-      console.log(`🛡️ TENANT ISOLATION: Filtering license keys for tenant ${tenantId}`);
+
     }
     
     const query = whereConditions.length > 0 

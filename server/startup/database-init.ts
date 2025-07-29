@@ -5,7 +5,7 @@ export async function initializeDatabase(): Promise<void> {
   const initTimingId = performanceService.startTiming('db-initialization');
   
   try {
-    console.log('🚀 Initializing database optimizations...');
+
     
     // Check if performance indexes exist
     const indexes = await dbOptimizationService.checkIndexes();
@@ -26,7 +26,7 @@ export async function initializeDatabase(): Promise<void> {
     // Clean up old data
     await dbOptimizationService.cleanupOldData();
     
-    console.log('🎯 Database initialization completed successfully');
+
     
   } catch (error) {
     console.error('❌ Database initialization failed:', error);

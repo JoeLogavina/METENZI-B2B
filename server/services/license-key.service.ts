@@ -25,10 +25,10 @@ export class LicenseKeyServiceImpl implements ILicenseKeyService {
       
       // CRITICAL SECURITY FIX: Enforce tenant isolation at service level
       if (userRole === 'admin' || userRole === 'super_admin') {
-        console.log(`🔑 ADMIN SERVICE ACCESS: User with role ${userRole} accessing all license keys for product ${productId}`);
+
       } else if (tenantId) {
         whereConditions.push(eq(licenseKeys.tenantId, tenantId));
-        console.log(`🛡️ TENANT SERVICE ISOLATION: Filtering license keys for tenant ${tenantId} and product ${productId}`);
+
       }
       
       const keys = await db
