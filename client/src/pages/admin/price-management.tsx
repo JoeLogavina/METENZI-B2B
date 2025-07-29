@@ -173,7 +173,11 @@ export default function PriceManagementPage() {
       // CRITICAL FIX: Remove cached data completely and force fresh fetch for Edit Product page
       queryClient.removeQueries({ queryKey: [`/api/admin/products/${updatedProduct.data.id}`] });
       queryClient.invalidateQueries({ queryKey: [`/api/admin/products/${updatedProduct.data.id}`] });
-      queryClient.refetchQueries({ queryKey: [`/api/admin/products/${updatedProduct.data.id}`] });
+      
+      // Force immediate refetch to trigger Edit Product page useEffect
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: [`/api/admin/products/${updatedProduct.data.id}`] });
+      }, 100);
       queryClient.invalidateQueries({ queryKey: [`/api/products/${updatedProduct.data.id}`] });
       queryClient.invalidateQueries({ queryKey: [`/api/retail/product-offers/${updatedProduct.data.id}`] });
       // Invalidate shop and admin panel caches

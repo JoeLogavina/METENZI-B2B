@@ -66,10 +66,13 @@ export default function EditProduct() {
     }
   }, [isAuthenticated, isLoading, toast]);
 
-  // Fetch product data
+  // Fetch product data with aggressive refetch to ensure fresh data
   const { data: product, isLoading: productLoading } = useQuery({
     queryKey: [`/api/admin/products/${productId}`],
     enabled: !!productId && isAuthenticated,
+    staleTime: 0, // Always consider data stale
+    refetchOnMount: true, // Always refetch on mount
+    refetchOnWindowFocus: true, // Refetch when window gains focus
   });
 
   // Fetch categories
