@@ -109,9 +109,9 @@ export default function EditProduct() {
         isActive: productData.isActive ?? true
       });
 
-      // FORCE EUR PRICING STATE UPDATE - This is the critical fix
+      // CRITICAL FIX: Display Price should show B2B Price (controlled from Price Management)
       const newEurPricing = {
-        price: productData.price || '',
+        price: productData.b2bPrice || '', // Display Price = B2B Price from Price Management
         purchasePrice: productData.purchasePrice || '',
         b2bPrice: productData.b2bPrice || '',
         retailPrice: productData.retailPrice || '',
@@ -498,15 +498,16 @@ export default function EditProduct() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <Label htmlFor="price" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-                    DISPLAY PRICE (€)
+                    DISPLAY PRICE (€) - Auto-synced from Price Management: €{eurPricing.b2bPrice}
                   </Label>
                   <Input
                     id="price"
                     type="number"
                     step="0.01"
-                    value={eurPricing.price}
-                    onChange={(e) => handleFormChange('eur', 'price', e.target.value)}
-                    className="mt-1"
+                    value={eurPricing.b2bPrice}
+                    disabled
+                    className="mt-1 bg-gray-100 cursor-not-allowed"
+                    placeholder="Controlled by Price Management"
                   />
                 </div>
 
@@ -538,19 +539,16 @@ export default function EditProduct() {
                   />
                 </div>
 
-                <div>
-                  <Label htmlFor="b2bPrice" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-                    B2B PRICE (€) - State: {eurPricing.b2bPrice} | Product: {(product as any)?.data?.b2bPrice || (product as any)?.b2bPrice}
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <Label className="text-sm font-medium text-blue-800 uppercase tracking-[0.5px] block mb-2">
+                    📊 B2B PRICE CONTROL - Managed via Price Management Panel
                   </Label>
-                  <Input
-                    id="b2bPrice"
-                    type="number"
-                    step="0.01"
-                    value={eurPricing.b2bPrice}
-                    onChange={(e) => handleFormChange('eur', 'b2bPrice', e.target.value)}
-                    className="mt-1"
-                    placeholder="Optional"
-                  />
+                  <div className="text-sm text-blue-700 mb-2">
+                    Current B2B Price: €{eurPricing.b2bPrice}
+                  </div>
+                  <div className="text-xs text-blue-600">
+                    To change the B2B price (which controls the Display Price), use the Price Management panel in the admin section.
+                  </div>
                 </div>
 
                 <div>
