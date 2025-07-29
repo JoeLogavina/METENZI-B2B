@@ -181,12 +181,24 @@ export class AdminProductsController {
   async updateProductPricing(req: Request, res: Response) {
     try {
       const { id } = productParamsSchema.parse(req.params);
-      const { purchasePrice, b2bPrice, retailPrice } = req.body;
-
-      console.log('🏛️ CENTRAL PRICING AUTHORITY - Received Request:', {
+      
+      console.log('🏛️ CENTRAL PRICING AUTHORITY - Raw Request:', {
         productId: id,
-        body: req.body,
+        rawBody: req.body,
+        bodyType: typeof req.body,
+        bodyKeys: Object.keys(req.body),
         timestamp: new Date().toISOString()
+      });
+
+      // CRITICAL: Extract and validate all pricing fields from request body
+      const purchasePrice = req.body.purchasePrice;
+      const b2bPrice = req.body.b2bPrice; 
+      const retailPrice = req.body.retailPrice;
+
+      console.log('🔍 EXTRACTED PRICING FIELDS:', {
+        purchasePrice: { value: purchasePrice, type: typeof purchasePrice },
+        b2bPrice: { value: b2bPrice, type: typeof b2bPrice },
+        retailPrice: { value: retailPrice, type: typeof retailPrice }
       });
 
       // CRITICAL: Build complete update data with all pricing fields
@@ -195,18 +207,22 @@ export class AdminProductsController {
       // Always update all three pricing fields to ensure complete synchronization
       if (purchasePrice !== undefined && purchasePrice !== null) {
         updateData.purchasePrice = purchasePrice.toString();
+        console.log('✅ PROCESSING: purchasePrice =', purchasePrice);
       }
       if (b2bPrice !== undefined && b2bPrice !== null) {
         updateData.b2bPrice = b2bPrice.toString();
+        console.log('✅ PROCESSING: b2bPrice =', b2bPrice);
       }
       if (retailPrice !== undefined && retailPrice !== null) {
         updateData.retailPrice = retailPrice.toString();
+        console.log('✅ PROCESSING: retailPrice =', retailPrice);
       }
 
       console.log('🏛️ CENTRAL PRICING AUTHORITY UPDATE:', {
         productId: id,
         changes: updateData,
         fieldsReceived: Object.keys(req.body),
+        fieldsToUpdate: Object.keys(updateData),
         timestamp: new Date().toISOString()
       });
 
