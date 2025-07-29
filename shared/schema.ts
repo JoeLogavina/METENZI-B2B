@@ -47,6 +47,16 @@ export const users = pgTable("users", {
   role: userRoleEnum("role").default("b2b_user").notNull(),
   tenantId: varchar("tenant_id").notNull().default("eur"), // EUR or KM tenant
   isActive: boolean("is_active").default(true).notNull(),
+  // B2B Client Required Fields
+  companyName: varchar("company_name"),
+  phone: varchar("phone"),
+  country: varchar("country"),
+  city: varchar("city"),
+  address: text("address"),
+  vatOrRegistrationNo: varchar("vat_or_registration_no"),
+  // Optional B2B Client Fields
+  contactPerson: varchar("contact_person"),
+  companyDescription: text("company_description"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -193,6 +203,21 @@ export const adminPermissions = pgTable("admin_permissions", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// User-specific product pricing table for per-client pricing
+export const userProductPricing = pgTable("user_product_pricing", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  productId: varchar("product_id").references(() => products.id).notNull(),
+  customPrice: decimal("custom_price", { precision: 10, scale: 2 }).notNull(),
+  isVisible: boolean("is_visible").default(true).notNull(), // Whether user can see this product
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_user_product_pricing_user").on(table.userId),
+  index("idx_user_product_pricing_product").on(table.productId),
+  index("idx_user_product_pricing_user_product").on(table.userId, table.productId),
+]);
+
 // Relations
 export const usersRelations = relations(users, ({ many, one }) => ({
   orders: many(orders),
@@ -202,6 +227,7 @@ export const usersRelations = relations(users, ({ many, one }) => ({
     fields: [users.id],
     references: [adminPermissions.userId],
   }),
+  customPricing: many(userProductPricing),
 }));
 
 export const productsRelations = relations(products, ({ one, many }) => ({
@@ -212,6 +238,7 @@ export const productsRelations = relations(products, ({ one, many }) => ({
   licenseKeys: many(licenseKeys),
   orderItems: many(orderItems),
   cartItems: many(cartItems),
+  userPricing: many(userProductPricing),
 }));
 
 export const categoriesRelations = relations(categories, ({ many }) => ({
@@ -286,6 +313,17 @@ export const orderItemsRelations = relations(orderItems, ({ one }) => ({
   licenseKey: one(licenseKeys, {
     fields: [orderItems.licenseKeyId],
     references: [licenseKeys.id],
+  }),
+}));
+
+export const userProductPricingRelations = relations(userProductPricing, ({ one }) => ({
+  user: one(users, {
+    fields: [userProductPricing.userId],
+    references: [users.id],
+  }),
+  product: one(products, {
+    fields: [userProductPricing.productId],
+    references: [products.id],
   }),
 }));
 
@@ -384,6 +422,14 @@ export const insertCartItemSchema = createInsertSchema(cartItems).omit({
   createdAt: true,
 });
 
+export const insertUserProductPricingSchema = createInsertSchema(userProductPricing).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  customPrice: z.union([z.string(), z.number()]).transform(val => String(val)),
+});
+
 // Event sourcing schemas
 export const insertCartEventSchema = createInsertSchema(cartEvents).omit({
   id: true,
@@ -434,6 +480,8 @@ export type WalletTransaction = typeof walletTransactions.$inferSelect;
 export type InsertWalletTransaction = typeof walletTransactions.$inferInsert;
 export type AdminPermissions = typeof adminPermissions.$inferSelect;
 export type InsertAdminPermissions = z.infer<typeof insertAdminPermissionsSchema>;
+export type UserProductPricing = typeof userProductPricing.$inferSelect;
+export type InsertUserProductPricing = z.infer<typeof insertUserProductPricingSchema>;
 
 // Event sourcing types
 export type CartEvent = typeof cartEvents.$inferSelect;

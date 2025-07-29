@@ -496,7 +496,12 @@ export default function AdminPanel() {
                                     </div>
                                     <div className="ml-4">
                                       <div className="text-sm font-medium text-[#6E6F71]">
-                                        {userData.firstName} {userData.lastName}
+                                        <button
+                                          onClick={() => setLocation(`/admin/users/edit?id=${userData.id}`)}
+                                          className="text-[#FFB20F] hover:text-[#e6a00e] underline cursor-pointer"
+                                        >
+                                          {userData.firstName} {userData.lastName}
+                                        </button>
                                       </div>
                                       <div className="text-sm text-gray-500">@{userData.username}</div>
                                     </div>
