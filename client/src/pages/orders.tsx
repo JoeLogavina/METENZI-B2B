@@ -38,16 +38,10 @@ import { useLocation } from "wouter";
 
 interface LicenseKey {
   id: string;
-  productId: string;
-  licenseKey: string;
+  keyValue: string;
   usedBy: string | null;
   usedAt: string | null;
   createdAt: string;
-  product: {
-    id: string;
-    name: string;
-    platform: string;
-  };
 }
 
 interface LicenseKeyTableRow {
@@ -227,7 +221,7 @@ export default function OrdersPage() {
   const copyOrderKeys = async (order: Order) => {
     const orderKeys = order.items
       .filter(item => item.licenseKey)
-      .map(item => item.licenseKey!.licenseKey);
+      .map(item => item.licenseKey!.keyValue);
     
     const keysText = orderKeys.join('\n');
     
@@ -253,7 +247,7 @@ export default function OrdersPage() {
     order.items.forEach(item => {
       if (item.licenseKey) {
         excelData.push({
-          licenseKey: item.licenseKey.licenseKey,
+          licenseKey: item.licenseKey.keyValue,
           productTitle: item.product.name,
           price: formatPrice(parseFloat(item.unitPrice)),
           orderNumber: order.orderNumber,
@@ -554,7 +548,7 @@ export default function OrdersPage() {
                             .map((item, index) => (
                               <tr key={item.id} className={index % 2 === 0 ? 'bg-gray-50 dark:bg-gray-900' : 'bg-white dark:bg-gray-800'}>
                                 <td className="p-2 font-mono text-xs border-r font-bold">
-                                  {item.licenseKey!.licenseKey}
+                                  {item.licenseKey?.keyValue || 'N/A'}
                                 </td>
                                 <td className="p-2 border-r">
                                   {item.product.name}
@@ -580,7 +574,7 @@ export default function OrdersPage() {
                                 <td className="p-2">
                                   <Button
                                     size="sm"
-                                    onClick={() => copyToClipboard(item.licenseKey!.licenseKey)}
+                                    onClick={() => copyToClipboard(item.licenseKey?.keyValue || 'N/A')}
                                     className="gap-1 bg-[#FFB20F] hover:bg-[#e09d0d] text-black"
                                   >
                                     <Copy className="h-3 w-3" />

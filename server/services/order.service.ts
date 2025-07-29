@@ -62,6 +62,8 @@ export class OrderService {
    * Get orders for a specific user with proper tenant isolation
    */
   async getUserOrders(userId: string, tenantId: string): Promise<OrderData[]> {
+    console.log('🔍 getUserOrders called for:', { userId, tenantId });
+    
     // Enterprise-level tenant isolation at application level 
     const userOrders = await db
       .select()
