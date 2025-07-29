@@ -33,6 +33,7 @@ import {
 import WalletManagement from "@/components/wallet-management";
 import UserForm from "@/components/user-form";
 import PriceManagementPage from "@/pages/admin/price-management";
+import UserEdit from "@/pages/admin/user-edit";
 import { formatAdminPrice, convertEurToKm } from "@/lib/currency-utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -64,6 +65,7 @@ export default function AdminPanel() {
   const [showUserForm, setShowUserForm] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
   const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
   
   // Edit product states
   const [editProductFormData, setEditProductFormData] = useState({
@@ -505,8 +507,8 @@ export default function AdminPanel() {
                                       <div className="text-sm font-medium text-[#6E6F71]">
                                         <button
                                           onClick={() => {
-                                            console.log('User clicked:', userData);
-                                            setSelectedUser(userData);
+                                            setEditingUserId(userData.id);
+                                            setActiveSection('edit-user');
                                           }}
                                           className="text-[#FFB20F] hover:text-[#e6a00e] underline cursor-pointer"
                                         >
@@ -600,6 +602,16 @@ export default function AdminPanel() {
 
             {activeSection === 'price-management' && (
               <PriceManagementPage />
+            )}
+
+            {activeSection === 'edit-user' && editingUserId && (user as any)?.role === 'super_admin' && (
+              <UserEdit
+                userId={editingUserId}
+                onBack={() => {
+                  setEditingUserId(null);
+                  setActiveSection('users');
+                }}
+              />
             )}
 
             {activeSection === 'products' && (

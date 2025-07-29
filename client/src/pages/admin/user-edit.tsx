@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
-import { useLocation } from "wouter";
-import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,324 +11,307 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Save, Plus, Trash2, Edit, DollarSign, CreditCard, History, Package } from "lucide-react";
+import { ArrowLeft, User, CreditCard, Package, History, Plus, Minus, Save, Eye, EyeOff } from "lucide-react";
 import { formatAdminPrice } from "@/lib/currency-utils";
-import type { User, Product, UserProductPricing, WalletTransaction } from "@shared/schema";
 
-export default function UserEditPage() {
-  const [location, setLocation] = useLocation();
-  const { user: currentUser } = useAuth();
+interface UserEditProps {
+  userId: string;
+  onBack: () => void;
+}
+
+export default function UserEdit({ userId, onBack }: UserEditProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState("profile");
   
-  // Extract user ID from URL query params
-  const searchParams = new URLSearchParams(window.location.search);
-  const userId = searchParams.get('id');
-  
-  // Local state for form data
-  const [formData, setFormData] = useState<Partial<User>>({});
-  const [newDeposit, setNewDeposit] = useState('');
-  const [newCreditLimit, setNewCreditLimit] = useState('');
-  const [selectedProducts, setSelectedProducts] = useState<{[key: string]: { price: string; visible: boolean }}>({});
+  // Profile form state
+  const [profileData, setProfileData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    companyName: '',
+    contactPerson: '',
+    companyDescription: '',
+    phone: '',
+    country: '',
+    city: '',
+    address: '',
+    vatOrRegistrationNo: '',
+    isActive: true
+  });
+
+  // Wallet management state
+  const [depositAmount, setDepositAmount] = useState('');
+  const [creditLimit, setCreditLimit] = useState('');
+  const [depositDescription, setDepositDescription] = useState('');
+
+  // Product pricing state
+  const [customPricing, setCustomPricing] = useState<any[]>([]);
+  const [allProducts, setAllProducts] = useState<any[]>([]);
 
   // Fetch user data
   const { data: userData, isLoading: userLoading } = useQuery({
-    queryKey: ['/api/admin/users', userId],
-    queryFn: async () => {
-      const response = await fetch(`/api/admin/users/${userId}`, {
-        credentials: 'include',
-      });
-      if (!response.ok) throw new Error('Failed to fetch user');
-      return response.json();
-    },
+    queryKey: [`/api/admin/users/${userId}`],
     enabled: !!userId,
   });
 
-  // Fetch all products for custom pricing tab
-  const { data: productsData } = useQuery({
-    queryKey: ['/api/admin/products'],
-    queryFn: async () => {
-      const response = await fetch('/api/admin/products', {
-        credentials: 'include',
-      });
-      if (!response.ok) throw new Error('Failed to fetch products');
-      return response.json();
-    },
+  // Fetch wallet data
+  const { data: walletData, isLoading: walletLoading, refetch: refetchWallet } = useQuery({
+    queryKey: [`/api/admin/users/${userId}/wallet`],
+    enabled: !!userId,
   });
 
   // Fetch user's custom pricing
-  const { data: userPricingData } = useQuery({
-    queryKey: ['/api/admin/users', userId, 'pricing'],
-    queryFn: async () => {
-      const response = await fetch(`/api/admin/users/${userId}/pricing`, {
-        credentials: 'include',
-      });
-      if (!response.ok) throw new Error('Failed to fetch pricing');
-      return response.json();
-    },
+  const { data: userPricing = [], refetch: refetchPricing } = useQuery({
+    queryKey: [`/api/admin/users/${userId}/pricing`],
     enabled: !!userId,
   });
 
-  // Fetch user's wallet transactions
-  const { data: transactionsData } = useQuery({
-    queryKey: ['/api/admin/users', userId, 'transactions'],
-    queryFn: async () => {
-      const response = await fetch(`/api/admin/users/${userId}/transactions`, {
-        credentials: 'include',
-      });
-      if (!response.ok) throw new Error('Failed to fetch transactions');
-      return response.json();
-    },
-    enabled: !!userId,
+  // Fetch all products for pricing management
+  const { data: products = [] } = useQuery({
+    queryKey: ['/api/admin/products'],
+    enabled: !!userId && activeTab === 'products',
   });
 
-  // Fetch user's payment history (orders)
-  const { data: paymentsData } = useQuery({
-    queryKey: ['/api/admin/users', userId, 'payments'],
-    queryFn: async () => {
-      const response = await fetch(`/api/admin/users/${userId}/payments`, {
-        credentials: 'include',
-      });
-      if (!response.ok) throw new Error('Failed to fetch payments');
-      return response.json();
-    },
-    enabled: !!userId,
+  // Fetch transaction history
+  const { data: transactions = [] } = useQuery({
+    queryKey: [`/api/admin/users/${userId}/transactions`],
+    enabled: !!userId && activeTab === 'transactions',
   });
 
-  // Fetch user's wallet data
-  const { data: walletData } = useQuery({
-    queryKey: ['/api/admin/users', userId, 'wallet'],
-    queryFn: async () => {
-      const response = await fetch(`/api/admin/users/${userId}/wallet`, {
-        credentials: 'include',
-      });
-      if (!response.ok) throw new Error('Failed to fetch wallet');
-      return response.json();
-    },
-    enabled: !!userId,
+  // Fetch payment history
+  const { data: payments = [] } = useQuery({
+    queryKey: [`/api/admin/users/${userId}/payments`],
+    enabled: !!userId && activeTab === 'payments',
   });
 
-  // Update profile mutation
-  const updateProfileMutation = useMutation({
-    mutationFn: async (data: Partial<User>) => {
-      const response = await fetch(`/api/admin/users/${userId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) throw new Error('Failed to update profile');
-      return response.json();
-    },
-    onSuccess: () => {
-      toast({ title: "Success", description: "User profile updated successfully" });
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
-    },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to update user profile", variant: "destructive" });
-    },
-  });
-
-  // Add deposit mutation
-  const addDepositMutation = useMutation({
-    mutationFn: async (amount: string) => {
-      const response = await fetch(`/api/admin/users/${userId}/wallet/deposit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ amount: parseFloat(amount) }),
-      });
-      if (!response.ok) throw new Error('Failed to add deposit');
-      return response.json();
-    },
-    onSuccess: () => {
-      toast({ title: "Success", description: "Deposit added successfully" });
-      setNewDeposit('');
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/users', userId, 'wallet'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/users', userId, 'transactions'] });
-    },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to add deposit", variant: "destructive" });
-    },
-  });
-
-  // Update credit limit mutation
-  const updateCreditMutation = useMutation({
-    mutationFn: async (creditLimit: string) => {
-      const response = await fetch(`/api/admin/users/${userId}/wallet/credit-limit`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ creditLimit: parseFloat(creditLimit) }),
-      });
-      if (!response.ok) throw new Error('Failed to update credit limit');
-      return response.json();
-    },
-    onSuccess: () => {
-      toast({ title: "Success", description: "Credit limit updated successfully" });
-      setNewCreditLimit('');
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/users', userId, 'wallet'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/users', userId, 'transactions'] });
-    },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to update credit limit", variant: "destructive" });
-    },
-  });
-
-  // Update product pricing mutation
-  const updateProductPricingMutation = useMutation({
-    mutationFn: async ({ productId, customPrice, isVisible }: { productId: string; customPrice: string; isVisible: boolean }) => {
-      const response = await fetch(`/api/admin/users/${userId}/pricing`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ productId, customPrice, isVisible }),
-      });
-      if (!response.ok) throw new Error('Failed to update pricing');
-      return response.json();
-    },
-    onSuccess: () => {
-      toast({ title: "Success", description: "Product pricing updated successfully" });
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/users', userId, 'pricing'] });
-    },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to update product pricing", variant: "destructive" });
-    },
-  });
-
-  // Initialize form data when user data loads
+  // Update profile data when user data loads
   useEffect(() => {
-    if (userData?.data) {
-      setFormData(userData.data);
+    if (userData) {
+      setProfileData({
+        firstName: userData.firstName || '',
+        lastName: userData.lastName || '',
+        email: userData.email || '',
+        companyName: userData.companyName || '',
+        contactPerson: userData.contactPerson || '',
+        companyDescription: userData.companyDescription || '',
+        phone: userData.phone || '',
+        country: userData.country || '',
+        city: userData.city || '',
+        address: userData.address || '',
+        vatOrRegistrationNo: userData.vatOrRegistrationNo || '',
+        isActive: userData.isActive ?? true
+      });
     }
   }, [userData]);
 
-  // Initialize product pricing data
+  // Update wallet form when wallet data loads
   useEffect(() => {
-    if (userPricingData?.data && productsData?.data) {
-      const pricing: {[key: string]: { price: string; visible: boolean }} = {};
-      
-      // Set existing custom prices
-      userPricingData.data.forEach((item: UserProductPricing & { product: Product }) => {
-        pricing[item.productId] = {
-          price: item.customPrice,
-          visible: item.isVisible
-        };
-      });
-      
-      // Add products without custom pricing with default prices
-      productsData.data.forEach((product: Product) => {
-        if (!pricing[product.id]) {
-          pricing[product.id] = {
-            price: product.b2bPrice || product.price,
-            visible: true
-          };
-        }
-      });
-      
-      setSelectedProducts(pricing);
+    if (walletData?.data) {
+      setCreditLimit(walletData.data.creditLimit || '0.00');
     }
-  }, [userPricingData, productsData]);
+  }, [walletData]);
 
-  if (!userId) {
-    return (
-      <div className="p-6">
-        <Card>
-          <CardContent className="p-6">
-            <p className="text-red-600">No user ID provided</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  // Update pricing data when it loads
+  useEffect(() => {
+    if (products.length && userPricing.length) {
+      const pricingMap = new Map(userPricing.map((p: any) => [p.productId, p]));
+      setCustomPricing(products.map((product: any) => ({
+        ...product,
+        customPrice: pricingMap.get(product.id)?.customPrice || product.b2bPrice || product.price,
+        isVisible: pricingMap.get(product.id)?.isVisible ?? true,
+        hasCustomPricing: pricingMap.has(product.id)
+      })));
+    }
+  }, [products, userPricing]);
+
+  // Profile update mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return apiRequest('PATCH', `/api/admin/users/${userId}`, data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "User profile updated successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/users/${userId}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update profile",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Deposit mutation
+  const addDepositMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return apiRequest('POST', `/api/admin/users/${userId}/deposit`, data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Deposit added successfully",
+      });
+      setDepositAmount('');
+      setDepositDescription('');
+      refetchWallet();
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/users/${userId}/transactions`] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add deposit",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Credit limit mutation
+  const updateCreditLimitMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return apiRequest('PATCH', `/api/admin/users/${userId}/credit-limit`, data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Credit limit updated successfully",
+      });
+      refetchWallet();
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/users/${userId}/transactions`] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update credit limit",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Pricing update mutation
+  const updatePricingMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return apiRequest('POST', `/api/admin/users/${userId}/pricing`, data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Product pricing updated successfully",
+      });
+      refetchPricing();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update pricing",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Handle profile save
+  const handleProfileSave = () => {
+    updateProfileMutation.mutate(profileData);
+  };
+
+  // Handle deposit addition
+  const handleAddDeposit = () => {
+    if (!depositAmount || parseFloat(depositAmount) <= 0) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid deposit amount",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    addDepositMutation.mutate({
+      amount: parseFloat(depositAmount),
+      description: depositDescription || `Deposit added by admin`
+    });
+  };
+
+  // Handle credit limit update
+  const handleUpdateCreditLimit = () => {
+    if (!creditLimit || parseFloat(creditLimit) < 0) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid credit limit",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    updateCreditLimitMutation.mutate({
+      creditLimit: parseFloat(creditLimit)
+    });
+  };
+
+  // Handle pricing update
+  const handlePricingUpdate = (productId: string, customPrice: string, isVisible: boolean) => {
+    updatePricingMutation.mutate({
+      productId,
+      customPrice: parseFloat(customPrice),
+      isVisible
+    });
+  };
 
   if (userLoading) {
     return (
-      <div className="p-6">
-        <Card>
-          <CardContent className="p-6">
-            <p>Loading user data...</p>
-          </CardContent>
-        </Card>
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FFB20F]"></div>
       </div>
     );
   }
 
-  if (!userData?.data) {
+  if (!userData) {
     return (
-      <div className="p-6">
-        <Card>
-          <CardContent className="p-6">
-            <p className="text-red-600">User not found</p>
-          </CardContent>
-        </Card>
+      <div className="text-center py-8">
+        <p className="text-[#6E6F71]">User not found</p>
+        <Button onClick={onBack} className="mt-4">
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to Users
+        </Button>
       </div>
     );
   }
-
-  const handleProfileSave = () => {
-    updateProfileMutation.mutate(formData);
-  };
-
-  const handleAddDeposit = () => {
-    if (newDeposit && !isNaN(parseFloat(newDeposit)) && parseFloat(newDeposit) > 0) {
-      addDepositMutation.mutate(newDeposit);
-    }
-  };
-
-  const handleUpdateCreditLimit = () => {
-    if (newCreditLimit && parseFloat(newCreditLimit) >= 0) {
-      updateCreditMutation.mutate(newCreditLimit);
-    }
-  };
-
-  const handleProductPricingUpdate = (productId: string) => {
-    const productPricing = selectedProducts[productId];
-    if (productPricing && parseFloat(productPricing.price) >= 0) {
-      updateProductPricingMutation.mutate({
-        productId,
-        customPrice: productPricing.price,
-        isVisible: productPricing.visible
-      });
-    }
-  };
-
-  const user = userData.data;
-  const wallet = walletData?.data;
-  const transactions = transactionsData?.data || [];
-  const payments = paymentsData?.data || [];
-  const products = productsData?.data || [];
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Button
+            onClick={onBack}
             variant="outline"
-            onClick={() => setLocation('/admin')}
+            size="sm"
             className="text-[#6E6F71] border-[#6E6F71] hover:bg-[#6E6F71] hover:text-white"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Admin
+            Back to Users
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-[#6E6F71] uppercase tracking-[0.5px]">
-              Edit User: {user.firstName} {user.lastName}
-            </h1>
-            <p className="text-[#6E6F71]">@{user.username} • {user.email}</p>
+            <h3 className="text-lg font-semibold text-[#6E6F71] uppercase tracking-[0.5px]">
+              EDIT USER: {userData.firstName} {userData.lastName}
+            </h3>
+            <p className="text-sm text-[#6E6F71]">@{userData.username} • {userData.email}</p>
           </div>
         </div>
-        <Badge variant={user.isActive ? "default" : "destructive"}>
-          {user.isActive ? "Active" : "Inactive"}
+        <Badge variant={userData.isActive ? "default" : "destructive"}>
+          {userData.isActive ? "Active" : "Inactive"}
         </Badge>
       </div>
 
-      {/* Main Content */}
-      <Tabs defaultValue="profile" className="space-y-6">
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="profile" className="flex items-center space-x-2">
-            <DollarSign className="w-4 h-4" />
+            <User className="w-4 h-4" />
             <span>Profile & Credit</span>
           </TabsTrigger>
           <TabsTrigger value="products" className="flex items-center space-x-2">
@@ -346,33 +328,32 @@ export default function UserEditPage() {
           </TabsTrigger>
         </TabsList>
 
-        {/* Profile & Credit Tab */}
+        {/* Profile Information & Credit Management */}
         <TabsContent value="profile" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Profile Information */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Edit className="w-5 h-5" />
-                  <span>Profile Information</span>
-                </CardTitle>
+                <CardTitle className="text-[#6E6F71]">Profile Information</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="firstName">First Name *</Label>
                     <Input
                       id="firstName"
-                      value={formData.firstName || ''}
-                      onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
+                      value={profileData.firstName}
+                      onChange={(e) => setProfileData(prev => ({ ...prev, firstName: e.target.value }))}
+                      required
                     />
                   </div>
                   <div>
                     <Label htmlFor="lastName">Last Name *</Label>
                     <Input
                       id="lastName"
-                      value={formData.lastName || ''}
-                      onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
+                      value={profileData.lastName}
+                      onChange={(e) => setProfileData(prev => ({ ...prev, lastName: e.target.value }))}
+                      required
                     />
                   </div>
                 </div>
@@ -382,17 +363,9 @@ export default function UserEditPage() {
                   <Input
                     id="email"
                     type="email"
-                    value={formData.email || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="phone">Phone *</Label>
-                  <Input
-                    id="phone"
-                    value={formData.phone || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                    value={profileData.email}
+                    onChange={(e) => setProfileData(prev => ({ ...prev, email: e.target.value }))}
+                    required
                   />
                 </div>
 
@@ -400,8 +373,9 @@ export default function UserEditPage() {
                   <Label htmlFor="companyName">Company Name *</Label>
                   <Input
                     id="companyName"
-                    value={formData.companyName || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
+                    value={profileData.companyName}
+                    onChange={(e) => setProfileData(prev => ({ ...prev, companyName: e.target.value }))}
+                    required
                   />
                 </div>
 
@@ -409,26 +383,59 @@ export default function UserEditPage() {
                   <Label htmlFor="contactPerson">Contact Person</Label>
                   <Input
                     id="contactPerson"
-                    value={formData.contactPerson || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, contactPerson: e.target.value }))}
+                    value={profileData.contactPerson}
+                    onChange={(e) => setProfileData(prev => ({ ...prev, contactPerson: e.target.value }))}
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="companyDescription">A word about your company</Label>
+                  <Textarea
+                    id="companyDescription"
+                    value={profileData.companyDescription}
+                    onChange={(e) => setProfileData(prev => ({ ...prev, companyDescription: e.target.value }))}
+                    rows={3}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="phone">Phone *</Label>
+                    <Input
+                      id="phone"
+                      value={profileData.phone}
+                      onChange={(e) => setProfileData(prev => ({ ...prev, phone: e.target.value }))}
+                      required
+                    />
+                  </div>
                   <div>
                     <Label htmlFor="country">Country *</Label>
                     <Input
                       id="country"
-                      value={formData.country || ''}
-                      onChange={(e) => setFormData(prev => ({ ...prev, country: e.target.value }))}
+                      value={profileData.country}
+                      onChange={(e) => setProfileData(prev => ({ ...prev, country: e.target.value }))}
+                      required
                     />
                   </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="city">City *</Label>
                     <Input
                       id="city"
-                      value={formData.city || ''}
-                      onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
+                      value={profileData.city}
+                      onChange={(e) => setProfileData(prev => ({ ...prev, city: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="vatOrRegistrationNo">VAT or Registration No. *</Label>
+                    <Input
+                      id="vatOrRegistrationNo"
+                      value={profileData.vatOrRegistrationNo}
+                      onChange={(e) => setProfileData(prev => ({ ...prev, vatOrRegistrationNo: e.target.value }))}
+                      required
                     />
                   </div>
                 </div>
@@ -437,296 +444,273 @@ export default function UserEditPage() {
                   <Label htmlFor="address">Address *</Label>
                   <Textarea
                     id="address"
-                    value={formData.address || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+                    value={profileData.address}
+                    onChange={(e) => setProfileData(prev => ({ ...prev, address: e.target.value }))}
+                    rows={2}
+                    required
                   />
                 </div>
 
-                <div>
-                  <Label htmlFor="vatOrRegistrationNo">VAT or Registration No. *</Label>
-                  <Input
-                    id="vatOrRegistrationNo"
-                    value={formData.vatOrRegistrationNo || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, vatOrRegistrationNo: e.target.value }))}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="companyDescription">A word about your company</Label>
-                  <Textarea
-                    id="companyDescription"
-                    value={formData.companyDescription || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, companyDescription: e.target.value }))}
-                  />
-                </div>
-
-                <Button 
+                <Button
                   onClick={handleProfileSave}
                   disabled={updateProfileMutation.isPending}
-                  className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white"
+                  className="w-full bg-[#FFB20F] hover:bg-[#e6a00e] text-white"
                 >
                   <Save className="w-4 h-4 mr-2" />
-                  {updateProfileMutation.isPending ? 'Saving...' : 'Save Profile'}
+                  {updateProfileMutation.isPending ? "Saving..." : "Save Profile"}
                 </Button>
               </CardContent>
             </Card>
 
-            {/* Credit & Wallet Management */}
+            {/* Wallet Management */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <DollarSign className="w-5 h-5" />
-                  <span>Credit & Wallet Management</span>
-                </CardTitle>
+                <CardTitle className="text-[#6E6F71]">Wallet & Credit Management</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {wallet && (
+                {walletLoading ? (
+                  <div className="flex items-center justify-center h-32">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#FFB20F]"></div>
+                  </div>
+                ) : walletData?.data ? (
                   <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label>Deposit Balance</Label>
-                        <p className="text-2xl font-bold text-green-600">
-                          {formatAdminPrice(wallet.depositBalance, user.tenantId)}
-                        </p>
-                      </div>
-                      <div>
-                        <Label>Credit Limit</Label>
-                        <p className="text-2xl font-bold text-blue-600">
-                          {formatAdminPrice(wallet.creditLimit, user.tenantId)}
-                        </p>
+                    {/* Current Balance Overview */}
+                    <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                      <h4 className="font-medium text-[#6E6F71]">Current Balance</h4>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-gray-500">Deposit Balance:</span>
+                          <p className="font-medium text-[#FFB20F]">€{walletData.data.depositBalance}</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Credit Used:</span>
+                          <p className="font-medium text-red-600">€{walletData.data.creditUsed}</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Credit Limit:</span>
+                          <p className="font-medium">€{walletData.data.creditLimit}</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Total Available:</span>
+                          <p className="font-bold text-green-600">€{walletData.data.totalAvailable}</p>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    {/* Add Deposit */}
+                    <div className="space-y-3">
+                      <h4 className="font-medium text-[#6E6F71]">Add Deposit</h4>
                       <div>
-                        <Label>Credit Used</Label>
-                        <p className="text-lg font-semibold text-red-600">
-                          {formatAdminPrice(wallet.creditUsed, user.tenantId)}
-                        </p>
+                        <Label htmlFor="depositAmount">Amount (EUR)</Label>
+                        <Input
+                          id="depositAmount"
+                          type="number"
+                          step="0.01"
+                          value={depositAmount}
+                          onChange={(e) => setDepositAmount(e.target.value)}
+                          placeholder="0.00"
+                        />
                       </div>
                       <div>
-                        <Label>Total Available</Label>
-                        <p className="text-lg font-semibold text-[#FFB20F]">
-                          {formatAdminPrice(wallet.totalAvailable, user.tenantId)}
-                        </p>
+                        <Label htmlFor="depositDescription">Description</Label>
+                        <Input
+                          id="depositDescription"
+                          value={depositDescription}
+                          onChange={(e) => setDepositDescription(e.target.value)}
+                          placeholder="Deposit reason (optional)"
+                        />
                       </div>
+                      <Button
+                        onClick={handleAddDeposit}
+                        disabled={addDepositMutation.isPending}
+                        className="w-full bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        {addDepositMutation.isPending ? "Adding..." : "Add Deposit"}
+                      </Button>
                     </div>
 
-                    <div className="border-t pt-4 space-y-4">
+                    {/* Update Credit Limit */}
+                    <div className="space-y-3">
+                      <h4 className="font-medium text-[#6E6F71]">Update Credit Limit</h4>
                       <div>
-                        <Label htmlFor="newDeposit">Add Deposit</Label>
-                        <div className="flex space-x-2">
-                          <Input
-                            id="newDeposit"
-                            type="number"
-                            step="0.01"
-                            placeholder="0.00"
-                            value={newDeposit}
-                            onChange={(e) => setNewDeposit(e.target.value)}
-                          />
-                          <Button 
-                            onClick={handleAddDeposit}
-                            disabled={addDepositMutation.isPending || !newDeposit}
-                            className="bg-green-600 hover:bg-green-700 text-white"
-                          >
-                            Add
-                          </Button>
-                        </div>
+                        <Label htmlFor="creditLimit">Credit Limit (EUR)</Label>
+                        <Input
+                          id="creditLimit"
+                          type="number"
+                          step="0.01"
+                          value={creditLimit}
+                          onChange={(e) => setCreditLimit(e.target.value)}
+                        />
                       </div>
-
-                      <div>
-                        <Label htmlFor="newCreditLimit">Change Credit Limit</Label>
-                        <div className="flex space-x-2">
-                          <Input
-                            id="newCreditLimit"
-                            type="number"
-                            step="0.01"
-                            placeholder={wallet.creditLimit}
-                            value={newCreditLimit}
-                            onChange={(e) => setNewCreditLimit(e.target.value)}
-                          />
-                          <Button 
-                            onClick={handleUpdateCreditLimit}
-                            disabled={updateCreditMutation.isPending || !newCreditLimit}
-                            className="bg-blue-600 hover:bg-blue-700 text-white"
-                          >
-                            Update
-                          </Button>
-                        </div>
-                      </div>
+                      <Button
+                        onClick={handleUpdateCreditLimit}
+                        disabled={updateCreditLimitMutation.isPending}
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        <Save className="w-4 h-4 mr-2" />
+                        {updateCreditLimitMutation.isPending ? "Updating..." : "Update Credit Limit"}
+                      </Button>
                     </div>
                   </div>
+                ) : (
+                  <p className="text-center text-gray-500">No wallet data found</p>
                 )}
               </CardContent>
             </Card>
           </div>
         </TabsContent>
 
-        {/* Company Products Tab */}
+        {/* Company Products */}
         <TabsContent value="products" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Package className="w-5 h-5" />
-                <span>Company Products - Custom Pricing</span>
-              </CardTitle>
-              <p className="text-sm text-[#6E6F71]">
-                Manage which products this user can see and set custom prices for them.
-              </p>
+              <CardTitle className="text-[#6E6F71]">Product Pricing & Visibility</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {products.map((product: Product) => (
-                  <div key={product.id} className="border rounded-lg p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <h4 className="font-semibold">{product.name}</h4>
-                        <p className="text-sm text-gray-600">{product.description}</p>
-                        <p className="text-xs text-gray-500">
-                          Default Price: {formatAdminPrice(product.b2bPrice || product.price, user.tenantId)}
-                        </p>
+              {customPricing.length > 0 ? (
+                <div className="space-y-2">
+                  {customPricing.map((product: any) => (
+                    <div key={product.id} className="flex items-center space-x-4 p-3 border rounded-lg">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-[#6E6F71] truncate">{product.name}</p>
+                        <p className="text-sm text-gray-500">Default: €{product.b2bPrice || product.price}</p>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <Label className="text-sm">Visible:</Label>
-                        <input
-                          type="checkbox"
-                          checked={selectedProducts[product.id]?.visible ?? true}
-                          onChange={(e) => setSelectedProducts(prev => ({
-                            ...prev,
-                            [product.id]: {
-                              ...prev[product.id],
-                              visible: e.target.checked,
-                              price: prev[product.id]?.price || product.b2bPrice || product.price
-                            }
-                          }))}
-                          className="h-4 w-4"
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={product.customPrice}
+                          onChange={(e) => {
+                            const newPricing = customPricing.map(p => 
+                              p.id === product.id ? { ...p, customPrice: e.target.value } : p
+                            );
+                            setCustomPricing(newPricing);
+                          }}
+                          className="w-24"
                         />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const newPricing = customPricing.map(p => 
+                              p.id === product.id ? { ...p, isVisible: !p.isVisible } : p
+                            );
+                            setCustomPricing(newPricing);
+                          }}
+                          className={product.isVisible ? "text-green-600" : "text-red-600"}
+                        >
+                          {product.isVisible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => handlePricingUpdate(product.id, product.customPrice, product.isVisible)}
+                          disabled={updatePricingMutation.isPending}
+                          className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white"
+                        >
+                          Save
+                        </Button>
                       </div>
                     </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <Label className="text-sm">Custom Price:</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={selectedProducts[product.id]?.price || product.b2bPrice || product.price}
-                        onChange={(e) => setSelectedProducts(prev => ({
-                          ...prev,
-                          [product.id]: {
-                            ...prev[product.id],
-                            price: e.target.value,
-                            visible: prev[product.id]?.visible ?? true
-                          }
-                        }))}
-                        className="w-32"
-                      />
-                      <Button
-                        size="sm"
-                        onClick={() => handleProductPricingUpdate(product.id)}
-                        disabled={updateProductPricingMutation.isPending}
-                        className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white"
-                      >
-                        Update
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Package className="mx-auto h-12 w-12 text-gray-400" />
+                  <h3 className="mt-2 text-sm font-medium text-[#6E6F71]">No products found</h3>
+                  <p className="mt-1 text-sm text-gray-500">Products will appear here when available.</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Transaction History Tab */}
+        {/* Transaction History */}
         <TabsContent value="transactions" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <History className="w-5 h-5" />
-                <span>Transaction History</span>
-              </CardTitle>
-              <p className="text-sm text-[#6E6F71]">
-                All wallet transactions including deposits, credit changes, purchases, and refunds.
-              </p>
+              <CardTitle className="text-[#6E6F71]">Transaction History</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                {transactions.length === 0 ? (
-                  <p className="text-center py-8 text-gray-500">No transactions found</p>
-                ) : (
-                  transactions.map((transaction: WalletTransaction) => (
-                    <div key={transaction.id} className="border rounded-lg p-3 flex items-center justify-between">
-                      <div>
-                        <div className="flex items-center space-x-2">
+              {transactions.length > 0 ? (
+                <div className="space-y-2">
+                  {transactions.map((transaction: any) => (
+                    <div key={transaction.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3">
                           <Badge variant={
                             transaction.type === 'deposit' ? 'default' :
                             transaction.type === 'payment' ? 'destructive' :
-                            transaction.type === 'credit_limit' ? 'secondary' :
-                            'outline'
+                            'secondary'
                           }>
-                            {transaction.type.replace('_', ' ').toUpperCase()}
+                            {transaction.type}
                           </Badge>
-                          <span className="text-sm font-medium">
-                            {transaction.amount > 0 ? '+' : ''}{formatAdminPrice(transaction.amount, user.tenantId)}
-                          </span>
+                          <span className="text-sm text-[#6E6F71]">{transaction.description}</span>
                         </div>
-                        <p className="text-sm text-gray-600">{transaction.description}</p>
-                        <p className="text-xs text-gray-500">
-                          {transaction.createdAt ? new Date(transaction.createdAt).toLocaleString() : 'N/A'}
+                        <p className="text-xs text-gray-500 mt-1">
+                          {new Date(transaction.createdAt).toLocaleString()}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm">Balance After:</p>
-                        <p className="font-semibold">
-                          {formatAdminPrice(transaction.balanceAfter, user.tenantId)}
+                        <p className={`font-medium ${
+                          transaction.type === 'deposit' ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {transaction.type === 'deposit' ? '+' : '-'}€{Math.abs(parseFloat(transaction.amount) || 0)}
                         </p>
+                        <p className="text-xs text-gray-500">Balance: €{transaction.balanceAfter}</p>
                       </div>
                     </div>
-                  ))
-                )}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <History className="mx-auto h-12 w-12 text-gray-400" />
+                  <h3 className="mt-2 text-sm font-medium text-[#6E6F71]">No transactions found</h3>
+                  <p className="mt-1 text-sm text-gray-500">Transaction history will appear here.</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Payment History Tab */}
+        {/* Payment History */}
         <TabsContent value="payments" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <CreditCard className="w-5 h-5" />
-                <span>Payment History</span>
-              </CardTitle>
-              <p className="text-sm text-[#6E6F71]">
-                Order payments and purchase history.
-              </p>
+              <CardTitle className="text-[#6E6F71]">Payment History</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                {payments.length === 0 ? (
-                  <p className="text-center py-8 text-gray-500">No payments found</p>
-                ) : (
-                  payments.map((payment: any) => (
-                    <div key={payment.id} className="border rounded-lg p-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center space-x-2">
-                          <Badge variant={payment.paymentStatus === 'paid' ? 'default' : 'destructive'}>
-                            {payment.paymentStatus.toUpperCase()}
-                          </Badge>
-                          <span className="font-semibold">{payment.orderNumber}</span>
+              {payments.length > 0 ? (
+                <div className="space-y-2">
+                  {payments.map((payment: any) => (
+                    <div key={payment.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3">
+                          <Badge variant="destructive">Payment</Badge>
+                          <span className="text-sm text-[#6E6F71]">
+                            Order {payment.orderNumber || payment.orderId}
+                          </span>
                         </div>
-                        <span className="font-bold text-[#FFB20F]">
-                          {formatAdminPrice(payment.finalAmount, user.tenantId)}
-                        </span>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {new Date(payment.createdAt).toLocaleString()}
+                        </p>
                       </div>
-                      <div className="text-sm text-gray-600">
-                        <p>Payment Method: {payment.paymentMethod}</p>
-                        <p>Items: {payment.items?.length || 0}</p>
-                        <p>Date: {new Date(payment.createdAt).toLocaleString()}</p>
+                      <div className="text-right">
+                        <p className="font-medium text-red-600">-€{payment.amount}</p>
+                        <p className="text-xs text-gray-500">
+                          {payment.paymentMethod === 'wallet' ? 'Wallet Payment' : payment.paymentMethod}
+                        </p>
                       </div>
                     </div>
-                  ))
-                )}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <CreditCard className="mx-auto h-12 w-12 text-gray-400" />
+                  <h3 className="mt-2 text-sm font-medium text-[#6E6F71]">No payments found</h3>
+                  <p className="mt-1 text-sm text-gray-500">Payment history will appear here.</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

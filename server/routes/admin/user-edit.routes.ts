@@ -1,23 +1,24 @@
 import { Router } from 'express';
-import { userEditController } from '../../controllers/admin/user-edit.controller';
+import { UserEditController } from '../../controllers/admin/user-edit.controller';
 
 const router = Router();
 
-// User profile management routes
-router.get('/:userId', userEditController.getUserDetails.bind(userEditController));
-router.patch('/:userId', userEditController.updateUserProfile.bind(userEditController));
+// All routes are prefixed with /api/admin/users
+// User detail endpoints
+router.get('/:userId', UserEditController.getUserById);
+router.patch('/:userId', UserEditController.updateProfile);
 
-// User product pricing routes
-router.get('/:userId/pricing', userEditController.getUserProductPricing.bind(userEditController));
-router.post('/:userId/pricing', userEditController.updateUserProductPricing.bind(userEditController));
+// Wallet management endpoints
+router.get('/:userId/wallet', UserEditController.getUserWallet);
+router.post('/:userId/deposit', UserEditController.addDeposit);
+router.patch('/:userId/credit-limit', UserEditController.updateCreditLimit);
 
-// User wallet management routes
-router.get('/:userId/wallet', userEditController.getUserWallet.bind(userEditController));
-router.post('/:userId/wallet/deposit', userEditController.addWalletDeposit.bind(userEditController));
-router.patch('/:userId/wallet/credit-limit', userEditController.updateCreditLimit.bind(userEditController));
+// Product pricing endpoints
+router.get('/:userId/pricing', UserEditController.getUserPricing);
+router.post('/:userId/pricing', UserEditController.updateProductPricing);
 
-// User transaction and payment history routes
-router.get('/:userId/transactions', userEditController.getUserTransactions.bind(userEditController));
-router.get('/:userId/payments', userEditController.getUserPayments.bind(userEditController));
+// Transaction and payment history endpoints
+router.get('/:userId/transactions', UserEditController.getTransactionHistory);
+router.get('/:userId/payments', UserEditController.getPaymentHistory);
 
 export { router as userEditRouter };

@@ -1,352 +1,374 @@
-import { Request, Response } from 'express';
-import { z } from 'zod';
-import { db } from '../../db';
-import { users, userProductPricing, wallets, walletTransactions, orders } from '@shared/schema';
-import { eq, and, desc } from 'drizzle-orm';
-import type { User, UserProductPricing as UserProductPricingType, Product } from '@shared/schema';
+import { Request, Response } from "express";
+import { db } from "../../db";
+import { users, wallets, walletTransactions, orders, orderItems, userProductPricing, products, licenseKeys } from "../../../shared/schema";
+import { eq, desc, and } from "drizzle-orm";
+import { z } from "zod";
 
-const updateUserProfileSchema = z.object({
-  firstName: z.string().optional(),
-  lastName: z.string().optional(),
-  email: z.string().email().optional(),
-  phone: z.string().optional(),
-  companyName: z.string().optional(),
+// Validation schemas
+const updateProfileSchema = z.object({
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  email: z.string().email("Valid email is required"),
+  companyName: z.string().min(1, "Company name is required"),
   contactPerson: z.string().optional(),
   companyDescription: z.string().optional(),
-  country: z.string().optional(),
-  city: z.string().optional(),
-  address: z.string().optional(),
-  vatOrRegistrationNo: z.string().optional(),
+  phone: z.string().min(1, "Phone is required"),
+  country: z.string().min(1, "Country is required"),
+  city: z.string().min(1, "City is required"),
+  address: z.string().min(1, "Address is required"),
+  vatOrRegistrationNo: z.string().min(1, "VAT or Registration number is required"),
+  isActive: z.boolean().optional()
 });
 
-const updateProductPricingSchema = z.object({
-  productId: z.string(),
-  customPrice: z.union([z.string(), z.number()]).transform(val => String(val)),
-  isVisible: z.boolean(),
+const addDepositSchema = z.object({
+  amount: z.number().positive("Amount must be positive"),
+  description: z.string().optional()
 });
 
-const walletDepositSchema = z.object({
-  amount: z.number().positive(),
+const updateCreditLimitSchema = z.object({
+  creditLimit: z.number().min(0, "Credit limit must be non-negative")
 });
 
-const creditLimitSchema = z.object({
-  creditLimit: z.number().min(0),
+const updatePricingSchema = z.object({
+  productId: z.string().min(1, "Product ID is required"),
+  customPrice: z.number().positive("Price must be positive"),
+  isVisible: z.boolean()
 });
 
 export class UserEditController {
-  // Get user details with all related data
-  async getUserDetails(req: Request, res: Response) {
+  // Get user details by ID
+  static async getUserById(req: Request, res: Response) {
     try {
       const { userId } = req.params;
-      
-      const [userResult] = await db
+
+      const [user] = await db
         .select()
         .from(users)
-        .where(eq(users.id, userId));
-      
-      if (!userResult) {
-        return res.status(404).json({ error: 'User not found' });
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
       }
-      
-      res.json({ data: userResult });
+
+      // Remove password from response
+      const { password, ...userWithoutPassword } = user;
+
+      res.json(userWithoutPassword);
     } catch (error) {
-      console.error('Error fetching user details:', error);
-      res.status(500).json({ error: 'Failed to fetch user details' });
+      console.error("Error fetching user:", error);
+      res.status(500).json({ error: "Failed to fetch user" });
     }
   }
 
   // Update user profile
-  async updateUserProfile(req: Request, res: Response) {
+  static async updateProfile(req: Request, res: Response) {
     try {
       const { userId } = req.params;
-      const validatedData = updateUserProfileSchema.parse(req.body);
-      
-      const [updatedUser] = await db
+      const profileData = updateProfileSchema.parse(req.body);
+
+      // Check if user exists
+      const [existingUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      if (!existingUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Update user
+      await db
         .update(users)
         .set({
-          ...validatedData,
-          updatedAt: new Date(),
+          ...profileData,
+          updatedAt: new Date()
         })
-        .where(eq(users.id, userId))
-        .returning();
-      
-      if (!updatedUser) {
-        return res.status(404).json({ error: 'User not found' });
+        .where(eq(users.id, userId));
+
+      res.json({ success: true, message: "Profile updated successfully" });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors[0].message });
       }
-      
-      res.json({ 
-        data: updatedUser,
-        message: 'User profile updated successfully' 
-      });
-    } catch (error) {
-      console.error('Error updating user profile:', error);
-      res.status(500).json({ error: 'Failed to update user profile' });
+      console.error("Error updating profile:", error);
+      res.status(500).json({ error: "Failed to update profile" });
     }
   }
 
-  // Get user's custom product pricing
-  async getUserProductPricing(req: Request, res: Response) {
+  // Get user wallet data
+  static async getUserWallet(req: Request, res: Response) {
     try {
       const { userId } = req.params;
-      
-      const pricingData = await db
-        .select({
-          id: userProductPricing.id,
-          userId: userProductPricing.userId,
-          productId: userProductPricing.productId,
-          customPrice: userProductPricing.customPrice,
-          isVisible: userProductPricing.isVisible,
-          createdAt: userProductPricing.createdAt,
-          updatedAt: userProductPricing.updatedAt,
-        })
-        .from(userProductPricing)
-        .where(eq(userProductPricing.userId, userId));
-      
-      res.json({ data: pricingData });
-    } catch (error) {
-      console.error('Error fetching user product pricing:', error);
-      res.status(500).json({ error: 'Failed to fetch product pricing' });
-    }
-  }
 
-  // Update or create user's custom product pricing
-  async updateUserProductPricing(req: Request, res: Response) {
-    try {
-      const { userId } = req.params;
-      const validatedData = updateProductPricingSchema.parse(req.body);
-      
-      // Check if pricing already exists
-      const [existingPricing] = await db
-        .select()
-        .from(userProductPricing)
-        .where(
-          and(
-            eq(userProductPricing.userId, userId),
-            eq(userProductPricing.productId, validatedData.productId)
-          )
-        );
-      
-      let result;
-      if (existingPricing) {
-        // Update existing pricing
-        [result] = await db
-          .update(userProductPricing)
-          .set({
-            customPrice: validatedData.customPrice,
-            isVisible: validatedData.isVisible,
-            updatedAt: new Date(),
-          })
-          .where(
-            and(
-              eq(userProductPricing.userId, userId),
-              eq(userProductPricing.productId, validatedData.productId)
-            )
-          )
-          .returning();
-      } else {
-        // Create new pricing
-        [result] = await db
-          .insert(userProductPricing)
-          .values({
-            userId,
-            productId: validatedData.productId,
-            customPrice: validatedData.customPrice,
-            isVisible: validatedData.isVisible,
-          })
-          .returning();
-      }
-      
-      res.json({ 
-        data: result,
-        message: 'Product pricing updated successfully' 
-      });
-    } catch (error) {
-      console.error('Error updating product pricing:', error);
-      res.status(500).json({ error: 'Failed to update product pricing' });
-    }
-  }
-
-  // Get user's wallet data
-  async getUserWallet(req: Request, res: Response) {
-    try {
-      const { userId } = req.params;
-      
       const [wallet] = await db
         .select()
         .from(wallets)
-        .where(eq(wallets.userId, userId));
-      
+        .where(eq(wallets.userId, userId))
+        .limit(1);
+
       if (!wallet) {
-        return res.status(404).json({ error: 'Wallet not found' });
+        return res.status(404).json({ error: "Wallet not found" });
       }
 
-      // Calculate derived values
+      // Calculate totals
       const depositBalance = parseFloat(wallet.depositBalance);
       const creditLimit = parseFloat(wallet.creditLimit);
       const creditUsed = parseFloat(wallet.creditUsed);
-      const availableCredit = creditLimit - creditUsed;
+      const availableCredit = Math.max(0, creditLimit - creditUsed);
       const totalAvailable = depositBalance + availableCredit;
       const isOverlimit = creditUsed > creditLimit;
 
-      const walletWithCalculations = {
-        ...wallet,
+      const walletData = {
+        id: wallet.id,
+        userId: wallet.userId,
+        tenantId: wallet.tenantId,
         depositBalance: wallet.depositBalance,
         creditLimit: wallet.creditLimit,
         creditUsed: wallet.creditUsed,
         availableCredit: availableCredit.toFixed(2),
         totalAvailable: totalAvailable.toFixed(2),
         isOverlimit,
+        isActive: wallet.isActive,
+        createdAt: wallet.createdAt,
+        updatedAt: wallet.updatedAt
       };
-      
-      res.json({ data: walletWithCalculations });
+
+      res.json({ data: walletData });
     } catch (error) {
-      console.error('Error fetching user wallet:', error);
-      res.status(500).json({ error: 'Failed to fetch wallet data' });
+      console.error("Error fetching wallet:", error);
+      res.status(500).json({ error: "Failed to fetch wallet data" });
     }
   }
 
-  // Add deposit to user's wallet
-  async addWalletDeposit(req: Request, res: Response) {
+  // Add deposit to user wallet
+  static async addDeposit(req: Request, res: Response) {
     try {
       const { userId } = req.params;
-      const { amount } = walletDepositSchema.parse(req.body);
-      const adminId = req.user?.id;
-      
-      // Get current wallet
+      const { amount, description } = addDepositSchema.parse(req.body);
+      const adminId = (req.user as any)?.id;
+
+      // Get user wallet
       const [wallet] = await db
         .select()
         .from(wallets)
-        .where(eq(wallets.userId, userId));
-      
+        .where(eq(wallets.userId, userId))
+        .limit(1);
+
       if (!wallet) {
-        return res.status(404).json({ error: 'Wallet not found' });
+        return res.status(404).json({ error: "Wallet not found" });
       }
-      
+
+      // Calculate new balance
       const currentBalance = parseFloat(wallet.depositBalance);
       const newBalance = currentBalance + amount;
-      
+
       // Update wallet balance
-      const [updatedWallet] = await db
+      await db
         .update(wallets)
         .set({
           depositBalance: newBalance.toFixed(2),
-          updatedAt: new Date(),
+          updatedAt: new Date()
         })
-        .where(eq(wallets.userId, userId))
-        .returning();
-      
-      // Create transaction record
-      await db
-        .insert(walletTransactions)
-        .values({
-          walletId: wallet.id,
-          userId,
-          type: 'deposit',
-          amount: amount.toFixed(2),
-          balanceAfter: newBalance.toFixed(2),
-          description: `Admin deposit: +€${amount.toFixed(2)}`,
-          adminId,
-        });
-      
-      res.json({ 
-        data: updatedWallet,
-        message: 'Deposit added successfully' 
+        .where(eq(wallets.id, wallet.id));
+
+      // Record transaction
+      await db.insert(walletTransactions).values({
+        walletId: wallet.id,
+        userId: userId,
+        type: "deposit",
+        amount: amount.toString(),
+        balanceAfter: newBalance.toFixed(2),
+        description: description || `Deposit added by admin`,
+        adminId: adminId
       });
+
+      res.json({ success: true, message: "Deposit added successfully" });
     } catch (error) {
-      console.error('Error adding deposit:', error);
-      res.status(500).json({ error: 'Failed to add deposit' });
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors[0].message });
+      }
+      console.error("Error adding deposit:", error);
+      res.status(500).json({ error: "Failed to add deposit" });
     }
   }
 
-  // Update user's credit limit
-  async updateCreditLimit(req: Request, res: Response) {
+  // Update credit limit
+  static async updateCreditLimit(req: Request, res: Response) {
     try {
       const { userId } = req.params;
-      const { creditLimit } = creditLimitSchema.parse(req.body);
-      const adminId = req.user?.id;
-      
-      // Get current wallet
+      const { creditLimit } = updateCreditLimitSchema.parse(req.body);
+      const adminId = (req.user as any)?.id;
+
+      // Get user wallet
       const [wallet] = await db
         .select()
         .from(wallets)
-        .where(eq(wallets.userId, userId));
-      
+        .where(eq(wallets.userId, userId))
+        .limit(1);
+
       if (!wallet) {
-        return res.status(404).json({ error: 'Wallet not found' });
+        return res.status(404).json({ error: "Wallet not found" });
       }
-      
+
       const oldCreditLimit = parseFloat(wallet.creditLimit);
-      
+
       // Update credit limit
-      const [updatedWallet] = await db
+      await db
         .update(wallets)
         .set({
           creditLimit: creditLimit.toFixed(2),
-          updatedAt: new Date(),
+          updatedAt: new Date()
         })
-        .where(eq(wallets.userId, userId))
-        .returning();
-      
-      // Create transaction record
-      await db
-        .insert(walletTransactions)
-        .values({
-          walletId: wallet.id,
-          userId,
-          type: 'credit_limit',
-          amount: (creditLimit - oldCreditLimit).toFixed(2),
-          balanceAfter: wallet.depositBalance,
-          description: `Credit limit changed from €${oldCreditLimit.toFixed(2)} to €${creditLimit.toFixed(2)}`,
-          adminId,
-        });
-      
-      res.json({ 
-        data: updatedWallet,
-        message: 'Credit limit updated successfully' 
+        .where(eq(wallets.id, wallet.id));
+
+      // Record transaction for credit limit change
+      await db.insert(walletTransactions).values({
+        walletId: wallet.id,
+        userId: userId,
+        type: "credit_limit",
+        amount: (creditLimit - oldCreditLimit).toString(),
+        balanceAfter: wallet.depositBalance,
+        description: `Credit limit changed from €${oldCreditLimit.toFixed(2)} to €${creditLimit.toFixed(2)}`,
+        adminId: adminId
       });
+
+      res.json({ success: true, message: "Credit limit updated successfully" });
     } catch (error) {
-      console.error('Error updating credit limit:', error);
-      res.status(500).json({ error: 'Failed to update credit limit' });
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors[0].message });
+      }
+      console.error("Error updating credit limit:", error);
+      res.status(500).json({ error: "Failed to update credit limit" });
     }
   }
 
-  // Get user's wallet transactions
-  async getUserTransactions(req: Request, res: Response) {
+  // Get user's custom pricing
+  static async getUserPricing(req: Request, res: Response) {
     try {
       const { userId } = req.params;
-      
+
+      const userPricing = await db
+        .select()
+        .from(userProductPricing)
+        .where(eq(userProductPricing.userId, userId))
+        .orderBy(desc(userProductPricing.createdAt));
+
+      res.json(userPricing);
+    } catch (error) {
+      console.error("Error fetching user pricing:", error);
+      res.status(500).json({ error: "Failed to fetch user pricing" });
+    }
+  }
+
+  // Update product pricing for user
+  static async updateProductPricing(req: Request, res: Response) {
+    try {
+      const { userId } = req.params;
+      const { productId, customPrice, isVisible } = updatePricingSchema.parse(req.body);
+
+      // Check if pricing record exists
+      const [existingPricing] = await db
+        .select()
+        .from(userProductPricing)
+        .where(
+          and(
+            eq(userProductPricing.userId, userId),
+            eq(userProductPricing.productId, productId)
+          )
+        )
+        .limit(1);
+
+      if (existingPricing) {
+        // Update existing pricing
+        await db
+          .update(userProductPricing)
+          .set({
+            customPrice: customPrice.toString(),
+            isVisible,
+            updatedAt: new Date()
+          })
+          .where(eq(userProductPricing.id, existingPricing.id));
+      } else {
+        // Insert new pricing
+        await db.insert(userProductPricing).values({
+          userId,
+          productId,
+          customPrice: customPrice.toString(),
+          isVisible
+        });
+      }
+
+      res.json({ success: true, message: "Product pricing updated successfully" });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors[0].message });
+      }
+      console.error("Error updating product pricing:", error);
+      res.status(500).json({ error: "Failed to update product pricing" });
+    }
+  }
+
+  // Get transaction history for user
+  static async getTransactionHistory(req: Request, res: Response) {
+    try {
+      const { userId } = req.params;
+
       const transactions = await db
         .select()
         .from(walletTransactions)
         .where(eq(walletTransactions.userId, userId))
         .orderBy(desc(walletTransactions.createdAt))
-        .limit(100); // Limit to last 100 transactions
-      
-      res.json({ data: transactions });
+        .limit(100);
+
+      res.json(transactions);
     } catch (error) {
-      console.error('Error fetching user transactions:', error);
-      res.status(500).json({ error: 'Failed to fetch transactions' });
+      console.error("Error fetching transaction history:", error);
+      res.status(500).json({ error: "Failed to fetch transaction history" });
     }
   }
 
-  // Get user's payment history (orders)
-  async getUserPayments(req: Request, res: Response) {
+  // Get payment history for user (orders with wallet payments)
+  static async getPaymentHistory(req: Request, res: Response) {
     try {
       const { userId } = req.params;
-      
+
       const payments = await db
-        .select()
+        .select({
+          id: orders.id,
+          orderNumber: orders.orderNumber,
+          finalAmount: orders.finalAmount,
+          paymentMethod: orders.paymentMethod,
+          paymentStatus: orders.paymentStatus,
+          createdAt: orders.createdAt
+        })
         .from(orders)
-        .where(eq(orders.userId, userId))
+        .where(
+          and(
+            eq(orders.userId, userId),
+            eq(orders.paymentMethod, "wallet"),
+            eq(orders.paymentStatus, "paid")
+          )
+        )
         .orderBy(desc(orders.createdAt))
-        .limit(50); // Limit to last 50 orders
-      
-      res.json({ data: payments });
+        .limit(100);
+
+      // Format the response to match expected structure
+      const formattedPayments = payments.map((payment: any) => ({
+        id: payment.id,
+        orderId: payment.id,
+        orderNumber: payment.orderNumber,
+        amount: payment.finalAmount,
+        paymentMethod: payment.paymentMethod,
+        paymentStatus: payment.paymentStatus,
+        createdAt: payment.createdAt
+      }));
+
+      res.json(formattedPayments);
     } catch (error) {
-      console.error('Error fetching user payments:', error);
-      res.status(500).json({ error: 'Failed to fetch payments' });
+      console.error("Error fetching payment history:", error);
+      res.status(500).json({ error: "Failed to fetch payment history" });
     }
   }
 }
-
-export const userEditController = new UserEditController();
