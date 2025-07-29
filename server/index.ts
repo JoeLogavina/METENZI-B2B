@@ -22,7 +22,29 @@ app.use(compression({
   level: 6, // Balanced compression ratio vs speed
 }));
 
-app.use(express.json());
+// Add request body debugging middleware BEFORE body parsing
+app.use('/api/admin/products/*/pricing', (req, res, next) => {
+  console.log('🔍 RAW REQUEST DEBUG:', {
+    method: req.method,
+    url: req.url,
+    headers: req.headers,
+    rawBody: req.body,
+    timestamp: new Date().toISOString()
+  });
+  
+  // Capture raw body for debugging
+  let rawData = '';
+  req.on('data', chunk => {
+    rawData += chunk;
+  });
+  req.on('end', () => {
+    console.log('🔍 RAW BODY DATA:', rawData);
+  });
+  
+  next();
+});
+
+app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false }));
 
 // Serve static files from uploads directory

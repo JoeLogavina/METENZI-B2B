@@ -186,7 +186,10 @@ export class AdminProductsController {
         productId: id,
         rawBody: req.body,
         bodyType: typeof req.body,
-        bodyKeys: Object.keys(req.body),
+        bodyKeys: Object.keys(req.body || {}),
+        bodyStringified: JSON.stringify(req.body),
+        contentType: req.headers['content-type'],
+        contentLength: req.headers['content-length'],
         timestamp: new Date().toISOString()
       });
 
