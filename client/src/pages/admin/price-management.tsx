@@ -102,6 +102,13 @@ export default function PriceManagementPage() {
 
   const updatePriceMutation = useMutation({
     mutationFn: async (data: PriceUpdate) => {
+      console.log('🚀 Sending complete pricing update to backend:', {
+        productId: data.productId,
+        purchasePrice: data.purchasePrice,
+        b2bPrice: data.b2bPrice,
+        retailPrice: data.retailPrice
+      });
+      
       const response = await fetch(`/api/admin/products/${data.productId}/pricing`, {
         method: 'PATCH',
         headers: {
@@ -265,14 +272,21 @@ export default function PriceManagementPage() {
     const data = priceData[product.id];
     if (data) {
       // CRITICAL: Always send ALL pricing fields to ensure complete synchronization
+      // Use current data if available, fallback to original product data
       const pricingUpdate = {
         productId: product.id,
-        purchasePrice: parseFloat(data.purchasePrice || '0'),
-        b2bPrice: parseFloat(data.b2bPrice || '0'),
-        retailPrice: parseFloat(data.retailPrice || '0')
+        purchasePrice: parseFloat(data.purchasePrice || product.purchasePrice || '0'),
+        b2bPrice: parseFloat(data.b2bPrice || product.b2bPrice || '0'),
+        retailPrice: parseFloat(data.retailPrice || product.retailPrice || '0')
       };
       
-      console.log('🏛️ CENTRAL PRICING AUTHORITY - Single Product Update:', pricingUpdate);
+      console.log('🏛️ CENTRAL PRICING AUTHORITY - Complete Product Update:', pricingUpdate);
+      console.log('🔍 Original Product Data:', {
+        purchasePrice: product.purchasePrice,
+        b2bPrice: product.b2bPrice,
+        retailPrice: product.retailPrice
+      });
+      console.log('🔍 Local Changes Data:', data);
       
       updatePriceMutation.mutate(pricingUpdate);
     }
