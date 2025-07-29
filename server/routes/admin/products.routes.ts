@@ -111,9 +111,12 @@ router.delete('/:id',
 
 // PATCH /api/admin/products/:id/pricing - Update product pricing
 const pricingUpdateSchema = z.object({
+  purchasePrice: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
+  b2bPrice: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
+  retailPrice: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
+  // Legacy field support
   costPrice: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
   resellerPrice: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
-  retailPrice: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
 });
 
 router.patch('/:id/pricing',
