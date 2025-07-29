@@ -88,6 +88,7 @@ export default function EditProduct() {
   useEffect(() => {
     if (product && typeof product === 'object') {
       const prod = product as any;
+      console.log('Loading product data for edit:', prod);
       
       setFormData({
         name: prod.name || '',
@@ -99,13 +100,16 @@ export default function EditProduct() {
         isActive: prod.isActive ?? true
       });
 
-      setEurPricing({
+      console.log('🔍 Setting EUR pricing with b2bPrice:', prod.b2bPrice);
+      const newEurPricing = {
         price: prod.price || '',
         purchasePrice: prod.purchasePrice || '',
         b2bPrice: prod.b2bPrice || '',
         retailPrice: prod.retailPrice || '',
         stock: prod.stock?.toString() || ''
-      });
+      };
+      console.log('🔍 New EUR pricing state:', newEurPricing);
+      setEurPricing(newEurPricing);
 
       setKmPricing({
         priceKm: prod.priceKm || '',

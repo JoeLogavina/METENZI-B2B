@@ -94,7 +94,7 @@ export default function PriceManagementPage() {
 
   const products = useMemo(() => {
     return productsRaw?.data || [];
-  }, [productsRaw?.data]);
+  }, [productsRaw]);
 
   const { data: categories } = useQuery({
     queryKey: ["/api/categories"],
@@ -170,12 +170,12 @@ export default function PriceManagementPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/products"] });
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
       queryClient.invalidateQueries({ queryKey: ["/api/retail/product-offers"] });
-      // CRITICAL FIX: These exact query key formats are used by Edit Product page
+      // CRITICAL FIX: Remove cached data completely and force fresh fetch for Edit Product page
+      queryClient.removeQueries({ queryKey: [`/api/admin/products/${updatedProduct.data.id}`] });
       queryClient.invalidateQueries({ queryKey: [`/api/admin/products/${updatedProduct.data.id}`] });
+      queryClient.refetchQueries({ queryKey: [`/api/admin/products/${updatedProduct.data.id}`] });
       queryClient.invalidateQueries({ queryKey: [`/api/products/${updatedProduct.data.id}`] });
       queryClient.invalidateQueries({ queryKey: [`/api/retail/product-offers/${updatedProduct.data.id}`] });
-      // Force refetch all product-related data
-      queryClient.refetchQueries({ queryKey: [`/api/admin/products/${updatedProduct.data.id}`] });
       // Invalidate shop and admin panel caches
       queryClient.invalidateQueries({ queryKey: ["/api/retail/products"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/license-keys"] });
