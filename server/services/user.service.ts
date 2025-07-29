@@ -272,6 +272,110 @@ export class UserServiceImpl implements UserService {
     }
   }
 
+  // User-specific data methods for admin panel
+  async getUserOrders(userId: string): Promise<any[]> {
+    if (!userId) {
+      throw new ValidationError('User ID is required');
+    }
+
+    try {
+      // Check if user exists
+      await this.getUserById(userId);
+      
+      // Get user orders through storage
+      return await storage.getUserOrders(userId);
+    } catch (error) {
+      if (error instanceof ValidationError || error instanceof NotFoundError) {
+        throw error;
+      }
+      throw new ServiceError('Failed to get user orders', error);
+    }
+  }
+
+  async getUserTransactions(userId: string): Promise<any[]> {
+    if (!userId) {
+      throw new ValidationError('User ID is required');
+    }
+
+    try {
+      // Check if user exists
+      await this.getUserById(userId);
+      
+      // Get user wallet transactions
+      return await storage.getUserTransactions(userId);
+    } catch (error) {
+      if (error instanceof ValidationError || error instanceof NotFoundError) {
+        throw error;
+      }
+      throw new ServiceError('Failed to get user transactions', error);
+    }
+  }
+
+  async getUserWallet(userId: string): Promise<any> {
+    if (!userId) {
+      throw new ValidationError('User ID is required');
+    }
+
+    try {
+      // Check if user exists
+      await this.getUserById(userId);
+      
+      // Get user wallet data
+      return await storage.getUserWallet(userId);
+    } catch (error) {
+      if (error instanceof ValidationError || error instanceof NotFoundError) {
+        throw error;
+      }
+      throw new ServiceError('Failed to get user wallet', error);
+    }
+  }
+
+  async addUserDeposit(userId: string, amount: number): Promise<any> {
+    if (!userId) {
+      throw new ValidationError('User ID is required');
+    }
+
+    if (!amount || amount <= 0) {
+      throw new ValidationError('Amount must be positive');
+    }
+
+    try {
+      // Check if user exists
+      await this.getUserById(userId);
+      
+      // Add deposit to user wallet
+      return await storage.addUserDeposit(userId, amount);
+    } catch (error) {
+      if (error instanceof ValidationError || error instanceof NotFoundError) {
+        throw error;
+      }
+      throw new ServiceError('Failed to add user deposit', error);
+    }
+  }
+
+  async updateUserCreditLimit(userId: string, creditLimit: number): Promise<any> {
+    if (!userId) {
+      throw new ValidationError('User ID is required');
+    }
+
+    if (creditLimit < 0) {
+      throw new ValidationError('Credit limit must be non-negative');
+    }
+
+    try {
+      // Check if user exists
+      await this.getUserById(userId);
+      
+      // Update user credit limit
+      return await storage.updateUserCreditLimit(userId, creditLimit);
+    } catch (error) {
+      if (error instanceof ValidationError || error instanceof NotFoundError) {
+        throw error;
+      }
+      throw new ServiceError('Failed to update user credit limit', error);
+    }
+  }
+
   // Private helper methods
   private async hashPassword(password: string): Promise<string> {
     const salt = randomBytes(16).toString("hex");

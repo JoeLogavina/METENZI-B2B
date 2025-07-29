@@ -47,6 +47,17 @@ export const users = pgTable("users", {
   role: userRoleEnum("role").default("b2b_user").notNull(),
   tenantId: varchar("tenant_id").notNull().default("eur"), // EUR or KM tenant
   isActive: boolean("is_active").default(true).notNull(),
+  
+  // B2B Company Information
+  companyName: varchar("company_name"),
+  contactPerson: varchar("contact_person"),
+  companyDescription: text("company_description"),
+  phone: varchar("phone"),
+  country: varchar("country"),
+  city: varchar("city"),
+  address: varchar("address"),
+  vatOrRegistrationNo: varchar("vat_or_registration_no"),
+  
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

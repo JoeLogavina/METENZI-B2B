@@ -123,6 +123,23 @@ const updateUserSchema = z.object({
   lastName: z.string().optional(),
   role: z.enum(['b2b_user', 'admin', 'super_admin']).optional(),
   isActive: z.boolean().optional(),
+  // B2B specific fields
+  companyName: z.string().optional(),
+  contactPerson: z.string().optional(),
+  companyDescription: z.string().optional(),
+  phone: z.string().optional(),
+  country: z.string().optional(),
+  city: z.string().optional(),
+  address: z.string().optional(),
+  vatOrRegistrationNo: z.string().optional(),
+});
+
+const depositSchema = z.object({
+  amount: z.number().positive('Amount must be positive'),
+});
+
+const creditLimitSchema = z.object({
+  creditLimit: z.number().min(0, 'Credit limit must be non-negative'),
 });
 
 router.patch('/:id',
@@ -133,6 +150,52 @@ router.patch('/:id',
   }),
   auditLog('admin:users:update'),
   adminUsersController.updateUser.bind(adminUsersController)
+);
+
+// GET /api/admin/users/:id/orders - Get user orders
+router.get('/:id/orders',
+  authorize(Permissions.USER_READ),
+  validateRequest({ params: userParamsSchema }),
+  auditLog('admin:users:orders'),
+  adminUsersController.getUserOrders.bind(adminUsersController)
+);
+
+// GET /api/admin/users/:id/transactions - Get user wallet transactions
+router.get('/:id/transactions',
+  authorize(Permissions.USER_READ),
+  validateRequest({ params: userParamsSchema }),
+  auditLog('admin:users:transactions'),
+  adminUsersController.getUserTransactions.bind(adminUsersController)
+);
+
+// GET /api/admin/users/:id/wallet - Get user wallet data
+router.get('/:id/wallet',
+  authorize(Permissions.USER_READ),
+  validateRequest({ params: userParamsSchema }),
+  auditLog('admin:users:wallet'),
+  adminUsersController.getUserWallet.bind(adminUsersController)
+);
+
+// POST /api/admin/users/:id/deposit - Add deposit to user wallet
+router.post('/:id/deposit',
+  authorize(Permissions.USER_UPDATE),
+  validateRequest({ 
+    params: userParamsSchema,
+    body: depositSchema
+  }),
+  auditLog('admin:users:deposit'),
+  adminUsersController.addUserDeposit.bind(adminUsersController)
+);
+
+// PATCH /api/admin/users/:id/credit-limit - Update user credit limit
+router.patch('/:id/credit-limit',
+  authorize(Permissions.USER_UPDATE),
+  validateRequest({ 
+    params: userParamsSchema,
+    body: creditLimitSchema
+  }),
+  auditLog('admin:users:credit-limit'),
+  adminUsersController.updateUserCreditLimit.bind(adminUsersController)
 );
 
 export { router as adminUsersRouter };

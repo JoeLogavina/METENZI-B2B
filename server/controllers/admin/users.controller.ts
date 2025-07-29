@@ -280,6 +280,15 @@ export class AdminUsersController {
         lastName: z.string().optional(),
         role: z.enum(['b2b_user', 'admin', 'super_admin']).optional(),
         isActive: z.boolean().optional(),
+        // B2B specific fields
+        companyName: z.string().optional(),
+        contactPerson: z.string().optional(),
+        companyDescription: z.string().optional(),
+        phone: z.string().optional(),
+        country: z.string().optional(),
+        city: z.string().optional(),
+        address: z.string().optional(),
+        vatOrRegistrationNo: z.string().optional(),
       });
       
       const updateData = updateUserSchema.parse(req.body);
@@ -307,6 +316,126 @@ export class AdminUsersController {
       res.status(500).json({
         error: 'INTERNAL_SERVER_ERROR',
         message: 'Failed to update user'
+      });
+    }
+  }
+
+  // GET /api/admin/users/:id/orders
+  async getUserOrders(req: Request, res: Response) {
+    try {
+      const { id } = userParamsSchema.parse(req.params);
+      
+      // Get user orders through storage or service
+      const orders = await userService.getUserOrders(id);
+      
+      res.json({
+        data: orders
+      });
+    } catch (error) {
+      if (isServiceError(error)) {
+        return res.status(error.statusCode).json(formatErrorResponse(error));
+      }
+      res.status(500).json({
+        error: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to get user orders'
+      });
+    }
+  }
+
+  // GET /api/admin/users/:id/transactions
+  async getUserTransactions(req: Request, res: Response) {
+    try {
+      const { id } = userParamsSchema.parse(req.params);
+      
+      // Get user wallet transactions
+      const transactions = await userService.getUserTransactions(id);
+      
+      res.json({
+        data: transactions
+      });
+    } catch (error) {
+      if (isServiceError(error)) {
+        return res.status(error.statusCode).json(formatErrorResponse(error));
+      }
+      res.status(500).json({
+        error: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to get user transactions'
+      });
+    }
+  }
+
+  // GET /api/admin/users/:id/wallet
+  async getUserWallet(req: Request, res: Response) {
+    try {
+      const { id } = userParamsSchema.parse(req.params);
+      
+      // Get user wallet data
+      const wallet = await userService.getUserWallet(id);
+      
+      res.json({
+        data: wallet
+      });
+    } catch (error) {
+      if (isServiceError(error)) {
+        return res.status(error.statusCode).json(formatErrorResponse(error));
+      }
+      res.status(500).json({
+        error: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to get user wallet'
+      });
+    }
+  }
+
+  // POST /api/admin/users/:id/deposit
+  async addUserDeposit(req: Request, res: Response) {
+    try {
+      const { id } = userParamsSchema.parse(req.params);
+      const depositSchema = z.object({
+        amount: z.number().positive('Amount must be positive'),
+      });
+      const { amount } = depositSchema.parse(req.body);
+      
+      // Add deposit to user wallet
+      const result = await userService.addUserDeposit(id, amount);
+      
+      res.json({
+        data: result,
+        message: 'Deposit added successfully'
+      });
+    } catch (error) {
+      if (isServiceError(error)) {
+        return res.status(error.statusCode).json(formatErrorResponse(error));
+      }
+      res.status(500).json({
+        error: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to add deposit'
+      });
+    }
+  }
+
+  // PATCH /api/admin/users/:id/credit-limit
+  async updateUserCreditLimit(req: Request, res: Response) {
+    try {
+      const { id } = userParamsSchema.parse(req.params);
+      const creditLimitSchema = z.object({
+        creditLimit: z.number().min(0, 'Credit limit must be non-negative'),
+      });
+      const { creditLimit } = creditLimitSchema.parse(req.body);
+      
+      // Update user credit limit
+      const result = await userService.updateUserCreditLimit(id, creditLimit);
+      
+      res.json({
+        data: result,
+        message: 'Credit limit updated successfully'
+      });
+    } catch (error) {
+      if (isServiceError(error)) {
+        return res.status(error.statusCode).json(formatErrorResponse(error));
+      }
+      res.status(500).json({
+        error: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to update credit limit'
       });
     }
   }

@@ -72,6 +72,13 @@ export interface IStorage {
   removeFromCart(id: string): Promise<void>;
   clearCart(userId: string, tenantId?: string): Promise<void>;
 
+  // User data operations for admin panel
+  getUserOrders(userId: string): Promise<Order[]>;
+  getUserTransactions(userId: string): Promise<any[]>;
+  getUserWallet(userId: string): Promise<any>;
+  addUserDeposit(userId: string, amount: number): Promise<any>;
+  updateUserCreditLimit(userId: string, creditLimit: number): Promise<any>;
+
   // Order operations
   createOrder(order: InsertOrder): Promise<Order>;
   
@@ -834,6 +841,65 @@ export class DatabaseStorage implements IStorage {
       activeKeys: keyCount.count,
       totalProducts: productCount.count,
     };
+  }
+
+  // User data operations for admin panel
+  async getUserOrders(userId: string): Promise<Order[]> {
+    const userOrders = await db
+      .select()
+      .from(orders)
+      .where(eq(orders.userId, userId))
+      .orderBy(desc(orders.createdAt));
+    
+    return userOrders;
+  }
+
+  async getUserTransactions(userId: string): Promise<any[]> {
+    // Get wallet transactions for the user
+    const { WalletService } = await import('./services/wallet.service');
+    const walletService = new WalletService();
+    
+    // Get user's tenant
+    const [user] = await db.select({ tenantId: users.tenantId }).from(users).where(eq(users.id, userId));
+    const tenantId = user?.tenantId || 'eur';
+    
+    return await walletService.getWalletTransactions(userId, tenantId);
+  }
+
+  async getUserWallet(userId: string): Promise<any> {
+    // Get wallet data for the user
+    const { WalletService } = await import('./services/wallet.service');
+    const walletService = new WalletService();
+    
+    // Get user's tenant
+    const [user] = await db.select({ tenantId: users.tenantId }).from(users).where(eq(users.id, userId));
+    const tenantId = user?.tenantId || 'eur';
+    
+    return await walletService.getWallet(userId, tenantId);
+  }
+
+  async addUserDeposit(userId: string, amount: number): Promise<any> {
+    // Add deposit to user wallet
+    const { WalletService } = await import('./services/wallet.service');
+    const walletService = new WalletService();
+    
+    // Get user's tenant
+    const [user] = await db.select({ tenantId: users.tenantId }).from(users).where(eq(users.id, userId));
+    const tenantId = user?.tenantId || 'eur';
+    
+    return await walletService.addBalance(userId, amount, tenantId);
+  }
+
+  async updateUserCreditLimit(userId: string, creditLimit: number): Promise<any> {
+    // Update user credit limit in wallet
+    const { WalletService } = await import('./services/wallet.service');
+    const walletService = new WalletService();
+    
+    // Get user's tenant
+    const [user] = await db.select({ tenantId: users.tenantId }).from(users).where(eq(users.id, userId));
+    const tenantId = user?.tenantId || 'eur';
+    
+    return await walletService.updateCreditLimit(userId, creditLimit, tenantId);
   }
 
   // Wallet operations - DEPRECATED: Use WalletService instead

@@ -57,6 +57,7 @@ export default function AdminPanel() {
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [showUserForm, setShowUserForm] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
   
   // Edit product states
   const [editProductFormData, setEditProductFormData] = useState({
@@ -495,7 +496,10 @@ export default function AdminPanel() {
                                       </div>
                                     </div>
                                     <div className="ml-4">
-                                      <div className="text-sm font-medium text-[#6E6F71]">
+                                      <div 
+                                        className="text-sm font-medium text-[#6E6F71] cursor-pointer hover:text-[#FFB20F] hover:underline"
+                                        onClick={() => setEditingUserId(userData.id)}
+                                      >
                                         {userData.firstName} {userData.lastName}
                                       </div>
                                       <div className="text-sm text-gray-500">@{userData.username}</div>
@@ -581,6 +585,18 @@ export default function AdminPanel() {
                   </div>
                 </div>
               </div>
+            )}
+
+            {/* Integrated User Editing Section */}
+            {editingUserId && (
+              <UserEditingSection 
+                userId={editingUserId}
+                onClose={() => setEditingUserId(null)}
+                onUserUpdated={() => {
+                  queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
+                  queryClient.invalidateQueries({ queryKey: ['/api/admin/wallets'] });
+                }}
+              />
             )}
 
             {activeSection === 'price-management' && (
@@ -2314,6 +2330,541 @@ XYZ12-ABC34-DEF56-GHI78-JKL90
           </DialogContent>
         </Dialog>
       )}
+    </div>
+  );
+}
+
+// Comprehensive User Editing Component
+function UserEditingSection({ userId, onClose, onUserUpdated }: { 
+  userId: string; 
+  onClose: () => void; 
+  onUserUpdated: () => void;
+}) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState('profile');
+  const [userFormData, setUserFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    companyName: '',
+    contactPerson: '',
+    companyDescription: '',
+    phone: '',
+    country: '',
+    city: '',
+    address: '',
+    vatOrRegistrationNo: ''
+  });
+  const [creditFormData, setCreditFormData] = useState({
+    depositAmount: '',
+    creditLimit: ''
+  });
+
+  // Fetch user details
+  const { data: userDetails, isLoading: userLoading } = useQuery({
+    queryKey: ['/api/admin/users', userId],
+    queryFn: () => apiRequest(`/api/admin/users/${userId}`),
+    enabled: !!userId,
+  });
+
+  // Fetch user orders for transactions and payments
+  const { data: userOrders } = useQuery({
+    queryKey: ['/api/admin/users', userId, 'orders'],
+    queryFn: () => apiRequest(`/api/admin/users/${userId}/orders`),
+    enabled: !!userId,
+  });
+
+  // Fetch user wallet transactions
+  const { data: userTransactions } = useQuery({
+    queryKey: ['/api/admin/users', userId, 'transactions'],
+    queryFn: () => apiRequest(`/api/admin/users/${userId}/transactions`),
+    enabled: !!userId,
+  });
+
+  // Fetch user wallet data
+  const { data: userWallet } = useQuery({
+    queryKey: ['/api/admin/users', userId, 'wallet'],
+    queryFn: () => apiRequest(`/api/admin/users/${userId}/wallet`),
+    enabled: !!userId,
+  });
+
+  // Load user data into form when fetched
+  useEffect(() => {
+    if (userDetails?.data) {
+      const user = userDetails.data;
+      setUserFormData({
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        email: user.email || '',
+        companyName: user.companyName || '',
+        contactPerson: user.contactPerson || '',
+        companyDescription: user.companyDescription || '',
+        phone: user.phone || '',
+        country: user.country || '',
+        city: user.city || '',
+        address: user.address || '',
+        vatOrRegistrationNo: user.vatOrRegistrationNo || ''
+      });
+    }
+  }, [userDetails]);
+
+  // Update user profile mutation
+  const updateUserMutation = useMutation({
+    mutationFn: (data: any) => apiRequest(`/api/admin/users/${userId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+      headers: { 'Content-Type': 'application/json' }
+    }),
+    onSuccess: () => {
+      toast({ title: "Success", description: "User profile updated successfully" });
+      onUserUpdated();
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to update user profile",
+        variant: "destructive" 
+      });
+    }
+  });
+
+  // Deposit funds mutation
+  const depositFundsMutation = useMutation({
+    mutationFn: (amount: number) => apiRequest(`/api/admin/users/${userId}/deposit`, {
+      method: 'POST',
+      body: JSON.stringify({ amount }),
+      headers: { 'Content-Type': 'application/json' }
+    }),
+    onSuccess: () => {
+      toast({ title: "Success", description: "Deposit added successfully" });
+      setCreditFormData({ ...creditFormData, depositAmount: '' });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users', userId, 'wallet'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users', userId, 'transactions'] });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to add deposit",
+        variant: "destructive" 
+      });
+    }
+  });
+
+  // Update credit limit mutation  
+  const updateCreditMutation = useMutation({
+    mutationFn: (creditLimit: number) => apiRequest(`/api/admin/users/${userId}/credit-limit`, {
+      method: 'PATCH',
+      body: JSON.stringify({ creditLimit }),
+      headers: { 'Content-Type': 'application/json' }
+    }),
+    onSuccess: () => {
+      toast({ title: "Success", description: "Credit limit updated successfully" });
+      setCreditFormData({ ...creditFormData, creditLimit: '' });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users', userId, 'wallet'] });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to update credit limit",
+        variant: "destructive" 
+      });
+    }
+  });
+
+  const handleSaveProfile = () => {
+    updateUserMutation.mutate(userFormData);
+  };
+
+  const handleDeposit = () => {
+    const amount = parseFloat(creditFormData.depositAmount);
+    if (amount > 0) {
+      depositFundsMutation.mutate(amount);
+    }
+  };
+
+  const handleUpdateCredit = () => {
+    const creditLimit = parseFloat(creditFormData.creditLimit);
+    if (creditLimit >= 0) {
+      updateCreditMutation.mutate(creditLimit);
+    }
+  };
+
+  if (userLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-[#6E6F71] uppercase tracking-[0.5px]">Loading User...</h3>
+          <Button onClick={onClose} variant="outline" className="px-6">BACK</Button>
+        </div>
+        <div className="flex justify-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB20F]"></div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header with Back Button */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold text-[#6E6F71] uppercase tracking-[0.5px]">
+            EDIT USER: {userDetails?.data?.firstName} {userDetails?.data?.lastName}
+          </h3>
+          <p className="text-[#6E6F71]">@{userDetails?.data?.username}</p>
+        </div>
+        <Button onClick={onClose} variant="outline" className="px-6">
+          BACK TO USERS
+        </Button>
+      </div>
+
+      {/* Tab Navigation */}
+      <div className="bg-white rounded-lg border border-gray-200">
+        <div className="border-b border-gray-200">
+          <nav className="flex space-x-8 px-6">
+            {[
+              { id: 'profile', label: 'Profile & Credit' },
+              { id: 'products', label: 'Company Products' },
+              { id: 'transactions', label: 'Transaction History' },
+              { id: 'payments', label: 'Payment History' }
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`py-4 px-1 border-b-2 font-medium text-sm uppercase tracking-[0.5px] ${
+                  activeTab === tab.id
+                    ? 'border-[#FFB20F] text-[#FFB20F]'
+                    : 'border-transparent text-[#6E6F71] hover:text-[#FFB20F] hover:border-gray-300'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        {/* Tab Content */}
+        <div className="p-6">
+          {/* Profile & Credit Tab */}
+          {activeTab === 'profile' && (
+            <div className="space-y-8">
+              {/* Profile Information Section */}
+              <div>
+                <h4 className="text-sm font-medium text-[#6E6F71] uppercase tracking-[0.5px] mb-4">PROFILE INFORMATION</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="firstName" className="text-xs font-medium text-[#6E6F71] uppercase tracking-[0.5px]">First Name *</Label>
+                    <Input
+                      id="firstName"
+                      value={userFormData.firstName}
+                      onChange={(e) => setUserFormData({...userFormData, firstName: e.target.value})}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="lastName" className="text-xs font-medium text-[#6E6F71] uppercase tracking-[0.5px]">Last Name *</Label>
+                    <Input
+                      id="lastName"
+                      value={userFormData.lastName}
+                      onChange={(e) => setUserFormData({...userFormData, lastName: e.target.value})}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="email" className="text-xs font-medium text-[#6E6F71] uppercase tracking-[0.5px]">Email *</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={userFormData.email}
+                      onChange={(e) => setUserFormData({...userFormData, email: e.target.value})}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="phone" className="text-xs font-medium text-[#6E6F71] uppercase tracking-[0.5px]">Phone *</Label>
+                    <Input
+                      id="phone"
+                      value={userFormData.phone}
+                      onChange={(e) => setUserFormData({...userFormData, phone: e.target.value})}
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                  <div>
+                    <Label htmlFor="companyName" className="text-xs font-medium text-[#6E6F71] uppercase tracking-[0.5px]">Company Name *</Label>
+                    <Input
+                      id="companyName"
+                      value={userFormData.companyName}
+                      onChange={(e) => setUserFormData({...userFormData, companyName: e.target.value})}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="contactPerson" className="text-xs font-medium text-[#6E6F71] uppercase tracking-[0.5px]">Contact Person</Label>
+                    <Input
+                      id="contactPerson"
+                      value={userFormData.contactPerson}
+                      onChange={(e) => setUserFormData({...userFormData, contactPerson: e.target.value})}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="country" className="text-xs font-medium text-[#6E6F71] uppercase tracking-[0.5px]">Country *</Label>
+                    <Input
+                      id="country"
+                      value={userFormData.country}
+                      onChange={(e) => setUserFormData({...userFormData, country: e.target.value})}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="city" className="text-xs font-medium text-[#6E6F71] uppercase tracking-[0.5px]">City *</Label>
+                    <Input
+                      id="city"
+                      value={userFormData.city}
+                      onChange={(e) => setUserFormData({...userFormData, city: e.target.value})}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="address" className="text-xs font-medium text-[#6E6F71] uppercase tracking-[0.5px]">Address *</Label>
+                    <Input
+                      id="address"
+                      value={userFormData.address}
+                      onChange={(e) => setUserFormData({...userFormData, address: e.target.value})}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="vatOrRegistrationNo" className="text-xs font-medium text-[#6E6F71] uppercase tracking-[0.5px]">VAT/Registration No. *</Label>
+                    <Input
+                      id="vatOrRegistrationNo"
+                      value={userFormData.vatOrRegistrationNo}
+                      onChange={(e) => setUserFormData({...userFormData, vatOrRegistrationNo: e.target.value})}
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <Label htmlFor="companyDescription" className="text-xs font-medium text-[#6E6F71] uppercase tracking-[0.5px]">Company Description</Label>
+                  <Textarea
+                    id="companyDescription"
+                    value={userFormData.companyDescription}
+                    onChange={(e) => setUserFormData({...userFormData, companyDescription: e.target.value})}
+                    className="mt-1"
+                    rows={3}
+                  />
+                </div>
+
+                <div className="flex justify-end mt-6">
+                  <Button
+                    onClick={handleSaveProfile}
+                    disabled={updateUserMutation.isPending}
+                    className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white px-6"
+                  >
+                    {updateUserMutation.isPending ? 'SAVING...' : 'SAVE PROFILE'}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Credit Management Section */}
+              <div className="border-t border-gray-200 pt-8">
+                <h4 className="text-sm font-medium text-[#6E6F71] uppercase tracking-[0.5px] mb-4">CREDIT MANAGEMENT</h4>
+                
+                {/* Current Wallet Status */}
+                {userWallet?.data && (
+                  <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <p className="text-xs font-medium text-[#6E6F71] uppercase tracking-[0.5px]">Deposit Balance</p>
+                        <p className="text-lg font-semibold text-[#FFB20F]">€{userWallet.data.balance?.depositBalance || '0.00'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-[#6E6F71] uppercase tracking-[0.5px]">Available Credit</p>
+                        <p className="text-lg font-semibold text-[#6E6F71]">€{userWallet.data.balance?.availableCredit || '0.00'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-[#6E6F71] uppercase tracking-[0.5px]">Total Available</p>
+                        <p className="text-lg font-semibold text-green-600">€{userWallet.data.balance?.totalAvailable || '0.00'}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Add Deposit */}
+                  <div>
+                    <Label htmlFor="depositAmount" className="text-xs font-medium text-[#6E6F71] uppercase tracking-[0.5px]">Add Deposit</Label>
+                    <div className="flex mt-1">
+                      <Input
+                        id="depositAmount"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        value={creditFormData.depositAmount}
+                        onChange={(e) => setCreditFormData({...creditFormData, depositAmount: e.target.value})}
+                        className="rounded-r-none"
+                      />
+                      <Button
+                        onClick={handleDeposit}
+                        disabled={depositFundsMutation.isPending || !creditFormData.depositAmount}
+                        className="bg-green-600 hover:bg-green-700 text-white rounded-l-none"
+                      >
+                        {depositFundsMutation.isPending ? 'ADDING...' : 'ADD'}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Update Credit Limit */}
+                  <div>
+                    <Label htmlFor="creditLimit" className="text-xs font-medium text-[#6E6F71] uppercase tracking-[0.5px]">Update Credit Limit</Label>
+                    <div className="flex mt-1">
+                      <Input
+                        id="creditLimit"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        value={creditFormData.creditLimit}
+                        onChange={(e) => setCreditFormData({...creditFormData, creditLimit: e.target.value})}
+                        className="rounded-r-none"
+                      />
+                      <Button
+                        onClick={handleUpdateCredit}
+                        disabled={updateCreditMutation.isPending || !creditFormData.creditLimit}
+                        className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white rounded-l-none"
+                      >
+                        {updateCreditMutation.isPending ? 'UPDATING...' : 'UPDATE'}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Company Products Tab */}
+          {activeTab === 'products' && (
+            <div>
+              <h4 className="text-sm font-medium text-[#6E6F71] uppercase tracking-[0.5px] mb-4">COMPANY PRODUCTS</h4>
+              <div className="text-center py-12">
+                <Package className="mx-auto h-12 w-12 text-gray-400" />
+                <h5 className="mt-2 text-sm font-medium text-[#6E6F71]">Product Management Coming Soon</h5>
+                <p className="mt-1 text-sm text-[#6E6F71]">User-specific product access and pricing management will be available in the next update.</p>
+              </div>
+            </div>
+          )}
+
+          {/* Transaction History Tab */}
+          {activeTab === 'transactions' && (
+            <div>
+              <h4 className="text-sm font-medium text-[#6E6F71] uppercase tracking-[0.5px] mb-4">TRANSACTION HISTORY</h4>
+              {userTransactions?.data && userTransactions.data.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-[#6E6F71]">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase">Date</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase">Type</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase">Amount</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase">Description</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {userTransactions.data.map((transaction: any) => (
+                        <tr key={transaction.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-2 whitespace-nowrap text-sm text-[#6E6F71]">
+                            {new Date(transaction.createdAt).toLocaleDateString()}
+                          </td>
+                          <td className="px-4 py-2 whitespace-nowrap">
+                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                              transaction.type === 'deposit' ? 'bg-green-100 text-green-800' :
+                              transaction.type === 'payment' ? 'bg-red-100 text-red-800' :
+                              'bg-blue-100 text-blue-800'
+                            }`}>
+                              {transaction.type}
+                            </span>
+                          </td>
+                          <td className="px-4 py-2 whitespace-nowrap text-sm font-mono">
+                            <span className={transaction.amount > 0 ? 'text-green-600' : 'text-red-600'}>
+                              €{Math.abs(transaction.amount).toFixed(2)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-2 text-sm text-[#6E6F71]">
+                            {transaction.description || 'No description'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <FileText className="mx-auto h-12 w-12 text-gray-400" />
+                  <h5 className="mt-2 text-sm font-medium text-[#6E6F71]">No Transactions</h5>
+                  <p className="mt-1 text-sm text-[#6E6F71]">No transaction history found for this user.</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Payment History Tab */}
+          {activeTab === 'payments' && (
+            <div>
+              <h4 className="text-sm font-medium text-[#6E6F71] uppercase tracking-[0.5px] mb-4">PAYMENT HISTORY</h4>
+              {userOrders?.data && userOrders.data.filter((order: any) => order.paymentStatus === 'paid').length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-[#6E6F71]">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase">Order</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase">Date</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase">Amount</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase">Method</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {userOrders.data.filter((order: any) => order.paymentStatus === 'paid').map((order: any) => (
+                        <tr key={order.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-[#6E6F71]">
+                            {order.orderNumber}
+                          </td>
+                          <td className="px-4 py-2 whitespace-nowrap text-sm text-[#6E6F71]">
+                            {new Date(order.createdAt).toLocaleDateString()}
+                          </td>
+                          <td className="px-4 py-2 whitespace-nowrap text-sm font-mono text-green-600">
+                            €{order.finalAmount}
+                          </td>
+                          <td className="px-4 py-2 whitespace-nowrap text-sm text-[#6E6F71]">
+                            {order.paymentMethod || 'wallet'}
+                          </td>
+                          <td className="px-4 py-2 whitespace-nowrap">
+                            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                              Paid
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <DollarSign className="mx-auto h-12 w-12 text-gray-400" />
+                  <h5 className="mt-2 text-sm font-medium text-[#6E6F71]">No Payments</h5>
+                  <p className="mt-1 text-sm text-[#6E6F71]">No payment history found for this user.</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
