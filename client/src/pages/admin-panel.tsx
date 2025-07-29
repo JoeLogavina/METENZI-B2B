@@ -504,7 +504,10 @@ export default function AdminPanel() {
                                     <div className="ml-4">
                                       <div className="text-sm font-medium text-[#6E6F71]">
                                         <button
-                                          onClick={() => setSelectedUser(userData)}
+                                          onClick={() => {
+                                            console.log('User clicked:', userData);
+                                            setSelectedUser(userData);
+                                          }}
                                           className="text-[#FFB20F] hover:text-[#e6a00e] underline cursor-pointer"
                                         >
                                           {userData.firstName} {userData.lastName}
@@ -2329,10 +2332,13 @@ XYZ12-ABC34-DEF56-GHI78-JKL90
       
       {/* Integrated User Editing Modal */}
       {selectedUser && (
-        <UserEditModal 
-          user={selectedUser} 
-          onClose={() => setSelectedUser(null)} 
-        />
+        <>
+          {console.log('Rendering modal for user:', selectedUser)}
+          <UserEditModal 
+            user={selectedUser} 
+            onClose={() => setSelectedUser(null)} 
+          />
+        </>
       )}
     </div>
   );
