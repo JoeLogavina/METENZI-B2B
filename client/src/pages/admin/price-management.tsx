@@ -109,20 +109,42 @@ export default function PriceManagementPage() {
         retailPrice: typeof data.retailPrice
       });
       
-      // Use apiRequest instead of direct fetch to avoid middleware issues
-      const result = await apiRequest(`/api/admin/products/${data.productId}/pricing`, {
+      // Use direct fetch with complete debugging to avoid middleware issues
+      const requestBody = {
+        purchasePrice: data.purchasePrice,
+        b2bPrice: data.b2bPrice,
+        retailPrice: data.retailPrice
+      };
+      
+      console.log('🌐 About to send request:', {
+        url: `/api/admin/products/${data.productId}/pricing`,
         method: 'PATCH',
-        body: JSON.stringify({
-          purchasePrice: data.purchasePrice,
-          b2bPrice: data.b2bPrice,
-          retailPrice: data.retailPrice
-        }),
-        headers: {
-          'Content-Type': 'application/json',
-        }
+        body: requestBody,
+        bodyString: JSON.stringify(requestBody)
       });
       
-      console.log('✅ API REQUEST COMPLETED:', result);
+      const response = await fetch(`/api/admin/products/${data.productId}/pricing`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody)
+      });
+      
+      console.log('📡 Response status:', response.status, response.statusText);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Request failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorText
+        });
+        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+      }
+      
+      const result = await response.json();
+      console.log('✅ SUCCESS - Backend response:', result);
       return result;
     },
     onSuccess: (updatedProduct) => {
