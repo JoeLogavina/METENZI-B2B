@@ -185,11 +185,14 @@ function Router() {
               <AdminPanel />
             </Suspense>
           )} />
-          <Route path="/admin/products/edit" component={() => (
-            <Suspense fallback={<AdminLoadingFallback />}>
-              <AdminPanel />
-            </Suspense>
-          )} />
+          <Route path="/admin/products/edit" component={() => {
+            const EditProduct = lazy(() => import("@/pages/edit-product"));
+            return (
+              <Suspense fallback={<AdminLoadingFallback />}>
+                <EditProduct />
+              </Suspense>
+            );
+          }} />
 
           <Route path="/admin" component={() => <Redirect to="/admin-panel" />} />
           <Route path="/admin-login" component={() => <Redirect to="/admin-panel" />} />

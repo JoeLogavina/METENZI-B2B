@@ -87,48 +87,59 @@ export default function EditProduct() {
     enabled: !!productId && isAuthenticated
   });
 
-  // Update form data when product loads
+  // CRITICAL FIX: Force state updates whenever product data changes
   useEffect(() => {
-    console.log('🔍 useEffect triggered - product:', !!product, 'type:', typeof product);
+    console.log('🚨 USEEFFECT ALWAYS RUNS - product exists:', !!product, 'type:', typeof product);
+    
     if (product && typeof product === 'object') {
       const prod = product as any;
-      console.log('Loading product data for edit:', prod);
-      console.log('🔍 Setting EUR pricing with b2bPrice:', prod.b2bPrice);
+      // CRITICAL FIX: Product data is wrapped in .data property
+      const productData = prod.data || prod;
+      console.log('🔍 FRESH PRODUCT DATA RECEIVED:', prod);
+      console.log('🎯 CRITICAL B2B PRICE FROM API:', productData.b2bPrice);
       
+      // Update basic form data
       setFormData({
-        name: prod.name || '',
-        description: prod.description || '',
-        category: prod.categoryId || '',
-        platform: prod.platform || '',
-        region: prod.region || '',
-        imageUrl: prod.imageUrl || '',
-        isActive: prod.isActive ?? true
+        name: productData.name || '',
+        description: productData.description || '',
+        category: productData.categoryId || '',
+        platform: productData.platform || '',
+        region: productData.region || '',
+        imageUrl: productData.imageUrl || '',
+        isActive: productData.isActive ?? true
       });
 
+      // FORCE EUR PRICING STATE UPDATE - This is the critical fix
       const newEurPricing = {
-        price: prod.price || '',
-        purchasePrice: prod.purchasePrice || '',
-        b2bPrice: prod.b2bPrice || '',
-        retailPrice: prod.retailPrice || '',
-        stock: prod.stockCount?.toString() || ''
+        price: productData.price || '',
+        purchasePrice: productData.purchasePrice || '',
+        b2bPrice: productData.b2bPrice || '',
+        retailPrice: productData.retailPrice || '',
+        stock: productData.stockCount?.toString() || ''
       };
-      console.log('🔍 New EUR pricing state:', newEurPricing);
-      console.log('🔍 About to call setEurPricing with b2bPrice:', newEurPricing.b2bPrice);
       
-      // Force state update with direct object spread to ensure reactivity
-      setEurPricing(prev => {
-        console.log('🔍 Previous EUR pricing state:', prev);
-        console.log('🔍 New EUR pricing state being set:', newEurPricing);
-        return { ...newEurPricing };
-      });
+      console.log('🔄 FORCING EUR PRICING UPDATE:', newEurPricing);
+      console.log('🎯 NEW B2B PRICE BEING SET:', newEurPricing.b2bPrice);
+      
+      // Force complete state replacement
+      setEurPricing(newEurPricing);
 
       setKmPricing({
-        priceKm: prod.priceKm || '',
-        purchasePriceKm: prod.purchasePriceKm || '',
-        b2bPriceKm: prod.b2bPriceKm || '',
-        retailPriceKm: prod.retailPriceKm || ''
+        priceKm: productData.priceKm || '',
+        purchasePriceKm: productData.purchasePriceKm || '',
+        b2bPriceKm: productData.b2bPriceKm || '',
+        retailPriceKm: productData.retailPriceKm || ''
       });
+      
+      console.log('✅ ALL STATE UPDATES COMPLETED');
+    } else {
+      console.log('⚠️ NO PRODUCT DATA OR INVALID PRODUCT DATA');
     }
+  }, [product]);
+
+  // FORCE LOG WHENEVER PRODUCT CHANGES
+  useEffect(() => {
+    console.log('🔍 PRODUCT DATA CHANGED:', product);
   }, [product]);
 
   // Force re-render when eurPricing.b2bPrice changes  
@@ -529,7 +540,7 @@ export default function EditProduct() {
 
                 <div>
                   <Label htmlFor="b2bPrice" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-                    B2B PRICE (€) - Current: {eurPricing.b2bPrice}
+                    B2B PRICE (€) - State: {eurPricing.b2bPrice} | Product: {(product as any)?.data?.b2bPrice || (product as any)?.b2bPrice}
                   </Label>
                   <Input
                     id="b2bPrice"
