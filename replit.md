@@ -5,6 +5,13 @@
 This is a full-stack B2B software license management platform built with React, Express, and PostgreSQL. The application provides enterprise customers with a streamlined interface to browse, purchase, and manage software licenses, while offering administrators comprehensive tools for inventory and user management. The system now uses custom username/password authentication and displays all prices in EUR currency.
 
 ## Recent Changes (January 2025)
+- **PRICING SYNCHRONIZATION BUG COMPLETELY RESOLVED** (January 29, 2025):
+  - **ROOT CAUSE IDENTIFIED**: Validation schema in `/api/admin/products/:id/pricing` route was filtering out `purchasePrice` and `b2bPrice` fields
+  - **VALIDATION SCHEMA FIXED**: Updated `pricingUpdateSchema` to accept all three pricing fields (purchasePrice, b2bPrice, retailPrice)
+  - **COMPLETE DATA FLOW VERIFIED**: All pricing fields now save correctly from frontend → validation → controller → database
+  - **DATABASE SYNCHRONIZATION CONFIRMED**: Purchase Price (€49.00), B2B Price (€65.95), and Retail Price (€299.00) all updating correctly
+  - **EDIT PRODUCT PAGE WORKING**: All pricing fields display updated values immediately after changes
+  - **ENTERPRISE PRICING AUTHORITY**: Central pricing management now fully operational across all platform components
 - **SHARED LICENSE KEY POOL IMPLEMENTED** (January 28, 2025):
   - **CRITICAL ARCHITECTURE DECISION**: Both EUR and KM tenants now share the same license key inventory pool
   - **INVENTORY ISOLATION REMOVED**: License keys are no longer filtered by tenant, enabling cross-tenant key usage

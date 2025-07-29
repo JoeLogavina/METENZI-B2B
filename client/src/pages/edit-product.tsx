@@ -88,7 +88,6 @@ export default function EditProduct() {
   useEffect(() => {
     if (product && typeof product === 'object') {
       const prod = product as any;
-      console.log('Loading product data for edit:', prod);
       
       setFormData({
         name: prod.name || '',

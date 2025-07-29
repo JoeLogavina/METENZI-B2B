@@ -274,32 +274,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateProduct(id: string, product: Partial<InsertProduct>): Promise<Product> {
-    console.log('🗄️ DATABASE UPDATE:', {
-      productId: id,
-      updateData: product,
-      b2bPriceSpecific: {
-        value: product.b2bPrice,
-        type: typeof product.b2bPrice,
-        exists: 'b2bPrice' in product
-      },
-      allFields: Object.keys(product)
-    });
-
     try {
       const [updatedProduct] = await db
         .update(products)
         .set({ ...product, updatedAt: new Date() })
         .where(eq(products.id, id))
         .returning();
-
-      console.log('✅ DATABASE UPDATE RESULT:', {
-        productId: id,
-        updatedFields: {
-          purchasePrice: updatedProduct.purchasePrice,
-          b2bPrice: updatedProduct.b2bPrice,
-          retailPrice: updatedProduct.retailPrice
-        }
-      });
 
       return updatedProduct;
     } catch (error) {
