@@ -52,6 +52,7 @@ export interface IStorage {
   createProduct(product: InsertProduct): Promise<Product>;
   updateProduct(id: string, product: Partial<InsertProduct>): Promise<Product>;
   deleteProduct(id: string): Promise<void>;
+  getUserVisibleProducts(userId: string): Promise<ProductWithStock[]>;
 
   // Category operations
   getCategories(): Promise<Category[]>;
@@ -864,6 +865,39 @@ export class DatabaseStorage implements IStorage {
     }
     
     return await walletService.getWalletTransactions(userId, tenantId);
+  }
+
+  // Get products visible to a specific B2B user
+  async getUserVisibleProducts(userId: string): Promise<ProductWithStock[]> {
+    const { userProductPricing } = await import("@shared/schema");
+    
+    const userProducts = await db
+      .select({
+        productId: userProductPricing.productId,
+        customPrice: userProductPricing.customPrice,
+        isVisible: userProductPricing.isVisible,
+        product: products
+      })
+      .from(userProductPricing)
+      .innerJoin(products, eq(userProductPricing.productId, products.id))
+      .where(
+        and(
+          eq(userProductPricing.userId, userId),
+          eq(userProductPricing.isVisible, true),
+          eq(products.isActive, true)
+        )
+      );
+
+    // Transform to ProductWithStock format and add custom pricing
+    return userProducts.map(item => ({
+      ...item.product,
+      // Use custom price if available, fallback to B2B price
+      price: item.customPrice?.toString() || item.product.b2bPrice || item.product.price,
+      b2bPrice: item.customPrice?.toString() || item.product.b2bPrice,
+      originalPrice: item.product.price,
+      isCustomPricing: !!item.customPrice,
+      stockCount: 0 // Will be calculated separately if needed
+    }));
   }
 }
 

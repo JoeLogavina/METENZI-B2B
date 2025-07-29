@@ -408,7 +408,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Product routes with tenant-aware pricing
+  // Product routes with tenant-aware pricing and user-specific visibility
   app.get('/api/products', 
     isAuthenticated,
     requireTenantType(['eur-shop', 'km-shop', 'admin']),
@@ -417,18 +417,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { region, platform, category, search, priceMin, priceMax } = req.query;
       const currency = req.tenant.currency;
+      const userId = req.user.id;
+      const userRole = req.user.role;
 
       const filters = {
         region: region as string,
         platform: platform as string,
         category: category as string,
         search: search as string,
-        priceMin: priceMin ? parseFloat(priceMin as string) : undefined,
+        priceMin: priceMin ? parseFloat(priceMax as string) : undefined,
         priceMax: priceMax ? parseFloat(priceMax as string) : undefined,
         currency: currency // Add currency filter
       };
 
-      const products = await productService.getActiveProducts(filters);
+      // For B2B users, get only products visible to them via user_product_pricing
+      let products;
+      if (userRole === 'b2b_user') {
+        // Get user's visible products with custom pricing using storage method
+        const userPricing = await storage.getUserVisibleProducts(userId);
+        
+        // Filter by search and other criteria if provided
+        products = userPricing.filter((product: any) => {
+          if (filters.search) {
+            const searchLower = filters.search.toLowerCase();
+            if (!product.name.toLowerCase().includes(searchLower) && 
+                !product.description.toLowerCase().includes(searchLower)) {
+              return false;
+            }
+          }
+          if (filters.region && product.region !== filters.region) return false;
+          if (filters.platform && product.platform !== filters.platform) return false;
+          if (filters.category && product.categoryId !== filters.category) return false;
+          return true;
+        });
+      } else {
+        // For admin users, get all active products
+        products = await productService.getActiveProducts(filters);
+      }
       
       // Transform products for tenant-specific pricing
       const tenantProducts = products.map(product => ({
