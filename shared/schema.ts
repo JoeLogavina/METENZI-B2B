@@ -28,6 +28,13 @@ export const sessions = pgTable(
 // User roles enum
 export const userRoleEnum = pgEnum("user_role", ["b2b_user", "admin", "super_admin"]);
 
+// Order counter table for sequential order numbers
+export const orderCounters = pgTable("order_counters", {
+  id: varchar("id").primaryKey().default("main"),
+  lastOrderNumber: integer("last_order_number").default(99999).notNull(), // Start from 99999, so first order is 100000
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // User storage table
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

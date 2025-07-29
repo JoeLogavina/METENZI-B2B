@@ -5,6 +5,14 @@
 This is a full-stack B2B software license management platform built with React, Express, and PostgreSQL. The application provides enterprise customers with a streamlined interface to browse, purchase, and manage software licenses, while offering administrators comprehensive tools for inventory and user management. The system now uses custom username/password authentication and displays all prices in EUR currency.
 
 ## Recent Changes (January 2025)
+- **SEQUENTIAL ORDER NUMBER FORMAT IMPLEMENTED** (January 29, 2025):
+  - **USER REQUEST FULFILLED**: Changed order number format from timestamp-based (ORD-1753799627151-V1EIL) to sequential format (ORD-100000, ORD-100001, etc.)
+  - **DATABASE ARCHITECTURE**: Created order_counters table with atomic increment functionality to ensure unique sequential numbering
+  - **CONCURRENCY SAFETY**: Implemented PostgreSQL atomic increment operations to prevent duplicate order numbers in high-concurrency scenarios
+  - **HELPER FUNCTION CREATED**: Built generateNextOrderNumber() utility with fallback to old timestamp format if database issues occur
+  - **SYSTEM INTEGRATION**: Updated order creation logic in server/routes.ts to use new sequential numbering starting from ORD-100000
+  - **IMPACT ANALYSIS**: Confirmed zero breaking changes - existing order display logic, exports, and business processes remain unchanged
+  - **TESTING VERIFIED**: Database testing confirmed sequential generation working correctly (100000, 100001, 100002...)
 - **ORDERS TABLE LICENSE KEY DISPLAY COMPLETELY FIXED** (January 29, 2025):
   - **ROOT CAUSE IDENTIFIED**: Frontend LicenseKey interface used `licenseKey` property but backend OrderService returned `keyValue` property
   - **DATA STRUCTURE SYNCHRONIZATION**: Updated frontend interface to match backend API response format using `keyValue` field

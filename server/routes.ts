@@ -543,10 +543,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // For wallet payments, we'll check balance during payment processing
 
-      // Generate order number
-      const timestamp = Date.now();
-      const randomSuffix = Math.random().toString(36).substring(2, 7).toUpperCase();
-      const orderNumber = `ORD-${timestamp}-${randomSuffix}`;
+      // Generate sequential order number  
+      const { generateNextOrderNumber } = await import('./utils/order-number');
+      const orderNumber = await generateNextOrderNumber();
 
       // BULLETPROOF TRANSACTIONAL ORDER CREATION
       console.log('🚀 Starting bulletproof order creation with transactional consistency');
