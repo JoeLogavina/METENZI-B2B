@@ -343,26 +343,26 @@ export default function KMShop() {
               filters={{
                 search: filters.search,
                 categoryId: "",
-                region: filters.region,
-                platform: filters.platform,
+                region: filters.region || "all",
+                platform: filters.platform || "all",
                 priceMin: filters.priceMin,
                 priceMax: filters.priceMax,
-                stockLevel: filters.stockLevel,
+                stockLevel: filters.stockLevel || "all",
                 dateAdded: filters.dateAdded,
                 sku: filters.sku,
                 priceRange: [0, 1000] as [number, number],
                 availability: [] as string[],
-                sortBy: "",
+                sortBy: "default",
                 sortOrder: "asc" as "asc" | "desc"
               }}
               onFiltersChange={(advancedFilters) => {
                 setFilters({
                   search: advancedFilters.search,
-                  region: advancedFilters.region,
-                  platform: advancedFilters.platform,
+                  region: advancedFilters.region === "all" ? "" : advancedFilters.region,
+                  platform: advancedFilters.platform === "all" ? "" : advancedFilters.platform,
                   priceMin: advancedFilters.priceMin,
                   priceMax: advancedFilters.priceMax,
-                  stockLevel: advancedFilters.stockLevel,
+                  stockLevel: advancedFilters.stockLevel === "all" ? "" : advancedFilters.stockLevel,
                   dateAdded: advancedFilters.dateAdded,
                   sku: advancedFilters.sku,
                 });

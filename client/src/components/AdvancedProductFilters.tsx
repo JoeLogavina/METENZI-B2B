@@ -136,16 +136,16 @@ const AdvancedProductFilters: React.FC<AdvancedProductFiltersProps> = ({
     onFiltersChange({
       search: '',
       categoryId: '',
-      region: '',
-      platform: '',
+      region: 'all',
+      platform: 'all',
       priceMin: '',
       priceMax: '',
-      stockLevel: '',
+      stockLevel: 'all',
       dateAdded: '',
       sku: '',
       priceRange: [0, 1000],
       availability: [],
-      sortBy: '',
+      sortBy: 'default',
       sortOrder: 'asc'
     });
     setPriceRange([0, 1000]);
@@ -155,7 +155,7 @@ const AdvancedProductFilters: React.FC<AdvancedProductFiltersProps> = ({
     return Object.entries(filters).filter(([key, value]) => {
       if (key === 'availability') return Array.isArray(value) && value.length > 0;
       if (key === 'priceRange') return false; // Handled by priceMin/priceMax
-      return value !== '' && value !== 'all';
+      return value !== '' && value !== 'all' && value !== 'default';
     }).length;
   };
 
@@ -383,7 +383,7 @@ const AdvancedProductFilters: React.FC<AdvancedProductFiltersProps> = ({
                   <SelectValue placeholder="All Regions" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Regions</SelectItem>
+                  <SelectItem value="all">All Regions</SelectItem>
                   <SelectItem value="worldwide">Worldwide</SelectItem>
                   <SelectItem value="europe">Europe</SelectItem>
                   <SelectItem value="north-america">North America</SelectItem>
@@ -398,7 +398,7 @@ const AdvancedProductFilters: React.FC<AdvancedProductFiltersProps> = ({
                   <SelectValue placeholder="All Platforms" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Platforms</SelectItem>
+                  <SelectItem value="all">All Platforms</SelectItem>
                   <SelectItem value="windows">Windows</SelectItem>
                   <SelectItem value="mac">Mac</SelectItem>
                   <SelectItem value="linux">Linux</SelectItem>
@@ -434,7 +434,7 @@ const AdvancedProductFilters: React.FC<AdvancedProductFiltersProps> = ({
                   <SelectValue placeholder="Any Stock Level" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Any Stock Level</SelectItem>
+                  <SelectItem value="all">Any Stock Level</SelectItem>
                   <SelectItem value="in-stock">In Stock (&gt;0)</SelectItem>
                   <SelectItem value="low-stock">Low Stock (1-10)</SelectItem>
                   <SelectItem value="high-stock">High Stock (&gt;50)</SelectItem>
@@ -494,7 +494,7 @@ const AdvancedProductFilters: React.FC<AdvancedProductFiltersProps> = ({
                   <SelectValue placeholder="Default" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Default</SelectItem>
+                  <SelectItem value="default">Default</SelectItem>
                   <SelectItem value="name">Product Name</SelectItem>
                   <SelectItem value="price">Price</SelectItem>
                   <SelectItem value="stock">Stock Level</SelectItem>
