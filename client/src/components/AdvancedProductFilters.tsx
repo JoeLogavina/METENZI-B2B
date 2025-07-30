@@ -57,6 +57,9 @@ const AdvancedProductFilters: React.FC<AdvancedProductFiltersProps> = ({
   productCount = 0
 }) => {
   const { formatPrice } = useTenant();
+  
+  // Debug: Log to confirm component is rendering
+  console.log('AdvancedProductFilters rendering with filters:', filters);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
     new Set(['search', 'categories', 'price', 'availability'])
   );
@@ -200,13 +203,17 @@ const AdvancedProductFilters: React.FC<AdvancedProductFiltersProps> = ({
   };
 
   return (
-    <Card className="w-80 h-fit sticky top-4">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-semibold flex items-center gap-2">
-            <SlidersHorizontal className="h-5 w-5 text-[#FFB20F]" />
-            Product Filters
-          </CardTitle>
+    <div className="w-full bg-red-100 border-2 border-red-500 p-4">
+      <div className="text-red-800 font-bold text-lg mb-4">
+        DEBUG: ADVANCED FILTERS COMPONENT IS RENDERING!
+      </div>
+      <Card className="w-full h-fit">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <SlidersHorizontal className="h-5 w-5 text-[#FFB20F]" />
+              Product Filters
+            </CardTitle>
           {getActiveFilterCount() > 0 && (
             <Badge variant="secondary" className="bg-[#FFB20F] text-white">
               {getActiveFilterCount()}
@@ -513,6 +520,7 @@ const AdvancedProductFilters: React.FC<AdvancedProductFiltersProps> = ({
         </Collapsible>
       </CardContent>
     </Card>
+    </div>
   );
 };
 
