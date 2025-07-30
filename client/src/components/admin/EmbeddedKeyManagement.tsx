@@ -10,10 +10,15 @@ import {
   Copy, 
   Download, 
   Filter, 
-  Search 
+  Search,
+  Calendar as CalendarIcon,
+  ChevronDown
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, subDays, subMonths, subYears } from "date-fns";
 import * as XLSX from 'xlsx';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 
 interface LicenseKeyResult {
   id: string;
@@ -41,6 +46,10 @@ interface FilterState {
   orderNumber: string;
   categoryId: string;
   dateRange: string;
+  customStartDate: Date | null;
+  customEndDate: Date | null;
+  buyerSearch: string;
+  status: string;
 }
 
 export function EmbeddedKeyManagement() {
@@ -50,7 +59,11 @@ export function EmbeddedKeyManagement() {
     search: '',
     orderNumber: '',
     categoryId: 'all',
-    dateRange: 'all'
+    dateRange: 'all',
+    customStartDate: null,
+    customEndDate: null,
+    buyerSearch: '',
+    status: 'all'
   });
 
   // Fetch license keys
@@ -61,6 +74,18 @@ export function EmbeddedKeyManagement() {
       if (filters.search) params.append('search', filters.search);
       if (filters.orderNumber) params.append('orderNumber', filters.orderNumber);
       if (filters.categoryId !== 'all') params.append('categoryId', filters.categoryId);
+      if (filters.buyerSearch) params.append('buyerSearch', filters.buyerSearch);
+      if (filters.status !== 'all') params.append('status', filters.status);
+      
+      // Handle date filtering
+      if (filters.dateRange !== 'all') {
+        if (filters.customStartDate) {
+          params.append('startDate', filters.customStartDate.toISOString());
+        }
+        if (filters.customEndDate) {
+          params.append('endDate', filters.customEndDate.toISOString());
+        }
+      }
       
       const response = await fetch(`/api/admin/license-keys/all?${params.toString()}`, {
         credentials: 'include',
@@ -70,15 +95,55 @@ export function EmbeddedKeyManagement() {
     },
   });
 
-  // Fetch categories for filter
-  const { data: categories = [] } = useQuery<Array<{id: string, name: string}>>({
-    queryKey: ['/api/categories'],
+  // Fetch hierarchical categories for filter
+  const { data: categories = [] } = useQuery<Array<{id: string, name: string, level: number, pathName: string}>>({
+    queryKey: ['/api/categories/hierarchy'],
+    queryFn: async () => {
+      const response = await fetch('/api/categories/hierarchy', {
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to fetch categories');
+      return response.json();
+    },
   });
 
   const licenseKeys: LicenseKeyResult[] = licenseKeysData?.data || [];
 
   const handleDateRangeChange = (range: string) => {
-    setFilters(prev => ({ ...prev, dateRange: range }));
+    let startDate = null;
+    let endDate = null;
+    
+    if (range !== 'all' && range !== 'custom') {
+      const now = new Date();
+      endDate = now;
+      
+      switch (range) {
+        case 'last7':
+          startDate = subDays(now, 7);
+          break;
+        case 'last14':
+          startDate = subDays(now, 14);
+          break;
+        case 'last30':
+          startDate = subDays(now, 30);
+          break;
+        case 'last6months':
+          startDate = subMonths(now, 6);
+          break;
+        case 'lastyear':
+          startDate = subYears(now, 1);
+          break;
+      }
+      
+      setFilters(prev => ({ 
+        ...prev, 
+        dateRange: range,
+        customStartDate: startDate,
+        customEndDate: endDate
+      }));
+    } else {
+      setFilters(prev => ({ ...prev, dateRange: range }));
+    }
   };
 
   const copyKeyToClipboard = (keyValue: string) => {
@@ -213,7 +278,19 @@ export function EmbeddedKeyManagement() {
                 <SelectItem value="all">All categories</SelectItem>
                 {categories.map((category: any) => (
                   <SelectItem key={category.id} value={category.id}>
-                    {category.name}
+                    <div className={cn("flex items-center", {
+                      "pl-0": category.level === 1,
+                      "pl-4": category.level === 2,  
+                      "pl-8": category.level === 3,
+                    })}>
+                      <span className={cn({
+                        "font-semibold text-gray-900": category.level === 1,
+                        "font-medium text-gray-700": category.level === 2,
+                        "font-normal text-gray-600": category.level === 3,
+                      })}>
+                        {category.level > 1 && "└ "}{category.name}
+                      </span>
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -234,11 +311,108 @@ export function EmbeddedKeyManagement() {
                 <SelectItem value="last30">Last 30 days</SelectItem>
                 <SelectItem value="last6months">Last 6 months</SelectItem>
                 <SelectItem value="lastyear">Last year</SelectItem>
+                <SelectItem value="custom">Custom range</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </CardContent>
       </Card>
+
+      {/* Advanced Filters - Collapsible */}
+      {showFilters && (
+        <Card className="mb-6">
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Buyer Search */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">Buyer Search</label>
+                <Input
+                  placeholder="Search by buyer name/email..."
+                  value={filters.buyerSearch}
+                  onChange={(e) => setFilters(prev => ({ ...prev, buyerSearch: e.target.value }))}
+                />
+              </div>
+
+              {/* Status Filter */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">Status</label>
+                <Select
+                  value={filters.status}
+                  onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All statuses" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All statuses</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="used">Used</SelectItem>
+                    <SelectItem value="expired">Expired</SelectItem>
+                    <SelectItem value="revoked">Revoked</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Custom Date Range */}
+              {filters.dateRange === 'custom' && (
+                <>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-2 block">Start Date</label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !filters.customStartDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {filters.customStartDate ? format(filters.customStartDate, "PPP") : "Pick start date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={filters.customStartDate || undefined}
+                          onSelect={(date) => setFilters(prev => ({ ...prev, customStartDate: date || null }))}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-2 block">End Date</label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !filters.customEndDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {filters.customEndDate ? format(filters.customEndDate, "PPP") : "Pick end date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={filters.customEndDate || undefined}
+                          onSelect={(date) => setFilters(prev => ({ ...prev, customEndDate: date || null }))}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Keys Table - Exact design from image */}
       <Card>
@@ -265,8 +439,8 @@ export function EmbeddedKeyManagement() {
                   </tr>
                 </thead>
                 <tbody className="bg-white">
-                  {licenseKeys.map((key) => (
-                    <tr key={key.id} className="border-b border-gray-200 hover:bg-gray-50">
+                  {licenseKeys.map((key, index) => (
+                    <tr key={`${key.id}-${index}`} className="border-b border-gray-200 hover:bg-gray-50">
                       <td className="py-2 px-4">
                         <div className="font-mono text-sm font-medium text-gray-900">
                           {key.keyValue}
