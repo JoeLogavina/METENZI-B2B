@@ -5,6 +5,19 @@
 This is a full-stack B2B software license management platform built with React, Express, and PostgreSQL. The application provides enterprise customers with a streamlined interface to browse, purchase, and manage software licenses, while offering administrators comprehensive tools for inventory and user management. The system now uses custom username/password authentication and displays all prices in EUR currency.
 
 ## Recent Changes (January 2025)
+- **ENTERPRISE 3-LEVEL HIERARCHICAL CATEGORY SYSTEM IMPLEMENTED** (January 29, 2025):
+  - **OPTION 1 ARCHITECTURE DEPLOYED**: Self-Referencing + Materialized Paths approach for optimal performance and maintainability
+  - **DATABASE SCHEMA ENHANCED**: Extended categories table with parentId, level (1-3), path (/software/business/office), pathName (breadcrumbs), sortOrder, and isActive fields
+  - **PERFORMANCE OPTIMIZED**: Composite indexes on parent_id, level, path, and sort_order for sub-second query performance
+  - **MATERIALIZED PATHS IMPLEMENTED**: Pre-computed paths eliminate recursive CTE queries for breadcrumb generation and subtree operations
+  - **ENTERPRISE SERVICE LAYER**: CategoryServiceImpl with 15+ methods for hierarchy operations, validation, and path management
+  - **COMPREHENSIVE API ENDPOINTS**: 8 new hierarchical category endpoints (/hierarchy, /level/:level, /:id/children, /:id/path)
+  - **STORAGE LAYER EXTENSION**: 7 new storage methods supporting hierarchy operations with proper typing and error handling
+  - **SAMPLE HIERARCHY CREATED**: Software > Business Applications > Office Suites (3 levels with proper path structure)
+  - **DEMO COMPONENTS BUILT**: CategoryHierarchyDemo with interactive tree visualization and technical implementation details
+  - **REAL-TIME VALIDATION**: Level constraints (max 3), parent validation, and automatic path synchronization
+  - **ENTERPRISE-GRADE FEATURES**: Category tree building, path generation, breadcrumb support, and product count aggregation
+  - **PRODUCTION READY**: TypeScript validation, proper error handling, and comprehensive business logic validation
 - **COMPREHENSIVE B2B CLIENT MANAGEMENT SYSTEM IMPLEMENTED** (January 29, 2025):
   - **COMPLETE DATABASE SCHEMA ENHANCEMENT**: Extended users table with mandatory B2B fields (company name, email, phone, country, city, address, VAT/registration number) and optional fields (contact person, company description)
   - **CUSTOM PRICING INFRASTRUCTURE**: Created user_product_pricing table enabling per-client product pricing customization with visibility controls
@@ -353,6 +366,12 @@ See `ENTERPRISE_ARCHITECTURE.md` and `ARCHITECTURE_COMPARISON.md` for detailed a
 - **ORM**: Drizzle ORM for type-safe database operations
 - **Schema**: Shared schema definitions between client and server
 - **Migrations**: Drizzle Kit for database migrations
+- **Hierarchical Categories**: 3-level materialized paths system (Software > Business Applications > Office Suites)
+  - Self-referencing parent_id structure with level constraints (1-3)
+  - Materialized paths for performance (/software/business-applications/office-suites)
+  - Human-readable path names for breadcrumbs (Software > Business Applications > Office Suites)
+  - Composite indexes for optimal query performance
+  - Enterprise service layer with validation and path management
 
 ## Key Components
 
@@ -372,7 +391,11 @@ See `ENTERPRISE_ARCHITECTURE.md` and `ARCHITECTURE_COMPARISON.md` for detailed a
 ### Data Models
 - **Users**: Profile information with role-based permissions
 - **Products**: Software licenses with pricing, regions, and platform support
-- **Categories**: Product categorization system
+- **Categories**: 3-level hierarchical categorization system with materialized paths
+  - Level 1: Root categories (Software, Hardware)
+  - Level 2: Category groups (Business Applications, Creative Tools, Development Tools)
+  - Level 3: Specific categories (Office Suites, Design Suites, Code Editors)
+  - Materialized paths for performance and breadcrumb generation
 - **Orders**: Purchase tracking and order history
 - **License Keys**: Digital license key management
 - **Cart Items**: Session-based shopping cart functionality

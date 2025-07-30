@@ -57,6 +57,15 @@ export interface IStorage {
   // Category operations
   getCategories(): Promise<Category[]>;
   createCategory(category: InsertCategory): Promise<Category>;
+  
+  // Hierarchical category operations
+  getAllCategoriesHierarchy(): Promise<Category[]>;
+  getCategoriesByLevel(level: number): Promise<Category[]>;
+  getCategoriesByParent(parentId?: string): Promise<Category[]>;
+  getCategoryById(id: string): Promise<Category | undefined>;
+  createCategoryHierarchy(category: InsertCategory & { level: number; path: string; pathName: string }): Promise<Category>;
+  updateCategoryHierarchy(id: string, updateData: Partial<Category>): Promise<Category>;
+  getCategoryProductCount(categoryId: string): Promise<number>;
 
   // License key operations
   getLicenseKeys(productId?: string, tenantId?: string, userRole?: string): Promise<LicenseKey[]>;
@@ -293,14 +302,82 @@ export class DatabaseStorage implements IStorage {
     await db.update(products).set({ isActive: false }).where(eq(products.id, id));
   }
 
-  // Category operations
+  // Category operations (legacy - for backward compatibility)
   async getCategories(): Promise<Category[]> {
-    return await db.select().from(categories).orderBy(categories.name);
+    return await db.select().from(categories)
+      .where(eq(categories.isActive, true))
+      .orderBy(categories.sortOrder, categories.name);
   }
 
   async createCategory(category: InsertCategory): Promise<Category> {
-    const [newCategory] = await db.insert(categories).values(category).returning();
+    // Legacy method - use createCategoryHierarchy for new implementations
+    const categoryData = {
+      ...category,
+      level: 1,
+      path: '/' + category.name.toLowerCase().replace(/[^a-z0-9]/g, '-'),
+      pathName: category.name,
+      sortOrder: category.sortOrder || 0
+    };
+    const [newCategory] = await db.insert(categories).values(categoryData).returning();
     return newCategory;
+  }
+
+  // Hierarchical category operations
+  async getAllCategoriesHierarchy(): Promise<Category[]> {
+    return await db.select().from(categories)
+      .where(eq(categories.isActive, true))
+      .orderBy(categories.level, categories.sortOrder, categories.name);
+  }
+
+  async getCategoriesByLevel(level: number): Promise<Category[]> {
+    return await db.select().from(categories)
+      .where(and(
+        eq(categories.level, level),
+        eq(categories.isActive, true)
+      ))
+      .orderBy(categories.sortOrder, categories.name);
+  }
+
+  async getCategoriesByParent(parentId?: string): Promise<Category[]> {
+    const condition = parentId 
+      ? and(eq(categories.parentId, parentId), eq(categories.isActive, true))
+      : and(sql`${categories.parentId} IS NULL`, eq(categories.isActive, true));
+      
+    return await db.select().from(categories)
+      .where(condition)
+      .orderBy(categories.sortOrder, categories.name);
+  }
+
+  async getCategoryById(id: string): Promise<Category | undefined> {
+    const [category] = await db.select().from(categories)
+      .where(eq(categories.id, id));
+    return category;
+  }
+
+  async createCategoryHierarchy(category: InsertCategory & { level: number; path: string; pathName: string }): Promise<Category> {
+    const [newCategory] = await db.insert(categories).values({
+      ...category,
+      updatedAt: new Date()
+    }).returning();
+    return newCategory;
+  }
+
+  async updateCategoryHierarchy(id: string, updateData: Partial<Category>): Promise<Category> {
+    const [updatedCategory] = await db.update(categories)
+      .set({ ...updateData, updatedAt: new Date() })
+      .where(eq(categories.id, id))
+      .returning();
+    return updatedCategory;
+  }
+
+  async getCategoryProductCount(categoryId: string): Promise<number> {
+    const [result] = await db.select({ count: count() })
+      .from(products)
+      .where(and(
+        eq(products.categoryId, categoryId),
+        eq(products.isActive, true)
+      ));
+    return result.count;
   }
 
   // License key operations

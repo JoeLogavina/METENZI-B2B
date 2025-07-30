@@ -61,13 +61,35 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Product categories
+// Product categories with hierarchy support
 export const categories = pgTable("categories", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: varchar("name").notNull(),
   description: text("description"),
+  parentId: varchar("parent_id"),
+  level: integer("level").default(1).notNull(), // 1, 2, or 3
+  path: varchar("path").notNull(), // Materialized path like "/software/business/office"
+  pathName: varchar("path_name").notNull(), // Human readable path like "Software > Business Applications > Office Suites"
+  sortOrder: integer("sort_order").default(0).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
-});
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("categories_parent_id_idx").on(table.parentId),
+  index("categories_level_idx").on(table.level),
+  index("categories_path_idx").on(table.path),
+  index("categories_sort_order_idx").on(table.sortOrder),
+]);
+
+// Add foreign key constraint after table definition
+export const categoriesRelations = relations(categories, ({ one, many }) => ({
+  parent: one(categories, {
+    fields: [categories.parentId],
+    references: [categories.id],
+  }),
+  children: many(categories),
+  products: many(products),
+}));
 
 // Products table
 export const products = pgTable("products", {
@@ -241,9 +263,7 @@ export const productsRelations = relations(products, ({ one, many }) => ({
   userPricing: many(userProductPricing),
 }));
 
-export const categoriesRelations = relations(categories, ({ many }) => ({
-  products: many(products),
-}));
+
 
 export const licenseKeysRelations = relations(licenseKeys, ({ one }) => ({
   product: one(products, {
@@ -466,6 +486,10 @@ export type Product = typeof products.$inferSelect;
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type Category = typeof categories.$inferSelect;
 export type InsertCategory = z.infer<typeof insertCategorySchema>;
+export type CategoryWithChildren = Category & {
+  children?: CategoryWithChildren[];
+  productCount?: number;
+};
 export type Order = typeof orders.$inferSelect;
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
 export type OrderItem = typeof orderItems.$inferSelect;

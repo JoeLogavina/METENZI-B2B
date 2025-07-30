@@ -191,6 +191,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
 
+  // Hierarchical category routes
+  app.get('/api/categories/hierarchy', isAuthenticated, async (req: any, res) => {
+    try {
+      const { categoryService } = await import('./services/category.service');
+      const hierarchy = await categoryService.getCategoryHierarchy();
+      res.json(hierarchy);
+    } catch (error) {
+      console.error("Error fetching category hierarchy:", error);
+      res.status(500).json({ message: "Failed to fetch category hierarchy" });
+    }
+  });
+
+  app.get('/api/categories/level/:level', isAuthenticated, async (req: any, res) => {
+    try {
+      const level = parseInt(req.params.level);
+      if (level < 1 || level > 3) {
+        return res.status(400).json({ message: "Level must be between 1 and 3" });
+      }
+      
+      const categories = await storage.getCategoriesByLevel(level);
+      res.json(categories);
+    } catch (error) {
+      console.error("Error fetching categories by level:", error);
+      res.status(500).json({ message: "Failed to fetch categories" });
+    }
+  });
+
+  app.get('/api/categories/:id/children', isAuthenticated, async (req: any, res) => {
+    try {
+      const children = await storage.getCategoriesByParent(req.params.id);
+      res.json(children);
+    } catch (error) {
+      console.error("Error fetching category children:", error);
+      res.status(500).json({ message: "Failed to fetch category children" });
+    }
+  });
+
+  app.get('/api/categories/:id/path', isAuthenticated, async (req: any, res) => {
+    try {
+      const { categoryService } = await import('./services/category.service');
+      const path = await categoryService.getCategoryPath(req.params.id);
+      res.json(path);
+    } catch (error) {
+      console.error("Error fetching category path:", error);
+      res.status(500).json({ message: "Failed to fetch category path" });
+    }
+  });
+
+  app.post('/api/categories/hierarchy', 
+    isAuthenticated, 
+    invalidateCacheMiddleware('categories:*'),
+    async (req: any, res) => {
+      try {
+        const user = await storage.getUser(req.user.id);
+        if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
+          return res.status(403).json({ message: "Insufficient permissions" });
+        }
+
+        const { categoryService } = await import('./services/category.service');
+        const category = await categoryService.createCategory(req.body);
+        res.status(201).json(category);
+      } catch (error) {
+        console.error("Error creating category:", error);
+        res.status(500).json({ message: "Failed to create category" });
+      }
+    });
+
   // License key routes
   app.get('/api/license-keys', isAuthenticated, async (req: any, res) => {
     try {
