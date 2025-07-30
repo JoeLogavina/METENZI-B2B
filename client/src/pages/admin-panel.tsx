@@ -428,17 +428,7 @@ export default function AdminPanel() {
                       <p className="text-[#6E6F71] mb-6">
                         Welcome to the admin dashboard. Use the sidebar to navigate between different management sections.
                       </p>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => window.location.href = '/admin/category-hierarchy-demo'}>
-                          <CardContent className="p-4 text-center">
-                            <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center mx-auto mb-3">
-                              <Package className="h-6 w-6 text-yellow-600" />
-                            </div>
-                            <h3 className="font-medium text-gray-900 mb-2">Category Hierarchy Demo</h3>
-                            <p className="text-sm text-gray-600">View the 3-level hierarchical category system implementation</p>
-                          </CardContent>
-                        </Card>
-                      </div>
+
                     </div>
                   </CardContent>
                 </Card>

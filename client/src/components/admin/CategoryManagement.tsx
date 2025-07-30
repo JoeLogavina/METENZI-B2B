@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit, Trash2, ChevronRight, ChevronDown, Folder, FolderOpen, Package } from 'lucide-react';
+import { Plus, Edit, Trash2, ChevronRight, ChevronDown, Folder, FolderOpen, Package, FileText } from 'lucide-react';
 import { type Category, type CategoryWithChildren } from '@shared/schema';
 
 interface CategoryFormData {
@@ -38,7 +38,7 @@ export function CategoryManagement() {
   });
 
   // Fetch all categories
-  const { data: allCategories = [], isLoading, refetch } = useQuery({
+  const { data: allCategories = [], isLoading, refetch } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
     staleTime: 2 * 60 * 1000,
   });
@@ -80,15 +80,25 @@ export function CategoryManagement() {
     return rootCategories;
   };
 
-  const hierarchy = buildHierarchy(allCategories.filter((cat: Category) => cat.isActive !== false));
+  const hierarchy = buildHierarchy(allCategories.filter((cat) => cat.isActive !== false));
 
   // Create category mutation
   const createCategoryMutation = useMutation({
     mutationFn: async (data: CategoryFormData) => {
-      return apiRequest('/api/categories', {
+      const response = await fetch('/api/categories', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
         body: JSON.stringify(data),
       });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to create category: ${response.statusText}`);
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
       toast({ title: "Success", description: "Category created successfully" });
@@ -108,10 +118,20 @@ export function CategoryManagement() {
   // Update category mutation
   const updateCategoryMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<CategoryFormData> }) => {
-      return apiRequest(`/api/categories/${id}`, {
+      const response = await fetch(`/api/categories/${id}`, {
         method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
         body: JSON.stringify(data),
       });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to update category: ${response.statusText}`);
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
       toast({ title: "Success", description: "Category updated successfully" });
@@ -131,9 +151,16 @@ export function CategoryManagement() {
   // Delete category mutation
   const deleteCategoryMutation = useMutation({
     mutationFn: async (id: string) => {
-      return apiRequest(`/api/categories/${id}`, {
+      const response = await fetch(`/api/categories/${id}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to delete category: ${response.statusText}`);
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
       toast({ title: "Success", description: "Category deleted successfully" });
