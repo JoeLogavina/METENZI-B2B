@@ -257,6 +257,7 @@ export default function AdminPanel() {
     { id: 'price-management', icon: DollarSign, label: 'Price Management', allowed: true },
     { id: 'edit-product', icon: Edit, label: 'Edit Product', allowed: true, hidden: !isEditProductPage },
     { id: 'keys', icon: Key, label: 'Key Management', allowed: true },
+    { id: 'keys-management', icon: Key, label: 'Digital License Keys', allowed: true },
     { id: 'wallets', icon: Wallet, label: 'Wallet Management', allowed: true },
     { id: 'permissions', icon: Shield, label: 'Permissions', allowed: (user as any)?.role === 'super_admin' },
     { id: 'reports', icon: FileText, label: 'Reports', allowed: true },
@@ -326,7 +327,13 @@ export default function AdminPanel() {
             {sidebarItems.map((item) => (
               <div
                 key={item.id}
-                onClick={() => setActiveSection(item.id)}
+                onClick={() => {
+                  if (item.id === 'keys-management') {
+                    setLocation('/admin/keys-management');
+                  } else {
+                    setActiveSection(item.id);
+                  }
+                }}
                 className={`flex items-center px-4 py-3 text-lg transition-colors duration-200 cursor-pointer ${
                   activeSection === item.id
                     ? 'bg-[#FFB20F] text-white border-r-2 border-[#e6a00e]' 

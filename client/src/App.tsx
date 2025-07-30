@@ -36,6 +36,7 @@ const CheckoutPage = lazy(() => import("@/pages/checkout"));
 const AdminPanel = lazy(() => import("@/pages/admin-panel"));
 const UserEditPage = lazy(() => import("@/pages/admin/user-edit"));
 const CategoryHierarchyDemoPage = lazy(() => import("@/pages/admin/category-hierarchy-demo"));
+const AdminKeysManagement = lazy(() => import("@/pages/admin-keys-management"));
 const WalletPage = lazy(() => import("@/pages/wallet-page"));
 const OrdersPage = lazy(() => import("@/pages/orders"));
 
@@ -204,6 +205,11 @@ function Router() {
           <Route path="/admin/category-hierarchy-demo" component={() => (
             <Suspense fallback={<AdminLoadingFallback />}>
               <CategoryHierarchyDemoPage />
+            </Suspense>
+          )} />
+          <Route path="/admin/keys-management" component={() => (
+            <Suspense fallback={<AdminLoadingFallback />}>
+              <AdminKeysManagement />
             </Suspense>
           )} />
           <Route path="/admin" component={() => <Redirect to="/admin-panel" />} />
