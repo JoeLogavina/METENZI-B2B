@@ -37,6 +37,7 @@ import UserEdit from "@/pages/admin/user-edit";
 import { formatAdminPrice, convertEurToKm } from "@/lib/currency-utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { CategoryManagement } from "@/components/admin/CategoryManagement";
 
 interface DashboardStats {
   totalUsers: number;
@@ -251,6 +252,7 @@ export default function AdminPanel() {
   const sidebarItems = [
     { id: 'dashboard', icon: BarChart3, label: 'Dashboard', allowed: true },
     { id: 'users', icon: Users, label: 'User Management', allowed: (user as any)?.role === 'super_admin' },
+    { id: 'categories', icon: FileText, label: 'Category Management', allowed: true },
     { id: 'products', icon: Package, label: 'Product Management', allowed: true },
     { id: 'price-management', icon: DollarSign, label: 'Price Management', allowed: true },
     { id: 'edit-product', icon: Edit, label: 'Edit Product', allowed: true, hidden: !isEditProductPage },
@@ -441,6 +443,10 @@ export default function AdminPanel() {
                   </CardContent>
                 </Card>
               </div>
+            )}
+
+            {activeSection === 'categories' && (
+              <CategoryManagement />
             )}
 
             {activeSection === 'users' && user?.role === 'super_admin' && (
