@@ -125,10 +125,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Use the admin router
   app.use('/api/admin', adminRouter);
-  
-  // Admin keys management routes
-  const { default: adminKeysRouter } = await import('./routes/admin-keys.js');
-  app.use('/api/admin', adminKeysRouter);
 
   // REMOVED: Duplicate products route - Using tenant-aware version below
 

@@ -73,16 +73,6 @@ export interface IStorage {
   getAvailableKey(productId: string): Promise<LicenseKey | undefined>;
   getKeyById(keyId: string): Promise<LicenseKey | undefined>;
   markKeyAsUsed(keyId: string, userId: string): Promise<void>;
-  
-  // Admin license key management
-  getDetailedLicenseKeys(filters?: {
-    search?: string;
-    orderNumber?: string;
-    category?: string;
-    buyer?: string;
-    startDate?: Date;
-    endDate?: Date;
-  }): Promise<any[]>;
   getProductStock(productId: string): Promise<number>;
 
   // Cart operations
@@ -483,90 +473,6 @@ export class DatabaseStorage implements IStorage {
       .from(licenseKeys)
       .where(and(...whereConditions));
     return result.count;
-  }
-
-  // Admin license key management with detailed information
-  async getDetailedLicenseKeys(filters?: {
-    search?: string;
-    orderNumber?: string;
-    category?: string;
-    buyer?: string;
-    startDate?: Date;
-    endDate?: Date;
-  }): Promise<any[]> {
-    try {
-      let whereConditions = [eq(licenseKeys.isUsed, true)]; // Only show used keys (purchased)
-      
-      // Apply filters
-      if (filters?.orderNumber) {
-        whereConditions.push(ilike(orders.orderNumber, `%${filters.orderNumber}%`));
-      }
-      
-      if (filters?.startDate) {
-        whereConditions.push(gte(orders.createdAt, filters.startDate));
-      }
-      
-      if (filters?.endDate) {
-        whereConditions.push(lte(orders.createdAt, filters.endDate));
-      }
-
-      const query = db
-        .select({
-          id: licenseKeys.id,
-          keyValue: licenseKeys.keyValue,
-          productTitle: products.name,
-          price: products.b2bPrice,
-          orderNumber: orders.orderNumber,
-          orderId: orders.id,
-          purchaseDate: orders.createdAt,
-          warranty: sql<string>`'Jul 27, 2026'`, // Default warranty date
-          platform: products.platform,
-          region: products.region,
-          buyerName: sql<string>`CONCAT(${users.firstName}, ' ', ${users.lastName})`,
-          buyerEmail: users.email,
-        })
-        .from(licenseKeys)
-        .innerJoin(orderItems, eq(licenseKeys.id, orderItems.licenseKeyId))
-        .innerJoin(orders, eq(orderItems.orderId, orders.id))
-        .innerJoin(products, eq(licenseKeys.productId, products.id))
-        .innerJoin(users, eq(orders.userId, users.id))
-        .where(and(...whereConditions))
-        .orderBy(desc(orders.createdAt));
-
-      const results = await query;
-      
-      // Apply client-side search filters for text-based searches
-      let filteredResults = results;
-      
-      if (filters?.search) {
-        const searchTerm = filters.search.toLowerCase();
-        filteredResults = results.filter(item => 
-          item.keyValue.toLowerCase().includes(searchTerm) ||
-          item.productTitle.toLowerCase().includes(searchTerm) ||
-          item.buyerName.toLowerCase().includes(searchTerm) ||
-          item.buyerEmail.toLowerCase().includes(searchTerm)
-        );
-      }
-      
-      if (filters?.buyer) {
-        const buyerTerm = filters.buyer.toLowerCase();
-        filteredResults = filteredResults.filter(item =>
-          item.buyerName.toLowerCase().includes(buyerTerm) ||
-          item.buyerEmail.toLowerCase().includes(buyerTerm)
-        );
-      }
-      
-      return filteredResults.map(item => ({
-        ...item,
-        purchaseDate: item.purchaseDate.toISOString().split('T')[0], // Format as YYYY-MM-DD
-        purchaseTime: item.purchaseDate.toTimeString().split(' ')[0], // Format as HH:MM:SS
-        price: item.price.toString(),
-      }));
-      
-    } catch (error) {
-      console.error('Error fetching detailed license keys:', error);
-      throw new Error('Failed to fetch license keys data');
-    }
   }
 
   // ENTERPRISE CART OPERATIONS WITH TRANSACTIONAL SAFETY

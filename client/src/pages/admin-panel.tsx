@@ -38,6 +38,7 @@ import { formatAdminPrice, convertEurToKm } from "@/lib/currency-utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { CategoryManagement } from "@/components/admin/CategoryManagement";
+import { KeyManagement } from "@/components/admin/KeyManagement";
 
 interface DashboardStats {
   totalUsers: number;
@@ -257,7 +258,6 @@ export default function AdminPanel() {
     { id: 'price-management', icon: DollarSign, label: 'Price Management', allowed: true },
     { id: 'edit-product', icon: Edit, label: 'Edit Product', allowed: true, hidden: !isEditProductPage },
     { id: 'keys', icon: Key, label: 'Key Management', allowed: true },
-    { id: 'keys-management', icon: Key, label: 'Digital License Keys', allowed: true },
     { id: 'wallets', icon: Wallet, label: 'Wallet Management', allowed: true },
     { id: 'permissions', icon: Shield, label: 'Permissions', allowed: (user as any)?.role === 'super_admin' },
     { id: 'reports', icon: FileText, label: 'Reports', allowed: true },
@@ -327,13 +327,7 @@ export default function AdminPanel() {
             {sidebarItems.map((item) => (
               <div
                 key={item.id}
-                onClick={() => {
-                  if (item.id === 'keys-management') {
-                    setLocation('/admin/keys-management');
-                  } else {
-                    setActiveSection(item.id);
-                  }
-                }}
+                onClick={() => setActiveSection(item.id)}
                 className={`flex items-center px-4 py-3 text-lg transition-colors duration-200 cursor-pointer ${
                   activeSection === item.id
                     ? 'bg-[#FFB20F] text-white border-r-2 border-[#e6a00e]' 
@@ -839,7 +833,9 @@ export default function AdminPanel() {
 
             {activeSection === 'wallets' && <WalletManagement />}
 
-            {(activeSection === 'keys' || activeSection === 'permissions' || activeSection === 'reports') && (
+            {activeSection === 'keys' && <KeyManagement />}
+
+            {(activeSection === 'permissions' || activeSection === 'reports') && (
               <Card>
                 <CardHeader>
                   <CardTitle className="capitalize">{activeSection.replace('_', ' ')} Management</CardTitle>
@@ -2357,14 +2353,11 @@ XYZ12-ABC34-DEF56-GHI78-JKL90
       )}
       
       {/* Integrated User Editing Modal */}
-      {selectedUser && (
-        <>
-          {console.log('Rendering modal for user:', selectedUser)}
-          <UserEditModal 
-            user={selectedUser} 
-            onClose={() => setSelectedUser(null)} 
-          />
-        </>
+      {editingUserId && (
+        <UserEditModal 
+          user={{ id: editingUserId }} 
+          onClose={() => setEditingUserId(null)} 
+        />
       )}
     </div>
   );
@@ -2454,10 +2447,7 @@ function UserEditModal({ user, onClose }: { user: any; onClose: () => void }) {
   // Add deposit mutation
   const addDepositMutation = useMutation({
     mutationFn: async ({ amount }: { amount: number }) => {
-      const response = await apiRequest(`/api/admin/users/${user.id}/deposit`, {
-        method: 'POST',
-        body: { amount },
-      });
+      const response = await apiRequest(`/api/admin/users/${user.id}/deposit`, 'POST', { amount });
       return response;
     },
     onSuccess: () => {
@@ -2481,10 +2471,7 @@ function UserEditModal({ user, onClose }: { user: any; onClose: () => void }) {
   // Update credit limit mutation
   const updateCreditMutation = useMutation({
     mutationFn: async ({ creditLimit }: { creditLimit: number }) => {
-      const response = await apiRequest(`/api/admin/users/${user.id}/credit-limit`, {
-        method: 'PUT',
-        body: { creditLimit },
-      });
+      const response = await apiRequest(`/api/admin/users/${user.id}/credit-limit`, 'PUT', { creditLimit });
       return response;
     },
     onSuccess: () => {
