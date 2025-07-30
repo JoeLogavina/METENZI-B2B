@@ -10,8 +10,218 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit, Trash2, ChevronRight, ChevronDown, Folder, FolderOpen, Package, FileText } from 'lucide-react';
+import { Plus, Edit, Trash2, ChevronRight, ChevronDown, Folder, FolderOpen, Package, FileText, Search, X } from 'lucide-react';
 import { type Category, type CategoryWithChildren } from '@shared/schema';
+
+interface HierarchicalCategorySelectorProps {
+  categories: Category[];
+  selectedCategoryId: string | null;
+  onSelect: (categoryId: string | null) => void;
+  maxLevel?: number;
+}
+
+const HierarchicalCategorySelector: React.FC<HierarchicalCategorySelectorProps> = ({
+  categories,
+  selectedCategoryId,
+  onSelect,
+  maxLevel = 3
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+
+  const buildHierarchy = (cats: Category[]): CategoryWithChildren[] => {
+    const categoryMap = new Map<string, CategoryWithChildren>();
+    
+    cats.forEach(cat => {
+      categoryMap.set(cat.id, { ...cat, children: [] });
+    });
+
+    const rootCategories: CategoryWithChildren[] = [];
+    
+    cats.forEach(cat => {
+      const categoryWithChildren = categoryMap.get(cat.id)!;
+      
+      if (cat.parentId && categoryMap.has(cat.parentId)) {
+        const parent = categoryMap.get(cat.parentId)!;
+        parent.children.push(categoryWithChildren);
+      } else {
+        rootCategories.push(categoryWithChildren);
+      }
+    });
+
+    const sortCategories = (categories: CategoryWithChildren[]) => {
+      categories.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+      categories.forEach(cat => {
+        if (cat.children) sortCategories(cat.children);
+      });
+    };
+
+    sortCategories(rootCategories);
+    return rootCategories;
+  };
+
+  const filterCategories = (cats: CategoryWithChildren[], term: string): CategoryWithChildren[] => {
+    if (!term) return cats;
+    
+    return cats.reduce<CategoryWithChildren[]>((filtered, cat) => {
+      const matchesSearch = cat.name.toLowerCase().includes(term.toLowerCase());
+      const filteredChildren = filterCategories(cat.children || [], term);
+      
+      if (matchesSearch || filteredChildren.length > 0) {
+        filtered.push({
+          ...cat,
+          children: filteredChildren
+        });
+      }
+      
+      return filtered;
+    }, []);
+  };
+
+  const toggleExpanded = (categoryId: string) => {
+    setExpandedCategories(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(categoryId)) {
+        newSet.delete(categoryId);
+      } else {
+        newSet.add(categoryId);
+      }
+      return newSet;
+    });
+  };
+
+  const hierarchy = buildHierarchy(categories.filter(cat => cat.isActive !== false && (cat.level || 1) <= maxLevel));
+  const filteredHierarchy = filterCategories(hierarchy, searchTerm);
+
+  const selectedCategory = categories.find(cat => cat.id === selectedCategoryId);
+
+  const renderCategoryOption = (category: CategoryWithChildren, depth: number = 0) => {
+    const hasChildren = category.children && category.children.length > 0;
+    const isExpanded = expandedCategories.has(category.id);
+    const isSelected = selectedCategoryId === category.id;
+
+    return (
+      <div key={category.id}>
+        <div
+          className={`flex items-center gap-2 py-2 px-3 hover:bg-gray-50 cursor-pointer rounded ${
+            isSelected ? 'bg-yellow-50 border-l-4 border-yellow-500' : ''
+          }`}
+          style={{ marginLeft: `${depth * 16}px` }}
+          onClick={() => {
+            onSelect(category.id);
+            setIsOpen(false);
+          }}
+        >
+          {hasChildren ? (
+            <button
+              className="p-1 hover:bg-gray-200 rounded"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleExpanded(category.id);
+              }}
+            >
+              {isExpanded ? (
+                <ChevronDown className="h-3 w-3" />
+              ) : (
+                <ChevronRight className="h-3 w-3" />
+              )}
+            </button>
+          ) : (
+            <div className="w-5" />
+          )}
+
+          {depth === 0 ? (
+            <Folder className="h-4 w-4 text-yellow-600" />
+          ) : depth === 1 ? (
+            <Folder className="h-4 w-4 text-blue-500" />
+          ) : (
+            <Package className="h-4 w-4 text-green-500" />
+          )}
+
+          <span className="text-sm font-medium">{category.name}</span>
+          <Badge variant="outline" className="text-xs">
+            Level {category.level}
+          </Badge>
+        </div>
+
+        {isExpanded && hasChildren && (
+          <div>
+            {category.children.map(child => renderCategoryOption(child, depth + 1))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="relative">
+      <div
+        className="flex items-center justify-between p-3 border border-gray-300 rounded-md cursor-pointer hover:border-gray-400"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <div className="flex items-center gap-2">
+          {selectedCategory ? (
+            <>
+              <Folder className="h-4 w-4 text-yellow-600" />
+              <span className="text-sm">{selectedCategory.pathName || selectedCategory.name}</span>
+            </>
+          ) : (
+            <span className="text-sm text-gray-500">Select parent category (optional)</span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {selectedCategory && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelect(null);
+              }}
+              className="p-1 hover:bg-gray-200 rounded"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
+          <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        </div>
+      </div>
+
+      {isOpen && (
+        <div className="absolute top-full left-0 right-0 z-50 bg-white border border-gray-300 rounded-md shadow-lg mt-1 max-h-80 overflow-hidden">
+          <div className="p-3 border-b border-gray-200">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Search categories..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
+          
+          <div className="max-h-60 overflow-y-auto">
+            <div
+              className={`flex items-center gap-2 py-2 px-3 hover:bg-gray-50 cursor-pointer ${
+                !selectedCategoryId ? 'bg-yellow-50 border-l-4 border-yellow-500' : ''
+              }`}
+              onClick={() => {
+                onSelect(null);
+                setIsOpen(false);
+              }}
+            >
+              <Folder className="h-4 w-4 text-gray-400" />
+              <span className="text-sm font-medium">Root Category (Level 1)</span>
+            </div>
+            
+            {filteredHierarchy.map(category => renderCategoryOption(category, 0))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 interface CategoryFormData {
   name: string;
@@ -391,32 +601,19 @@ export function CategoryManagement() {
 
               <div>
                 <Label htmlFor="parent">Parent Category</Label>
-                <Select
-                  value={categoryFormData.parentId || 'root'}
-                  onValueChange={(value) => {
-                    const parent = allCategories.find((cat) => cat.id === value);
+                <HierarchicalCategorySelector
+                  categories={allCategories}
+                  selectedCategoryId={categoryFormData.parentId}
+                  onSelect={(categoryId) => {
+                    const parent = allCategories.find((cat) => cat.id === categoryId);
                     setCategoryFormData(prev => ({
                       ...prev,
-                      parentId: value === 'root' ? null : value,
+                      parentId: categoryId,
                       level: parent ? parent.level + 1 : 1
                     }));
                   }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select parent category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {getParentOptions().map(option => (
-                      <SelectItem 
-                        key={option.value || 'root'} 
-                        value={option.value || 'root'}
-                        disabled={option.level >= 3}
-                      >
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  maxLevel={2} // Only allow selecting up to level 2 as parent (so children can be level 3)
+                />
               </div>
 
               <div>
