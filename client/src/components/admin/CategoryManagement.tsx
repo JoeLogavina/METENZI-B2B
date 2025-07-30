@@ -392,12 +392,12 @@ export function CategoryManagement() {
               <div>
                 <Label htmlFor="parent">Parent Category</Label>
                 <Select
-                  value={categoryFormData.parentId || ''}
+                  value={categoryFormData.parentId || 'root'}
                   onValueChange={(value) => {
-                    const parent = allCategories.find((cat: Category) => cat.id === value);
+                    const parent = allCategories.find((cat) => cat.id === value);
                     setCategoryFormData(prev => ({
                       ...prev,
-                      parentId: value || null,
+                      parentId: value === 'root' ? null : value,
                       level: parent ? parent.level + 1 : 1
                     }));
                   }}
@@ -409,7 +409,7 @@ export function CategoryManagement() {
                     {getParentOptions().map(option => (
                       <SelectItem 
                         key={option.value || 'root'} 
-                        value={option.value}
+                        value={option.value || 'root'}
                         disabled={option.level >= 3}
                       >
                         {option.label}
