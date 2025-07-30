@@ -41,20 +41,23 @@ export class AdminLicenseKeysController {
 
       // Build comprehensive query to get all license keys with order and user information
       const query = sql`
-        SELECT DISTINCT
+        SELECT 
           lk.id,
           lk.key_value as "keyValue",
           lk.product_id as "productId",
           p.name as "productName",
+          p.price as "productPrice",
+          p.platform as "productPlatform",
+          p.region as "productRegion",
           p.category_id as "categoryId",
           c.name as "categoryName",
-          o.id as "orderId",
-          o.order_number as "orderNumber",
-          o.created_at as "purchaseDate",
-          o.created_at as "purchaseTime",
-          u.first_name || ' ' || u.last_name as "buyerName",
-          u.email as "buyerEmail",
-          u.company_name as "buyerCompany",
+          COALESCE(o.id, '') as "orderId",
+          COALESCE(o.order_number, 'Unassigned') as "orderNumber",
+          COALESCE(o.created_at, lk.created_at) as "purchaseDate",
+          COALESCE(o.created_at, lk.created_at) as "purchaseTime",
+          COALESCE(u.first_name || ' ' || u.last_name, 'Unknown') as "buyerName",
+          COALESCE(u.email, 'unknown@example.com') as "buyerEmail",
+          COALESCE(u.company_name, 'Unknown Company') as "buyerCompany",
           CASE 
             WHEN lk.is_used = true THEN 'used'
             WHEN lk.is_active = false THEN 'revoked'
@@ -89,9 +92,9 @@ export class AdminLicenseKeysController {
             ELSE 'active'
           END = ${status}
         )` : sql``}
-        ${startDate ? sql`AND o.created_at >= ${startDate}` : sql``}
-        ${endDate ? sql`AND o.created_at <= ${endDate}` : sql``}
-        ORDER BY o.created_at DESC, lk.created_at DESC
+        ${startDate ? sql`AND COALESCE(o.created_at, lk.created_at) >= ${startDate}` : sql``}
+        ${endDate ? sql`AND COALESCE(o.created_at, lk.created_at) <= ${endDate}` : sql``}
+        ORDER BY COALESCE(o.created_at, lk.created_at) DESC, lk.id DESC
         LIMIT 1000
       `;
 

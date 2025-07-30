@@ -257,7 +257,7 @@ export default function AdminPanel() {
     { id: 'products', icon: Package, label: 'Product Management', allowed: true },
     { id: 'price-management', icon: DollarSign, label: 'Price Management', allowed: true },
     { id: 'edit-product', icon: Edit, label: 'Edit Product', allowed: true, hidden: !isEditProductPage },
-    { id: 'keys', icon: Key, label: 'Key Management', allowed: true },
+    { id: 'keys', icon: Key, label: 'Keys Management', allowed: true },
     { id: 'wallets', icon: Wallet, label: 'Wallet Management', allowed: true },
     { id: 'permissions', icon: Shield, label: 'Permissions', allowed: (user as any)?.role === 'super_admin' },
     { id: 'reports', icon: FileText, label: 'Reports', allowed: true },
@@ -833,7 +833,18 @@ export default function AdminPanel() {
 
             {activeSection === 'wallets' && <WalletManagement />}
 
-            {activeSection === 'keys' && <KeyManagement />}
+            {activeSection === 'keys' && (
+              <div className="text-center py-12">
+                <Key className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600 mb-4">Keys Management has been moved to a dedicated page</p>
+                <Button
+                  onClick={() => setLocation('/admin/keys')}
+                  className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white"
+                >
+                  Go to Keys Management
+                </Button>
+              </div>
+            )}
 
             {(activeSection === 'permissions' || activeSection === 'reports') && (
               <Card>

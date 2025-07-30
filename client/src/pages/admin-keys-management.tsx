@@ -38,6 +38,9 @@ interface LicenseKeyResult {
   keyValue: string;
   productId: string;
   productName: string;
+  productPrice: string;
+  productPlatform: string;
+  productRegion: string;
   categoryId: string;
   categoryName: string;
   orderId: string;
@@ -170,7 +173,7 @@ export default function AdminKeysManagement() {
   });
 
   // Fetch categories for filter
-  const { data: categories = [] } = useQuery({
+  const { data: categories = [] } = useQuery<Array<{id: string, name: string}>>({
     queryKey: ['/api/categories'],
     enabled: isAuthenticated
   });
@@ -274,9 +277,9 @@ export default function AdminKeysManagement() {
   };
 
   // Navigate to order details
-  const navigateToOrder = (orderId: string) => {
-    // Navigate to order details - this would need to be implemented in the orders page
-    setLocation(`/admin-panel?section=orders&orderId=${orderId}`);
+  const navigateToOrder = (orderNumber: string) => {
+    // Navigate to admin panel orders section
+    setLocation(`/admin-panel?section=orders&search=${orderNumber}`);
   };
 
   const getStatusBadge = (status: string) => {
@@ -334,7 +337,8 @@ export default function AdminKeysManagement() {
               )}
               onClick={() => {
                 if (item.id === 'keys') return;
-                setLocation(`/admin-panel?section=${item.id}`);
+                if (item.id === 'dashboard') setLocation('/admin-panel');
+                else setLocation(`/admin-panel?section=${item.id}`);
               }}
             >
               <item.icon className="w-6 h-6 mr-3" />
@@ -347,55 +351,105 @@ export default function AdminKeysManagement() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-          <h3 className="text-xl font-semibold text-[#6E6F71] uppercase tracking-[0.5px]">
-            KEYS MANAGEMENT
-          </h3>
+          <div className="flex items-center gap-3">
+            <Key className="h-6 w-6 text-[#6E6F71]" />
+            <h3 className="text-xl font-semibold text-[#6E6F71]">
+              Digital License Keys
+            </h3>
+          </div>
           <div className="flex items-center gap-3">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center gap-2"
+              className="text-sm px-4 py-2 flex items-center gap-2 border-[#6E6F71] text-[#6E6F71] hover:bg-[#6E6F71] hover:text-white"
             >
               <Filter className="h-4 w-4" />
-              {showFilters ? 'Hide Filters' : 'Show Filters'}
+              Advanced Filters
             </Button>
-            {selectedKeys.length > 0 && (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={copySelectedKeys}
-                  className="flex items-center gap-2"
-                >
-                  <Copy className="h-4 w-4" />
-                  Copy Selected ({selectedKeys.length})
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={exportToExcel}
-                  className="flex items-center gap-2"
-                >
-                  <Download className="h-4 w-4" />
-                  Export Selected
-                </Button>
-              </>
-            )}
+            <Button
+              size="sm"
+              onClick={copySelectedKeys}
+              className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white text-sm px-4 py-2 flex items-center gap-2 font-medium"
+            >
+              <Copy className="h-4 w-4" />
+              Copy All Keys ({licenseKeys.length})
+            </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={exportToExcel}
-              className="flex items-center gap-2"
+              className="text-sm px-4 py-2 flex items-center gap-2 border-[#6E6F71] text-[#6E6F71] hover:bg-[#6E6F71] hover:text-white"
             >
               <Download className="h-4 w-4" />
-              Export All
+              Export to Excel
             </Button>
           </div>
         </div>
         
         <div className="flex-1 overflow-auto p-6 bg-[#f5f6f5]">
-          {/* Advanced Filters */}
+          {/* Advanced Filters - Always show for this compact design */}
+          <Card className="mb-6">
+            <CardContent className="pt-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Search */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Search keys or products..."
+                    value={filters.search}
+                    onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                    className="pl-10"
+                  />
+                </div>
+
+                {/* Order Number */}
+                <Input
+                  placeholder="Order number..."
+                  value={filters.orderNumber}
+                  onChange={(e) => setFilters(prev => ({ ...prev, orderNumber: e.target.value }))}
+                />
+
+                {/* Category */}
+                <Select
+                  value={filters.categoryId}
+                  onValueChange={(value) => setFilters(prev => ({ ...prev, categoryId: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All categories" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All categories</SelectItem>
+                    {categories.map((category: any) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* Date Range Presets */}
+                <Select
+                  value={filters.dateRange}
+                  onValueChange={handleDateRangeChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All time" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All time</SelectItem>
+                    <SelectItem value="last7">Last 7 days</SelectItem>
+                    <SelectItem value="last14">Last 14 days</SelectItem>
+                    <SelectItem value="last30">Last 30 days</SelectItem>
+                    <SelectItem value="last6months">Last 6 months</SelectItem>
+                    <SelectItem value="lastyear">Last year</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Advanced Filters - Hidden Section */}
           {showFilters && (
             <Card className="mb-6">
               <CardHeader className="pb-4">
@@ -615,84 +669,59 @@ export default function AdminKeysManagement() {
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full">
+                  <table className="w-full border-collapse">
                     <thead>
-                      <tr className="border-b border-gray-200">
-                        <th className="text-left py-3 px-4 font-medium text-gray-700 bg-gray-50">
-                          <input
-                            type="checkbox"
-                            checked={selectedKeys.length === licenseKeys.length}
-                            onChange={toggleSelectAll}
-                            className="rounded border-gray-300"
-                          />
-                        </th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-700 bg-gray-50">Date</th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-700 bg-gray-50">Time</th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-700 bg-gray-50">Order</th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-700 bg-gray-50">Product</th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-700 bg-gray-50">License Key</th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-700 bg-gray-50">Buyer</th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-700 bg-gray-50">Status</th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-700 bg-gray-50">Actions</th>
+                      <tr className="bg-[#6E6F71] text-white">
+                        <th className="text-left py-3 px-4 font-medium text-sm">License Key</th>
+                        <th className="text-left py-3 px-4 font-medium text-sm">Product Title</th>
+                        <th className="text-left py-3 px-4 font-medium text-sm">Price</th>
+                        <th className="text-left py-3 px-4 font-medium text-sm">Order Number</th>
+                        <th className="text-left py-3 px-4 font-medium text-sm">Warranty</th>
+                        <th className="text-left py-3 px-4 font-medium text-sm">Platform</th>
+                        <th className="text-left py-3 px-4 font-medium text-sm">Region</th>
+                        <th className="text-left py-3 px-4 font-medium text-sm">Actions</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="bg-white">
                       {licenseKeys.map((key) => (
-                        <tr key={key.id} className="border-b border-gray-100 hover:bg-gray-50">
-                          <td className="py-3 px-4">
-                            <input
-                              type="checkbox"
-                              checked={selectedKeys.includes(key.id)}
-                              onChange={() => toggleKeySelection(key.id)}
-                              className="rounded border-gray-300"
-                            />
-                          </td>
-                          <td className="py-3 px-4 text-sm">
-                            {format(new Date(key.purchaseDate), 'yyyy-MM-dd')}
-                          </td>
-                          <td className="py-3 px-4 text-sm">
-                            {format(new Date(key.purchaseDate), 'HH:mm:ss')}
-                          </td>
-                          <td className="py-3 px-4">
-                            <button
-                              onClick={() => navigateToOrder(key.orderId)}
-                              className="text-[#FFB20F] hover:text-[#e6a00e] font-medium text-sm flex items-center gap-1"
-                            >
-                              {key.orderNumber}
-                              <ExternalLink className="h-3 w-3" />
-                            </button>
-                          </td>
-                          <td className="py-3 px-4">
-                            <div>
-                              <div className="font-medium text-sm">{key.productName}</div>
-                              {key.categoryName && (
-                                <div className="text-xs text-gray-500">{key.categoryName}</div>
-                              )}
-                            </div>
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="font-mono text-xs bg-gray-100 px-2 py-1 rounded max-w-[200px] truncate">
+                        <tr key={key.id} className="border-b border-gray-200 hover:bg-gray-50">
+                          <td className="py-2 px-4">
+                            <div className="font-mono text-sm font-medium text-gray-900">
                               {key.keyValue}
                             </div>
                           </td>
-                          <td className="py-3 px-4">
-                            <div>
-                              <div className="font-medium text-sm">{key.buyerName}</div>
-                              <div className="text-xs text-gray-500">{key.buyerEmail}</div>
-                              {key.buyerCompany && (
-                                <div className="text-xs text-gray-400">{key.buyerCompany}</div>
-                              )}
+                          <td className="py-2 px-4">
+                            <div className="text-sm font-medium text-gray-900">{key.productName}</div>
+                          </td>
+                          <td className="py-2 px-4">
+                            <div className="text-sm font-medium text-[#FFB20F]">
+                              €{key.productPrice || '29.90'}
                             </div>
                           </td>
-                          <td className="py-3 px-4">
-                            {getStatusBadge(key.status)}
+                          <td className="py-2 px-4">
+                            <button
+                              onClick={() => navigateToOrder(key.orderNumber)}
+                              className="text-sm text-gray-600 hover:text-[#FFB20F] font-medium"
+                            >
+                              {key.orderNumber}
+                            </button>
                           </td>
-                          <td className="py-3 px-4">
+                          <td className="py-2 px-4">
+                            <div className="text-sm text-gray-600">
+                              {format(new Date(key.purchaseDate), 'MMM dd, yyyy')}
+                            </div>
+                          </td>
+                          <td className="py-2 px-4">
+                            <div className="text-sm text-gray-600">{key.productPlatform || 'Mac'}</div>
+                          </td>
+                          <td className="py-2 px-4">
+                            <div className="text-sm text-gray-600">{key.productRegion || 'Worldwide'}</div>
+                          </td>
+                          <td className="py-2 px-4">
                             <Button
-                              variant="outline"
                               size="sm"
                               onClick={() => copyKeyToClipboard(key.keyValue)}
-                              className="flex items-center gap-1"
+                              className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white text-xs px-3 py-1 h-7 flex items-center gap-1 font-medium"
                             >
                               <Copy className="h-3 w-3" />
                               Copy

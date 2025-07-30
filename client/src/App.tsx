@@ -34,6 +34,7 @@ const KMShop = lazy(() => import("@/pages/km-shop"));
 const CartPage = lazy(() => import("@/pages/cart"));
 const CheckoutPage = lazy(() => import("@/pages/checkout"));
 const AdminPanel = lazy(() => import("@/pages/admin-panel"));
+const AdminKeysManagement = lazy(() => import("@/pages/admin-keys-management"));
 const UserEditPage = lazy(() => import("@/pages/admin/user-edit"));
 const CategoryHierarchyDemoPage = lazy(() => import("@/pages/admin/category-hierarchy-demo"));
 const WalletPage = lazy(() => import("@/pages/wallet-page"));
@@ -185,6 +186,11 @@ function Router() {
           <Route path="/admin-panel" component={() => (
             <Suspense fallback={<AdminLoadingFallback />}>
               <AdminPanel />
+            </Suspense>
+          )} />
+          <Route path="/admin/keys" component={() => (
+            <Suspense fallback={<AdminLoadingFallback />}>
+              <AdminKeysManagement />
             </Suspense>
           )} />
           <Route path="/admin/products/edit" component={() => {
