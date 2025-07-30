@@ -482,48 +482,11 @@ export default function B2BShop() {
           </div>
         </header>
 
-        {/* Top Search Bar */}
+        {/* View Mode Toggle Bar */}
         <div className="bg-[#f8f8f8] border-b border-[#ddd] p-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4 flex-1">
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search products..."
-                  value={filters.search}
-                  onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                  className="pl-10 border-[#ddd] rounded-[5px] focus:border-[#FFB20F] transition-colors duration-200"
-                />
-                {/* Subtle performance indicator */}
-                {productsIsFetching && filters.search && (
-                  <div className="absolute right-3 top-3">
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#FFB20F] border-t-transparent"></div>
-                  </div>
-                )}
-              </div>
-              <Select value={filters.region || 'all'} onValueChange={(value) => setFilters(prev => ({ ...prev, region: value === 'all' ? '' : value }))}>
-                <SelectTrigger className="w-32 border-[#ddd] rounded-[5px] focus:border-[#FFB20F]">
-                  <SelectValue placeholder="Regions" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Regions</SelectItem>
-                  <SelectItem value="Global">Global</SelectItem>
-                  <SelectItem value="EU">EU</SelectItem>
-                  <SelectItem value="US">US</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={filters.platform || 'all'} onValueChange={(value) => setFilters(prev => ({ ...prev, platform: value === 'all' ? '' : value }))}>
-                <SelectTrigger className="w-32 border-[#ddd] rounded-[5px] focus:border-[#FFB20F]">
-                  <SelectValue placeholder="Platform" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Platforms</SelectItem>
-                  <SelectItem value="Windows">Windows</SelectItem>
-                  <SelectItem value="macOS">macOS</SelectItem>
-                  <SelectItem value="Linux">Linux</SelectItem>
-                  <SelectItem value="Both">Both</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="text-sm text-gray-600">
+              Use the filter panel on the left to refine your product search
             </div>
             <div className="flex items-center space-x-2">
               <Select value={viewMode} onValueChange={(value: 'table' | 'grid') => setViewMode(value)}>
@@ -542,7 +505,7 @@ export default function B2BShop() {
         {/* Main Content Area with Advanced Filters */}
         <div className="flex-1 flex overflow-hidden">
           {/* Advanced Filters Sidebar */}
-          <div className="p-4 overflow-y-auto">
+          <div className="w-80 bg-white border-r border-[#ddd] p-4 overflow-y-auto">
             <AdvancedProductFilters
               filters={filters}
               onFiltersChange={setFilters}
