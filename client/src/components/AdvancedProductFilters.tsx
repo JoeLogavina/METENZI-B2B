@@ -56,10 +56,11 @@ const AdvancedProductFilters: React.FC<AdvancedProductFiltersProps> = ({
   onFiltersChange,
   productCount = 0
 }) => {
-  const { formatPrice } = useTenant();
+  console.log('🔥🔥🔥 ADVANCED PRODUCT FILTERS IS DEFINITELY RENDERING! 🔥🔥🔥');
+  console.log('Filters received:', filters);
+  console.log('Product count:', productCount);
   
-  // Debug: Log to confirm component is rendering
-  console.log('AdvancedProductFilters rendering with filters:', filters);
+  const { formatPrice } = useTenant();
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
     new Set(['search', 'categories', 'price', 'availability'])
   );
@@ -203,9 +204,12 @@ const AdvancedProductFilters: React.FC<AdvancedProductFiltersProps> = ({
   };
 
   return (
-    <div className="w-full bg-red-100 border-2 border-red-500 p-4">
-      <div className="text-red-800 font-bold text-lg mb-4">
-        DEBUG: ADVANCED FILTERS COMPONENT IS RENDERING!
+    <div className="w-full">
+      {/* MEGA DEBUG BOX - IMPOSSIBLE TO MISS */}
+      <div className="bg-red-500 text-white text-center py-8 mb-4 font-bold text-2xl border-4 border-black">
+        ⚠️ ADVANCED FILTERS COMPONENT IS RENDERING! ⚠️
+        <br />
+        Product Count: {productCount}
       </div>
       <Card className="w-full h-fit">
         <CardHeader className="pb-3">
