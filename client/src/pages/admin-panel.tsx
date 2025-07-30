@@ -37,7 +37,7 @@ import UserEdit from "@/pages/admin/user-edit";
 import { formatAdminPrice, convertEurToKm } from "@/lib/currency-utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import CategoryManagementNew from "@/components/admin/CategoryManagementNew";
+import { CategoryManagement } from "@/components/admin/CategoryManagement";
 
 interface DashboardStats {
   totalUsers: number;
@@ -436,7 +436,7 @@ export default function AdminPanel() {
             )}
 
             {activeSection === 'categories' && (
-              <CategoryManagementNew />
+              <CategoryManagement />
             )}
 
             {activeSection === 'users' && user?.role === 'super_admin' && (
