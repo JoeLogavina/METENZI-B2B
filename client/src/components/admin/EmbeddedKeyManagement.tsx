@@ -77,13 +77,40 @@ export function EmbeddedKeyManagement() {
       if (filters.buyerSearch) params.append('buyerSearch', filters.buyerSearch);
       if (filters.status !== 'all') params.append('status', filters.status);
       
-      // Handle date filtering
-      if (filters.dateRange !== 'all') {
+      // Handle date filtering with proper logic
+      if (filters.dateRange === 'custom') {
         if (filters.customStartDate) {
           params.append('startDate', filters.customStartDate.toISOString());
         }
         if (filters.customEndDate) {
           params.append('endDate', filters.customEndDate.toISOString());
+        }
+      } else if (filters.dateRange !== 'all') {
+        // For preset ranges, calculate dates here too as backup
+        const now = new Date();
+        let startDate = null;
+        
+        switch (filters.dateRange) {
+          case 'last7':
+            startDate = subDays(now, 7);
+            break;
+          case 'last14':
+            startDate = subDays(now, 14);
+            break;
+          case 'last30':
+            startDate = subDays(now, 30);
+            break;
+          case 'last6months':
+            startDate = subMonths(now, 6);
+            break;
+          case 'lastyear':
+            startDate = subYears(now, 1);
+            break;
+        }
+        
+        if (startDate) {
+          params.append('startDate', startDate.toISOString());
+          params.append('endDate', now.toISOString());
         }
       }
       
@@ -95,15 +122,29 @@ export function EmbeddedKeyManagement() {
     },
   });
 
-  // Fetch hierarchical categories for filter
-  const { data: categories = [] } = useQuery<Array<{id: string, name: string, level: number, pathName: string}>>({
+  // Fetch hierarchical categories for filter - fallback to regular categories if hierarchy fails
+  const { data: categories = [] } = useQuery<Array<{id: string, name: string, level?: number, pathName?: string}>>({
     queryKey: ['/api/categories/hierarchy'],
     queryFn: async () => {
-      const response = await fetch('/api/categories/hierarchy', {
-        credentials: 'include',
-      });
-      if (!response.ok) throw new Error('Failed to fetch categories');
-      return response.json();
+      try {
+        const response = await fetch('/api/categories/hierarchy', {
+          credentials: 'include',
+        });
+        if (response.ok) {
+          return response.json();
+        }
+        // Fallback to regular categories
+        const fallbackResponse = await fetch('/api/categories', {
+          credentials: 'include',
+        });
+        if (!fallbackResponse.ok) throw new Error('Failed to fetch categories');
+        const regularCategories = await fallbackResponse.json();
+        // Add level 1 to all regular categories as fallback
+        return regularCategories.map((cat: any) => ({ ...cat, level: 1 }));
+      } catch (error) {
+        console.error('Category fetch error:', error);
+        return [];
+      }
     },
   });
 
@@ -279,16 +320,16 @@ export function EmbeddedKeyManagement() {
                 {categories.map((category: any) => (
                   <SelectItem key={category.id} value={category.id}>
                     <div className={cn("flex items-center", {
-                      "pl-0": category.level === 1,
-                      "pl-4": category.level === 2,  
-                      "pl-8": category.level === 3,
+                      "pl-0": (category.level || 1) === 1,
+                      "pl-4": (category.level || 1) === 2,  
+                      "pl-8": (category.level || 1) === 3,
                     })}>
                       <span className={cn({
-                        "font-semibold text-gray-900": category.level === 1,
-                        "font-medium text-gray-700": category.level === 2,
-                        "font-normal text-gray-600": category.level === 3,
+                        "font-semibold text-gray-900": (category.level || 1) === 1,
+                        "font-medium text-gray-700": (category.level || 1) === 2,
+                        "font-normal text-gray-600": (category.level || 1) === 3,
                       })}>
-                        {category.level > 1 && "└ "}{category.name}
+                        {(category.level || 1) > 1 && "└ "}{category.name}
                       </span>
                     </div>
                   </SelectItem>
