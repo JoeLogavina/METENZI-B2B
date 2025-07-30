@@ -38,7 +38,7 @@ import { formatAdminPrice, convertEurToKm } from "@/lib/currency-utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { CategoryManagement } from "@/components/admin/CategoryManagement";
-import { KeyManagement } from "@/components/admin/KeyManagement";
+import { EmbeddedKeyManagement } from "@/components/admin/EmbeddedKeyManagement";
 
 interface DashboardStats {
   totalUsers: number;
@@ -833,18 +833,7 @@ export default function AdminPanel() {
 
             {activeSection === 'wallets' && <WalletManagement />}
 
-            {activeSection === 'keys' && (
-              <div className="text-center py-12">
-                <Key className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600 mb-4">Keys Management has been moved to a dedicated page</p>
-                <Button
-                  onClick={() => setLocation('/admin/keys')}
-                  className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white"
-                >
-                  Go to Keys Management
-                </Button>
-              </div>
-            )}
+            {activeSection === 'keys' && <EmbeddedKeyManagement />}
 
             {(activeSection === 'permissions' || activeSection === 'reports') && (
               <Card>

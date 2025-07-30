@@ -419,7 +419,7 @@ export default function AdminKeysManagement() {
                     <SelectValue placeholder="All categories" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All categories</SelectItem>
+                    <SelectItem value="all">All categories</SelectItem>
                     {categories.map((category: any) => (
                       <SelectItem key={category.id} value={category.id}>
                         {category.name}
