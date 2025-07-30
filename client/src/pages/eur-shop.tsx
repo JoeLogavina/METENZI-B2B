@@ -30,7 +30,6 @@ import type { ProductWithStock } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useTenant } from "@/contexts/TenantContext";
 import { useDebounce } from "use-debounce";
-import { EnhancedProductFilters, type ProductFilters } from "@/components/enhanced/EnhancedProductFilters";
 
 // EUR-specific shop component with proper tenant isolation
 export default function EURShop() {
@@ -63,18 +62,20 @@ export default function EURShop() {
     }
   }, [user, isLoading, isAuthenticated, setLocation, toast]);
 
-  const [filters, setFilters] = useState<ProductFilters>({
-    search: "",
-    categoryId: null,
+  const [filters, setFilters] = useState({
     region: "",
-    priceRange: { min: null, max: null },
-    sortBy: "name",
-    sortOrder: "asc"
+    platform: "",
+    search: "",
+    priceMin: "",
+    priceMax: "",
+    stockLevel: "",
+    dateAdded: "",
+    sku: "",
   });
 
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [isCartHovered, setIsCartHovered] = useState(false);
-
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [addingProductId, setAddingProductId] = useState<string | null>(null);
 
   // Debounce filters to prevent excessive API calls
@@ -298,26 +299,10 @@ export default function EURShop() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex">
-        {/* Vertical Filters Panel */}
-        <div className="w-80 bg-white border-r border-gray-200 flex-shrink-0">
-          <div className="p-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-[#6E6F71]">Product Filters</h3>
-          </div>
-          <div className="p-4 h-full overflow-y-auto">
-            <EnhancedProductFilters
-              filters={filters}
-              onFiltersChange={setFilters}
-              className="space-y-4"
-            />
-          </div>
-        </div>
-        
-        {/* Products Content Area */}
-        <div className="flex-1 flex flex-col">
-          {/* Header */}
-          <header className="bg-[#6E6F71] border-b border-[#5a5b5d] px-6 py-4 shadow-[0_2px_5px_rgba(0,0,0,0.1)]">
-            <div className="flex items-center justify-between">
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <header className="bg-[#6E6F71] border-b border-[#5a5b5d] px-6 py-4 shadow-[0_2px_5px_rgba(0,0,0,0.1)]">
+          <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <Package className="w-6 h-6 text-white" />
               <div>
@@ -364,9 +349,107 @@ export default function EURShop() {
           </div>
         </header>
 
-          {/* Content */}
-          <div className="flex-1 p-6 overflow-y-auto">
-            {/* Products Section */}
+        {/* Content */}
+        <div className="flex-1 p-6">
+          {/* Filters */}
+          <div className="bg-white rounded-[8px] shadow-[0_2px_10px_rgba(0,0,0,0.1)] p-6 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-[#6E6F71]">Product Filters</h2>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                className="flex items-center"
+              >
+                <Filter className="w-4 h-4 mr-2" />
+                Advanced Filters
+                {showAdvancedFilters ? <ChevronUp className="w-4 h-4 ml-1" /> : <ChevronDown className="w-4 h-4 ml-1" />}
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  placeholder="Search products..."
+                  value={filters.search}
+                  onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                  className="pl-10"
+                />
+              </div>
+              
+              <Select 
+                value={filters.region} 
+                onValueChange={(value) => setFilters(prev => ({ ...prev, region: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="All Regions" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Regions</SelectItem>
+                  <SelectItem value="Worldwide">Worldwide</SelectItem>
+                  <SelectItem value="Europe">Europe</SelectItem>
+                  <SelectItem value="US">US</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select 
+                value={filters.platform} 
+                onValueChange={(value) => setFilters(prev => ({ ...prev, platform: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="All Platforms" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Platforms</SelectItem>
+                  <SelectItem value="Windows">Windows</SelectItem>
+                  <SelectItem value="Mac">Mac</SelectItem>
+                  <SelectItem value="Linux">Linux</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {showAdvancedFilters && (
+              <>
+                <Separator className="my-4" />
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Input
+                    placeholder="Min Price (EUR)"
+                    value={filters.priceMin}
+                    onChange={(e) => setFilters(prev => ({ ...prev, priceMin: e.target.value }))}
+                    type="number"
+                  />
+                  <Input
+                    placeholder="Max Price (EUR)"
+                    value={filters.priceMax}
+                    onChange={(e) => setFilters(prev => ({ ...prev, priceMax: e.target.value }))}
+                    type="number"
+                  />
+                  <Select 
+                    value={filters.stockLevel} 
+                    onValueChange={(value) => setFilters(prev => ({ ...prev, stockLevel: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Stock Level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Stock Levels</SelectItem>
+                      <SelectItem value="in_stock">In Stock</SelectItem>
+                      <SelectItem value="low_stock">Low Stock</SelectItem>
+                      <SelectItem value="out_of_stock">Out of Stock</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    placeholder="Search SKU"
+                    value={filters.sku}
+                    onChange={(e) => setFilters(prev => ({ ...prev, sku: e.target.value }))}
+                  />
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Products Section */}
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-gray-700">Found {products.length} EUR products</h3>
             <div className="text-sm text-gray-500 flex items-center">
@@ -417,7 +500,6 @@ export default function EURShop() {
                   )}
                 </tbody>
               </table>
-            </div>
             </div>
           </div>
         </div>

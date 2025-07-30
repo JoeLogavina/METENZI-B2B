@@ -20,6 +20,7 @@ import { formatPrice } from '@/utils/price-utils';
 import ProductCard from "@/components/optimized/ProductCard";
 import ProductFilters from "@/components/optimized/ProductFilters";
 import { ProductDetailModal } from "@/components/ProductDetailModal";
+import AdvancedProductFilters from "@/components/AdvancedProductFilters";
 
 export default function B2BShop() {
   const { user, isLoading, isAuthenticated, logout, isLoggingOut } = useAuth();
@@ -29,14 +30,19 @@ export default function B2BShop() {
   const [location, setLocation] = useLocation();
 
   const [filters, setFilters] = useState({
+    search: "",
+    categoryId: "",
     region: "",
     platform: "",
-    search: "",
     priceMin: "",
     priceMax: "",
     stockLevel: "",
     dateAdded: "",
     sku: "",
+    priceRange: [0, 1000] as [number, number],
+    availability: [] as string[],
+    sortBy: "",
+    sortOrder: "asc" as "asc" | "desc"
   });
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [isCartHovered, setIsCartHovered] = useState(false);
@@ -84,11 +90,30 @@ export default function B2BShop() {
     queryKey: ["/api/products", debouncedFilters],
     queryFn: async () => {
       const params = new URLSearchParams();
+      
+      // Basic filters
+      if (debouncedFilters.search) params.append('search', debouncedFilters.search);
+      if (debouncedFilters.sku) params.append('sku', debouncedFilters.sku);
+      if (debouncedFilters.categoryId) params.append('categoryId', debouncedFilters.categoryId);
+      
+      // Location filters
       if (debouncedFilters.region) params.append('region', debouncedFilters.region);
       if (debouncedFilters.platform) params.append('platform', debouncedFilters.platform);
-      if (debouncedFilters.search) params.append('search', debouncedFilters.search);
+      
+      // Price filters
       if (debouncedFilters.priceMin) params.append('priceMin', debouncedFilters.priceMin);
       if (debouncedFilters.priceMax) params.append('priceMax', debouncedFilters.priceMax);
+      
+      // Availability filters
+      if (debouncedFilters.stockLevel) params.append('stockLevel', debouncedFilters.stockLevel);
+      if (debouncedFilters.dateAdded) params.append('dateAdded', debouncedFilters.dateAdded);
+      if (debouncedFilters.availability && debouncedFilters.availability.length > 0) {
+        params.append('availability', debouncedFilters.availability.join(','));
+      }
+      
+      // Sorting
+      if (debouncedFilters.sortBy) params.append('sortBy', debouncedFilters.sortBy);
+      if (debouncedFilters.sortOrder) params.append('sortOrder', debouncedFilters.sortOrder);
 
 
 
@@ -457,48 +482,11 @@ export default function B2BShop() {
           </div>
         </header>
 
-        {/* Top Search Bar */}
+        {/* View Mode Toggle Bar */}
         <div className="bg-[#f8f8f8] border-b border-[#ddd] p-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4 flex-1">
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search products..."
-                  value={filters.search}
-                  onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                  className="pl-10 border-[#ddd] rounded-[5px] focus:border-[#FFB20F] transition-colors duration-200"
-                />
-                {/* Subtle performance indicator */}
-                {productsIsFetching && filters.search && (
-                  <div className="absolute right-3 top-3">
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#FFB20F] border-t-transparent"></div>
-                  </div>
-                )}
-              </div>
-              <Select value={filters.region || 'all'} onValueChange={(value) => setFilters(prev => ({ ...prev, region: value === 'all' ? '' : value }))}>
-                <SelectTrigger className="w-32 border-[#ddd] rounded-[5px] focus:border-[#FFB20F]">
-                  <SelectValue placeholder="Regions" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Regions</SelectItem>
-                  <SelectItem value="Global">Global</SelectItem>
-                  <SelectItem value="EU">EU</SelectItem>
-                  <SelectItem value="US">US</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={filters.platform || 'all'} onValueChange={(value) => setFilters(prev => ({ ...prev, platform: value === 'all' ? '' : value }))}>
-                <SelectTrigger className="w-32 border-[#ddd] rounded-[5px] focus:border-[#FFB20F]">
-                  <SelectValue placeholder="Platform" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Platforms</SelectItem>
-                  <SelectItem value="Windows">Windows</SelectItem>
-                  <SelectItem value="macOS">macOS</SelectItem>
-                  <SelectItem value="Linux">Linux</SelectItem>
-                  <SelectItem value="Both">Both</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="text-sm text-gray-600">
+              Use the filter panel on the left to refine your product search
             </div>
             <div className="flex items-center space-x-2">
               <Select value={viewMode} onValueChange={(value: 'table' | 'grid') => setViewMode(value)}>
@@ -514,105 +502,15 @@ export default function B2BShop() {
           </div>
         </div>
 
-        {/* Main Content Area with Sidebar */}
+        {/* Main Content Area with Advanced Filters */}
         <div className="flex-1 flex overflow-hidden">
           {/* Advanced Filters Sidebar */}
           <div className="w-80 bg-white border-r border-[#ddd] p-4 overflow-y-auto">
-            <div className="mb-4">
-              <div className="flex items-center mb-3">
-                <ChevronDown className="w-4 h-4 mr-2 text-gray-600" />
-                <h3 className="font-semibold text-sm uppercase tracking-[0.5px] text-[#6E6F71]">Advanced Filters</h3>
-              </div>
-            </div>
-
-            {/* Price Filter */}
-            <div className="mb-6">
-              <div className="flex items-center mb-2">
-                <span className="w-3 h-3 mr-2">€</span>
-                <label className="text-sm font-semibold text-gray-700">Price ({tenant.currency})</label>
-              </div>
-              <div className="space-y-2">
-                <Input
-                  placeholder="From"
-                  value={filters.priceMin}
-                  onChange={(e) => setFilters(prev => ({ ...prev, priceMin: e.target.value }))}
-                  className="text-sm border-[#ddd] rounded-[5px] focus:border-[#4D9DE0]"
-                />
-                <Input
-                  placeholder="To"
-                  value={filters.priceMax}
-                  onChange={(e) => setFilters(prev => ({ ...prev, priceMax: e.target.value }))}
-                  className="text-sm border-[#ddd] rounded-[5px] focus:border-[#4D9DE0]"
-                />
-              </div>
-            </div>
-
-            {/* Stock Level Filter */}
-            <div className="mb-6">
-              <div className="flex items-center mb-2">
-                <Package className="w-3 h-3 mr-2 text-gray-600" />
-                <label className="text-sm font-semibold text-gray-700">Stock Level</label>
-              </div>
-              <Select value={filters.stockLevel || 'all'} onValueChange={(value) => setFilters(prev => ({ ...prev, stockLevel: value === 'all' ? '' : value }))}>
-                <SelectTrigger className="border-[#ddd] rounded-[5px] focus:border-[#4D9DE0]">
-                  <SelectValue placeholder="All stock levels" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All stock levels</SelectItem>
-                  <SelectItem value="low">Low Stock</SelectItem>
-                  <SelectItem value="medium">Medium Stock</SelectItem>
-                  <SelectItem value="high">High Stock</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Date Added Filter */}
-            <div className="mb-6">
-              <div className="flex items-center mb-2">
-                <Calendar className="w-3 h-3 mr-2 text-gray-600" />
-                <label className="text-sm font-semibold text-gray-700">Date Added</label>
-              </div>
-              <Select value={filters.dateAdded || 'all'} onValueChange={(value) => setFilters(prev => ({ ...prev, dateAdded: value === 'all' ? '' : value }))}>
-                <SelectTrigger className="border-[#ddd] rounded-[5px] focus:border-[#4D9DE0]">
-                  <SelectValue placeholder="Any time" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Any time</SelectItem>
-                  <SelectItem value="today">Today</SelectItem>
-                  <SelectItem value="week">This Week</SelectItem>
-                  <SelectItem value="month">This Month</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Search SKU Filter */}
-            <div className="mb-6">
-              <label className="text-sm font-semibold text-gray-700 block mb-2">Search SKU</label>
-              <Input
-                placeholder="Enter SKU..."
-                value={filters.sku}
-                onChange={(e) => setFilters(prev => ({ ...prev, sku: e.target.value }))}
-                className="border-[#ddd] rounded-[5px] focus:border-[#4D9DE0]"
-              />
-            </div>
-
-            {/* Filter Actions */}
-            <div className="space-y-2">
-              <Button
-                onClick={() => setFilters({
-                  region: "", platform: "", search: "", priceMin: "", priceMax: "",
-                  stockLevel: "", dateAdded: "", sku: ""
-                })}
-                className="w-full bg-transparent text-[#4D9DE0] border border-[#4D9DE0] hover:bg-[#4D9DE0] hover:text-white rounded-[5px] font-medium transition-colors duration-200"
-              >
-                Clear filters
-              </Button>
-              <Button 
-                className="w-full bg-[#4D9DE0] hover:bg-[#3ba3e8] text-white border-0 rounded-[5px] font-medium transition-colors duration-200"
-              >
-                Apply Filters
-              </Button>
-            </div>
+            <AdvancedProductFilters
+              filters={filters}
+              onFiltersChange={setFilters}
+              productCount={products.length}
+            />
           </div>
 
           {/* Products Section */}
