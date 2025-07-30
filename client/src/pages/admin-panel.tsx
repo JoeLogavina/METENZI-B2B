@@ -38,7 +38,6 @@ import { formatAdminPrice, convertEurToKm } from "@/lib/currency-utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { CategoryManagement } from "@/components/admin/CategoryManagement";
-import { KeyManagement } from "@/components/admin/KeyManagement";
 
 interface DashboardStats {
   totalUsers: number;
@@ -833,9 +832,7 @@ export default function AdminPanel() {
 
             {activeSection === 'wallets' && <WalletManagement />}
 
-            {activeSection === 'keys' && <KeyManagement />}
-
-            {(activeSection === 'permissions' || activeSection === 'reports') && (
+            {(activeSection === 'keys' || activeSection === 'permissions' || activeSection === 'reports') && (
               <Card>
                 <CardHeader>
                   <CardTitle className="capitalize">{activeSection.replace('_', ' ')} Management</CardTitle>
@@ -2353,11 +2350,14 @@ XYZ12-ABC34-DEF56-GHI78-JKL90
       )}
       
       {/* Integrated User Editing Modal */}
-      {editingUserId && (
-        <UserEditModal 
-          user={{ id: editingUserId }} 
-          onClose={() => setEditingUserId(null)} 
-        />
+      {selectedUser && (
+        <>
+          {console.log('Rendering modal for user:', selectedUser)}
+          <UserEditModal 
+            user={selectedUser} 
+            onClose={() => setSelectedUser(null)} 
+          />
+        </>
       )}
     </div>
   );
@@ -2447,7 +2447,10 @@ function UserEditModal({ user, onClose }: { user: any; onClose: () => void }) {
   // Add deposit mutation
   const addDepositMutation = useMutation({
     mutationFn: async ({ amount }: { amount: number }) => {
-      const response = await apiRequest(`/api/admin/users/${user.id}/deposit`, 'POST', { amount });
+      const response = await apiRequest(`/api/admin/users/${user.id}/deposit`, {
+        method: 'POST',
+        body: { amount },
+      });
       return response;
     },
     onSuccess: () => {
@@ -2471,7 +2474,10 @@ function UserEditModal({ user, onClose }: { user: any; onClose: () => void }) {
   // Update credit limit mutation
   const updateCreditMutation = useMutation({
     mutationFn: async ({ creditLimit }: { creditLimit: number }) => {
-      const response = await apiRequest(`/api/admin/users/${user.id}/credit-limit`, 'PUT', { creditLimit });
+      const response = await apiRequest(`/api/admin/users/${user.id}/credit-limit`, {
+        method: 'PUT',
+        body: { creditLimit },
+      });
       return response;
     },
     onSuccess: () => {

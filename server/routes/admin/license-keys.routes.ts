@@ -8,9 +8,6 @@ const router = Router();
 router.use(authenticate);
 router.use(requireRole("admin", "super_admin"));
 
-// GET /api/admin/license-keys/all - Get all license keys with comprehensive filtering
-router.get("/all", adminLicenseKeysController.getAllLicenseKeys);
-
 // GET /api/admin/license-keys/:productId - Get all license keys for a product
 router.get("/:productId", adminLicenseKeysController.getProductKeys);
 

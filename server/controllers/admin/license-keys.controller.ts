@@ -1,8 +1,6 @@
 import { Request, Response } from "express";
 import { licenseKeyService } from "../../services/license-key.service";
 import { z } from "zod";
-import { db } from "../../db";
-import { sql } from "drizzle-orm";
 
 class ApplicationError extends Error {
   constructor(message: string, public statusCode: number = 500) {
@@ -27,95 +25,6 @@ const addKeysSchema = z.object({
 });
 
 export class AdminLicenseKeysController {
-  async getAllLicenseKeys(req: Request, res: Response) {
-    try {
-      const {
-        search,
-        orderNumber,
-        categoryId,
-        buyerSearch,
-        status,
-        startDate,
-        endDate
-      } = req.query;
-
-      // Build comprehensive query to get all license keys with order and user information
-      const query = sql`
-        SELECT DISTINCT
-          lk.id,
-          lk.key_value as "keyValue",
-          lk.product_id as "productId",
-          p.name as "productName",
-          p.category_id as "categoryId",
-          c.name as "categoryName",
-          o.id as "orderId",
-          o.order_number as "orderNumber",
-          o.created_at as "purchaseDate",
-          o.created_at as "purchaseTime",
-          u.first_name || ' ' || u.last_name as "buyerName",
-          u.email as "buyerEmail",
-          u.company_name as "buyerCompany",
-          CASE 
-            WHEN lk.is_used = true THEN 'used'
-            WHEN lk.is_active = false THEN 'revoked'
-            WHEN o.created_at < NOW() - INTERVAL '1 year' THEN 'expired'
-            ELSE 'active'
-          END as status,
-          lk.is_active as "isActive"
-        FROM license_keys lk
-        JOIN products p ON lk.product_id = p.id
-        LEFT JOIN categories c ON p.category_id = c.id
-        LEFT JOIN order_items oi ON lk.id = oi.license_key_id
-        LEFT JOIN orders o ON oi.order_id = o.id
-        LEFT JOIN users u ON o.user_id = u.id
-        WHERE 1=1
-        ${search ? sql`AND (
-          lk.key_value ILIKE ${`%${search}%`} OR
-          p.name ILIKE ${`%${search}%`}
-        )` : sql``}
-        ${orderNumber ? sql`AND o.order_number ILIKE ${`%${orderNumber}%`}` : sql``}
-        ${categoryId && categoryId !== 'all' ? sql`AND p.category_id = ${categoryId}` : sql``}
-        ${buyerSearch ? sql`AND (
-          u.first_name ILIKE ${`%${buyerSearch}%`} OR
-          u.last_name ILIKE ${`%${buyerSearch}%`} OR
-          u.email ILIKE ${`%${buyerSearch}%`} OR
-          u.company_name ILIKE ${`%${buyerSearch}%`}
-        )` : sql``}
-        ${status && status !== 'all' ? sql`AND (
-          CASE 
-            WHEN lk.is_used = true THEN 'used'
-            WHEN lk.is_active = false THEN 'revoked'
-            WHEN o.created_at < NOW() - INTERVAL '1 year' THEN 'expired'
-            ELSE 'active'
-          END = ${status}
-        )` : sql``}
-        ${startDate ? sql`AND o.created_at >= ${startDate}` : sql``}
-        ${endDate ? sql`AND o.created_at <= ${endDate}` : sql``}
-        ORDER BY o.created_at DESC, lk.created_at DESC
-        LIMIT 1000
-      `;
-
-      const result = await db.execute(query);
-      
-      res.json({
-        data: result.rows,
-        message: "License keys retrieved successfully"
-      });
-    } catch (error) {
-      console.error("Error in getAllLicenseKeys:", error);
-      if (error instanceof ApplicationError) {
-        res.status(error.statusCode).json({ 
-          error: error.name, 
-          message: error.message 
-        });
-      } else {
-        res.status(500).json({ 
-          error: "INTERNAL_ERROR", 
-          message: "Failed to retrieve license keys" 
-        });
-      }
-    }
-  }
   async getProductKeys(req: Request, res: Response) {
     try {
       const { productId } = req.params;
