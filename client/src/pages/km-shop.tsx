@@ -1,13 +1,10 @@
-import { useEffect, useState, useMemo, Suspense } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import {
   Package,
   Grid,
@@ -16,25 +13,20 @@ import {
   Settings,
   HelpCircle,
   ShoppingCart,
-  Search,
   Filter,
   LogOut,
   User,
   BarChart3,
   Users,
-  Eye,
-  ChevronDown,
-  ChevronUp,
-  Loader2,
   List,
-  Minus,
-  Plus
+  Loader2,
 } from "lucide-react";
 import ProductCard from "@/components/optimized/ProductCard";
 import type { ProductWithStock } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useTenant } from "@/contexts/TenantContext";
 import { useDebounce } from "use-debounce";
+import { EnhancedProductFilters, type ProductFilters } from "@/components/enhanced/EnhancedProductFilters";
 
 // KM-specific shop component with proper tenant isolation
 export default function KMShop() {
@@ -52,23 +44,20 @@ export default function KMShop() {
     }
   }, [isLoading, isAuthenticated, setLocation]);
 
-  const [filters, setFilters] = useState({
-    region: "",
-    platform: "",
+  const [filters, setFilters] = useState<ProductFilters>({
     search: "",
-    priceMin: "",
-    priceMax: "",
-    stockLevel: "",
-    dateAdded: "",
-    sku: "",
+    categoryId: null,
+    region: "",
+    priceRange: { min: null, max: null },
+    sortBy: "name",
+    sortOrder: "asc"
   });
 
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [isCartHovered, setIsCartHovered] = useState(false);
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [addingProductId, setAddingProductId] = useState<string | null>(null);
 
-  // Debounce filters to prevent excessive API calls
+  // Debounce filters to prevent excessive API calls  
   const [debouncedFilters] = useDebounce(filters, 300);
 
   // Fetch KM-specific products
@@ -77,105 +66,48 @@ export default function KMShop() {
     isLoading: productsLoading,
     error: productsError,
   } = useQuery({
-    queryKey: ["/api/products", "km-shop", debouncedFilters],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      
-      Object.entries(debouncedFilters).forEach(([key, value]) => {
-        if (value && value !== "all") {
-          params.append(key, value);
-        }
-      });
-
-      const res = await fetch(`/api/products?${params.toString()}`, {
-        credentials: 'include',
-        headers: {
-          'Cache-Control': 'no-cache', // Force fresh data
-          'Accept': 'application/json'
-        }
-      });
-      
-      if (!res.ok) {
-        throw new Error(`Products API failed: ${res.status}`);
-      }
-      const data = await res.json();
-      
-      // Filter and transform for KM pricing - check all possible field names
-      const filteredProducts = data
-        .filter((product: any) => {
-          // Check both priceKm and price_km field names
-          const kmPrice = product.priceKm || product.price_km;
-          const hasKmPrice = kmPrice && parseFloat(kmPrice) > 0;
-          return hasKmPrice;
-        })
-        .map((product: any) => ({
-          ...product,
-          price: parseFloat(product.priceKm || product.price_km), // Use KM price as primary price
-          displayPrice: parseFloat(product.priceKm || product.price_km),
-          currency: 'KM'
-        }));
-      
-      return filteredProducts;
-    },
-    enabled: isAuthenticated,
-    staleTime: 0, // Force fresh data
-    gcTime: 0, // No caching
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
-    retry: false, // Disable retry to see errors quickly
+    queryKey: ["/api/products", debouncedFilters],
+    queryFn: () => apiRequest("/api/products", {
+      method: "GET",
+      headers: { "Content-Type": "application/json" }
+    }),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 30 * 60 * 1000, // 30 minutes
   });
 
-  // Fetch KM user's cart
-  const {
-    data: cartItems = [],
-    isLoading: cartLoading,
-  } = useQuery({
-    queryKey: ["/api/cart"],
-    queryFn: async () => {
-      const res = await apiRequest("GET", "/api/cart");
-      return await res.json();
-    },
-    enabled: isAuthenticated,
+  // Fetch cart items for KM tenant
+  const { data: cartItems = [] } = useQuery({
+    queryKey: ["/api/cart", "km"],
+    queryFn: () => apiRequest("/api/cart"),
+    staleTime: 30 * 1000, // 30 seconds
   });
 
-  // Categories query for filters
-  const { data: categories = [] } = useQuery({
-    queryKey: ["/api/categories"],
-    queryFn: async () => {
-      const res = await apiRequest("GET", "/api/categories");
-      return await res.json();
-    },
-    enabled: isAuthenticated,
-  });
-
-  // Add to cart mutation with KM-specific handling
+  // Add to cart mutation
   const addToCartMutation = useMutation({
-    mutationFn: async ({ productId, quantity }: { productId: string; quantity: number }) => {
+    mutationFn: ({ productId, quantity }: { productId: string; quantity: number }) => {
       setAddingProductId(productId);
       
-      // Optimistic update for immediate UI feedback
-      const product = products.find((p: any) => p.id === productId);
-      if (product) {
-        const newCartItem = {
-          id: `temp-${Date.now()}`,
+      // Optimistic update - add item to cart immediately
+      queryClient.setQueryData(["/api/cart", "km"], (oldData: any) => {
+        if (!oldData) return [{ productId, quantity, tenantId: 'km' }];
+        
+        const existingItemIndex = oldData.findIndex((item: any) => item.productId === productId);
+        if (existingItemIndex >= 0) {
+          const updated = [...oldData];
+          updated[existingItemIndex] = { ...updated[existingItemIndex], quantity: updated[existingItemIndex].quantity + quantity };
+          return updated;
+        }
+        
+        return [...oldData, { productId, quantity, tenantId: 'km' }];
+      });
+
+      return apiRequest("/api/cart", {
+        method: "POST",
+        body: JSON.stringify({
           productId,
           quantity,
-          product: {
-            ...product,
-            price: product.priceKm || product.price // Use KM price
-          }
-        };
-        
-        queryClient.setQueryData(["/api/cart", "km"], (oldData: any) => [
-          ...(oldData || []),
-          newCartItem
-        ]);
-      }
-
-      await apiRequest("POST", "/api/cart", {
-        productId,
-        quantity,
-        tenantId: 'km' // Ensure KM cart isolation
+          tenantId: 'km' // Ensure KM cart isolation
+        }),
       });
     },
     onSuccess: () => {
@@ -284,310 +216,147 @@ export default function KMShop() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <header className="bg-[#6E6F71] border-b border-[#5a5b5d] px-6 py-4 shadow-[0_2px_5px_rgba(0,0,0,0.1)]">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Package className="w-6 h-6 text-white" />
-              <div>
-                <h1 className="text-2xl font-semibold text-white uppercase tracking-[0.5px]">
-                  B2B SOFTWARE SHOP (KM)
-                </h1>
-                <p className="text-sm text-gray-300">KM Currency Enterprise Solutions</p>
+      <div className="flex-1 flex">
+        {/* Vertical Filters Panel */}
+        <div className="w-80 bg-white border-r border-gray-200 flex-shrink-0">
+          <div className="p-4 border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-[#6E6F71]">Product Filters</h3>
+          </div>
+          <div className="p-4 h-full overflow-y-auto">
+            <EnhancedProductFilters
+              filters={filters}
+              onFiltersChange={setFilters}
+              className="space-y-4"
+            />
+          </div>
+        </div>
+        
+        {/* Products Content Area */}
+        <div className="flex-1 flex flex-col">
+          {/* Header */}
+          <header className="bg-[#6E6F71] border-b border-[#5a5b5d] px-6 py-4 shadow-[0_2px_5px_rgba(0,0,0,0.1)]">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <Package className="w-6 h-6 text-white" />
+                <div>
+                  <h1 className="text-2xl font-semibold text-white uppercase tracking-[0.5px]">
+                    B2B SOFTWARE SHOP (KM)
+                  </h1>
+                  <p className="text-sm text-gray-300">KM Currency Enterprise Solutions</p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="text-sm text-white flex items-center">
-                <Package className="w-4 h-4 mr-1" />
-                <span className="font-mono font-medium">{products.length}</span> available
-              </div>
-              <Button
-                size="sm"
-                onClick={logout}
-                disabled={isLoggingOut}
-                className="relative bg-[#E15554] hover:bg-[#c74443] text-white border-0 px-4 py-2 rounded-[5px] font-medium transition-colors duration-200"
-              >
-                {isLoggingOut ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                ) : (
-                  <LogOut className="h-4 w-4" />
-                )}
-              </Button>
-              <div className="relative">
+              <div className="flex items-center space-x-4">
+                <div className="text-sm text-white flex items-center">
+                  <Package className="w-4 h-4 mr-1" />
+                  <span className="font-mono font-medium">{products.length}</span> available
+                </div>
                 <Button
                   size="sm"
-                  onMouseEnter={() => setIsCartHovered(true)}
-                  onMouseLeave={() => setIsCartHovered(false)}
-                  onClick={() => setLocation('/cart')}
-                  className="relative bg-[#FFB20F] hover:bg-[#e6a00e] text-white border-0 px-5 py-2 rounded-[5px] font-medium transition-colors duration-200"
+                  onClick={logout}
+                  disabled={isLoggingOut}
+                  className="relative bg-[#E15554] hover:bg-[#c74443] text-white border-0 px-4 py-2 rounded-[5px] font-medium transition-colors duration-200"
                 >
-                  <ShoppingCart className="h-4 w-4" />
-                  {cartItemCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-[#E15554] text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-mono font-semibold">
-                      {cartItemCount}
-                    </span>
+                  {isLoggingOut ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  ) : (
+                    <LogOut className="h-4 w-4" />
                   )}
                 </Button>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* Content */}
-        <div className="flex-1 p-6">
-          {/* Filters */}
-          <div className="bg-white rounded-[8px] shadow-[0_2px_10px_rgba(0,0,0,0.1)] p-6 mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-[#6E6F71]">Product Filters</h2>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                className="flex items-center"
-              >
-                <Filter className="w-4 h-4 mr-2" />
-                Advanced Filters
-                {showAdvancedFilters ? <ChevronUp className="w-4 h-4 ml-1" /> : <ChevronDown className="w-4 h-4 ml-1" />}
-              </Button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  placeholder="Search products..."
-                  value={filters.search}
-                  onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                  className="pl-10"
-                />
-              </div>
-              
-              <Select 
-                value={filters.region} 
-                onValueChange={(value) => setFilters(prev => ({ ...prev, region: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="All Regions" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Regions</SelectItem>
-                  <SelectItem value="Worldwide">Worldwide</SelectItem>
-                  <SelectItem value="Europe">Europe</SelectItem>
-                  <SelectItem value="US">US</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select 
-                value={filters.platform} 
-                onValueChange={(value) => setFilters(prev => ({ ...prev, platform: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="All Platforms" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Platforms</SelectItem>
-                  <SelectItem value="Windows">Windows</SelectItem>
-                  <SelectItem value="Mac">Mac</SelectItem>
-                  <SelectItem value="Linux">Linux</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {showAdvancedFilters && (
-              <>
-                <Separator className="my-4" />
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <Input
-                    placeholder="Min Price (KM)"
-                    value={filters.priceMin}
-                    onChange={(e) => setFilters(prev => ({ ...prev, priceMin: e.target.value }))}
-                    type="number"
-                  />
-                  <Input
-                    placeholder="Max Price (KM)"
-                    value={filters.priceMax}
-                    onChange={(e) => setFilters(prev => ({ ...prev, priceMax: e.target.value }))}
-                    type="number"
-                  />
-                  <Select 
-                    value={filters.stockLevel} 
-                    onValueChange={(value) => setFilters(prev => ({ ...prev, stockLevel: value }))}
+                <div className="relative">
+                  <Button
+                    size="sm"
+                    onMouseEnter={() => setIsCartHovered(true)}
+                    onMouseLeave={() => setIsCartHovered(false)}
+                    onClick={() => setLocation('/cart')}
+                    className="relative bg-[#FFB20F] hover:bg-[#e6a00e] text-white border-0 px-5 py-2 rounded-[5px] font-medium transition-colors duration-200"
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Stock Level" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Stock Levels</SelectItem>
-                      <SelectItem value="in_stock">In Stock</SelectItem>
-                      <SelectItem value="low_stock">Low Stock</SelectItem>
-                      <SelectItem value="out_of_stock">Out of Stock</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    placeholder="Search SKU"
-                    value={filters.sku}
-                    onChange={(e) => setFilters(prev => ({ ...prev, sku: e.target.value }))}
-                  />
+                    <ShoppingCart className="h-4 w-4" />
+                    {cartItemCount > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-[#E15554] text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-mono font-semibold">
+                        {cartItemCount}
+                      </span>
+                    )}
+                  </Button>
                 </div>
-              </>
+              </div>
+            </div>
+          </header>
+
+          {/* Content */}
+          <div className="flex-1 p-6 overflow-y-auto">
+            {/* Products Section */}
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-700">Found {products.length} KM products</h3>
+              <div className="text-sm text-gray-500 flex items-center">
+                <List className="w-4 h-4 mr-1" />
+                List View
+              </div>
+            </div>
+
+            {/* Product Grid */}
+            {productsLoading ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                  <p className="mt-2 text-gray-600">Loading products...</p>
+                </div>
+              </div>
+            ) : products.length === 0 ? (
+              <div className="text-center py-12">
+                <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No products found</h3>
+                <p className="text-gray-500">Try adjusting your filters to see more results.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {products.map((product: ProductWithStock) => (
+                  <div key={product.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+                    <div className="p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-gray-900 mb-1">{product.name}</h4>
+                          <p className="text-sm text-gray-600 line-clamp-2">{product.description}</p>
+                        </div>
+                        <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center ml-3">
+                          <Package className="w-6 h-6 text-gray-400" />
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="text-lg font-bold text-[#FFB20F]">
+                          {formatKMPrice(product.priceKm || product.price)}
+                        </div>
+                        <Badge variant="outline" className="text-xs">
+                          {product.region}
+                        </Badge>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm text-gray-500">
+                          Stock: {product.stockCount || 0}
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={() => handleAddToCart(product)}
+                          disabled={addingProductId === product.id || product.stockCount === 0}
+                          className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white border-0 px-4 py-2 rounded-md font-medium transition-colors duration-200 disabled:opacity-50"
+                        >
+                          {addingProductId === product.id ? (
+                            <div className="flex items-center">
+                              <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                              Adding...
+                            </div>
+                          ) : product.stockCount === 0 ? "Out of Stock" : "Add to Cart"}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
-          </div>
-
-          {/* Products Section */}
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-gray-700">Found {products.length} KM products</h3>
-            <div className="text-sm text-gray-500 flex items-center">
-              <List className="w-4 h-4 mr-1" />
-              List View
-            </div>
-          </div>
-
-          {/* Product Table */}
-          <div className="bg-white rounded-[8px] shadow-[0_2px_5px_rgba(0,0,0,0.1)] overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="min-w-full">
-                <thead className="bg-[#6E6F71] text-white">
-                  <tr>
-                    <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">SKU</th>
-                    <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">IMAGE</th>
-                    <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.5px]">PRODUCT</th>
-                    <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">PRICE (KM)</th>
-                    <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">REGION</th>
-                    <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">PLATFORM</th>
-                    <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">STOCK</th>
-                    <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">QUANTITY</th>
-                    <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">ACTION</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-[#e5e5e5]">
-                  {productsLoading ? (
-                    <tr>
-                      <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
-                        Loading KM products...
-                      </td>
-                    </tr>
-                  ) : products.length === 0 ? (
-                    <tr>
-                      <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
-                        No KM products found
-                      </td>
-                    </tr>
-                  ) : (
-                    products.map((product: ProductWithStock) => (
-                      <KMProductRow
-                        key={product.id}
-                        product={product}
-                        onAddToCart={handleAddToCart}
-                        isLoading={addingProductId === product.id}
-                      />
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
           </div>
         </div>
       </div>
     </div>
-  );
-}
-
-function KMProductRow({ product, onAddToCart, isLoading }: { 
-  product: ProductWithStock; 
-  onAddToCart: (product: ProductWithStock) => void;
-  isLoading: boolean;
-}) {
-  const [quantity, setQuantity] = useState(1);
-  const { formatPrice } = useTenant();
-
-  return (
-    <tr className="hover:bg-[#f8f8f8] transition-colors duration-200">
-      <td className="px-3 py-3 whitespace-nowrap text-center text-sm font-mono font-medium text-gray-900">
-        {product.sku || product.id.slice(0, 8).toUpperCase()}
-      </td>
-      <td className="px-3 py-3 whitespace-nowrap text-center">
-        <div className="w-10 h-10 bg-gray-200 rounded-[5px] flex items-center justify-center mx-auto overflow-hidden">
-          <Package className="w-6 h-6 text-gray-400" />
-        </div>
-      </td>
-      <td className="px-3 py-3">
-        <div className="text-sm font-semibold text-gray-900">
-          {product.name}
-        </div>
-        <div className="text-sm text-gray-500">{product.description}</div>
-      </td>
-      <td className="px-3 py-3 whitespace-nowrap text-center">
-        <div className="text-sm font-mono font-semibold text-[#FFB20F]">
-          {formatPrice(product.priceKm || product.price)}
-        </div>
-        <div className="text-xs text-gray-500">per license</div>
-      </td>
-      <td className="px-3 py-3 whitespace-nowrap text-center">
-        <Badge variant="outline" className="text-xs border-[#ddd] text-gray-700">
-          {product.region}
-        </Badge>
-      </td>
-      <td className="px-3 py-3 whitespace-nowrap text-center">
-        <div className="flex items-center justify-center flex-wrap gap-1">
-          {product.platform?.includes('Windows') && (
-            <span className="text-xs bg-[#4D9DE0] text-white px-2 py-1 rounded-[5px] font-medium">Windows</span>
-          )}
-          {product.platform?.includes('Mac') && (
-            <span className="text-xs bg-gray-500 text-white px-2 py-1 rounded-[5px] font-medium">Mac</span>
-          )}
-          {product.platform?.includes('Linux') && (
-            <span className="text-xs bg-green-600 text-white px-2 py-1 rounded-[5px] font-medium">Linux</span>
-          )}
-          {product.platform?.includes('Web') && (
-            <span className="text-xs bg-purple-600 text-white px-2 py-1 rounded-[5px] font-medium">Web</span>
-          )}
-          {!product.platform?.includes('Windows') && !product.platform?.includes('Mac') && !product.platform?.includes('Linux') && !product.platform?.includes('Web') && (
-            <span className="text-xs bg-gray-400 text-white px-2 py-1 rounded-[5px] font-medium">{product.platform || 'Unknown'}</span>
-          )}
-        </div>
-      </td>
-      <td className="px-3 py-3 whitespace-nowrap text-center">
-        <div className="text-sm font-mono font-semibold text-gray-900">
-          {product.stockCount || 0}
-        </div>
-      </td>
-      <td className="px-3 py-3 whitespace-nowrap text-center">
-        <div className="flex items-center justify-center space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setQuantity(Math.max(1, quantity - 1))}
-            className="w-8 h-8 p-0 border-[#ddd] rounded-[5px] hover:bg-[#f8f8f8] transition-colors duration-200"
-          >
-            <Minus className="w-3 h-3" />
-          </Button>
-          <span className="w-8 text-center text-sm font-mono font-semibold">{quantity}</span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setQuantity(quantity + 1)}
-            className="w-8 h-8 p-0 border-[#ddd] rounded-[5px] hover:bg-[#f8f8f8] transition-colors duration-200"
-          >
-            <Plus className="w-3 h-3" />
-          </Button>
-        </div>
-      </td>
-      <td className="px-3 py-3 whitespace-nowrap text-center">
-        <Button
-          size="sm"
-          onClick={() => onAddToCart(product)}
-          disabled={isLoading || product.stockCount === 0}
-          className="bg-[#FFB20F] hover:bg-[#E69B00] text-white border-0 px-4 py-2 rounded-[5px] font-semibold uppercase tracking-[0.5px] transition-colors duration-200 disabled:opacity-50"
-        >
-          {isLoading ? (
-            <div className="flex items-center">
-              <Loader2 className="w-3 h-3 animate-spin mr-1" />
-              Adding...
-            </div>
-          ) : product.stockCount === 0 ? "OUT OF STOCK" : "ADD"}
-        </Button>
-      </td>
-    </tr>
   );
 }
