@@ -232,6 +232,9 @@ interface CategoryFormData {
   isActive: boolean;
 }
 
+// Export the HierarchicalCategorySelector for use in other components
+export { HierarchicalCategorySelector };
+
 export function CategoryManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();

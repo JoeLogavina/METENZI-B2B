@@ -74,13 +74,14 @@ const AdvancedProductFilters: React.FC<AdvancedProductFiltersProps> = ({
 
   // Build category hierarchy for display
   const buildCategoryHierarchy = (cats: Category[]) => {
-    const categoryMap = new Map<string, Category & { children: Category[] }>();
+    type CategoryWithChildren = Category & { children: CategoryWithChildren[] };
+    const categoryMap = new Map<string, CategoryWithChildren>();
     
     cats.forEach(cat => {
       categoryMap.set(cat.id, { ...cat, children: [] });
     });
 
-    const rootCategories: (Category & { children: Category[] })[] = [];
+    const rootCategories: CategoryWithChildren[] = [];
     
     cats.forEach(cat => {
       const categoryWithChildren = categoryMap.get(cat.id)!;
@@ -93,7 +94,7 @@ const AdvancedProductFilters: React.FC<AdvancedProductFiltersProps> = ({
       }
     });
 
-    const sortCategories = (categories: (Category & { children: Category[] })[]) => {
+    const sortCategories = (categories: CategoryWithChildren[]) => {
       categories.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
       categories.forEach(cat => {
         if (cat.children) sortCategories(cat.children);
@@ -158,7 +159,7 @@ const AdvancedProductFilters: React.FC<AdvancedProductFiltersProps> = ({
     }).length;
   };
 
-  const renderCategoryOption = (category: Category & { children: Category[] }, depth: number = 0) => {
+  const renderCategoryOption = (category: Category & { children: (Category & { children: any[] })[] }, depth: number = 0) => {
     const hasChildren = category.children && category.children.length > 0;
     const isSelected = filters.categoryId === category.id;
 
@@ -205,12 +206,6 @@ const AdvancedProductFilters: React.FC<AdvancedProductFiltersProps> = ({
 
   return (
     <div className="w-full">
-      {/* MEGA DEBUG BOX - IMPOSSIBLE TO MISS */}
-      <div className="bg-red-500 text-white text-center py-8 mb-4 font-bold text-2xl border-4 border-black">
-        ⚠️ ADVANCED FILTERS COMPONENT IS RENDERING! ⚠️
-        <br />
-        Product Count: {productCount}
-      </div>
       <Card className="w-full h-fit">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">

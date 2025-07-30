@@ -31,6 +31,7 @@ import {
   Plus
 } from "lucide-react";
 import ProductCard from "@/components/optimized/ProductCard";
+import AdvancedProductFilters from "@/components/AdvancedProductFilters";
 import type { ProductWithStock } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useTenant } from "@/contexts/TenantContext";
@@ -334,157 +335,95 @@ export default function KMShop() {
           </div>
         </header>
 
-        {/* Content */}
-        <div className="flex-1 p-6">
-          {/* Filters */}
-          <div className="bg-white rounded-[8px] shadow-[0_2px_10px_rgba(0,0,0,0.1)] p-6 mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-[#6E6F71]">Product Filters</h2>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                className="flex items-center"
-              >
-                <Filter className="w-4 h-4 mr-2" />
-                Advanced Filters
-                {showAdvancedFilters ? <ChevronUp className="w-4 h-4 ml-1" /> : <ChevronDown className="w-4 h-4 ml-1" />}
-              </Button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  placeholder="Search products..."
-                  value={filters.search}
-                  onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                  className="pl-10"
-                />
-              </div>
-              
-              <Select 
-                value={filters.region} 
-                onValueChange={(value) => setFilters(prev => ({ ...prev, region: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="All Regions" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Regions</SelectItem>
-                  <SelectItem value="Worldwide">Worldwide</SelectItem>
-                  <SelectItem value="Europe">Europe</SelectItem>
-                  <SelectItem value="US">US</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select 
-                value={filters.platform} 
-                onValueChange={(value) => setFilters(prev => ({ ...prev, platform: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="All Platforms" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Platforms</SelectItem>
-                  <SelectItem value="Windows">Windows</SelectItem>
-                  <SelectItem value="Mac">Mac</SelectItem>
-                  <SelectItem value="Linux">Linux</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {showAdvancedFilters && (
-              <>
-                <Separator className="my-4" />
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <Input
-                    placeholder="Min Price (KM)"
-                    value={filters.priceMin}
-                    onChange={(e) => setFilters(prev => ({ ...prev, priceMin: e.target.value }))}
-                    type="number"
-                  />
-                  <Input
-                    placeholder="Max Price (KM)"
-                    value={filters.priceMax}
-                    onChange={(e) => setFilters(prev => ({ ...prev, priceMax: e.target.value }))}
-                    type="number"
-                  />
-                  <Select 
-                    value={filters.stockLevel} 
-                    onValueChange={(value) => setFilters(prev => ({ ...prev, stockLevel: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Stock Level" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Stock Levels</SelectItem>
-                      <SelectItem value="in_stock">In Stock</SelectItem>
-                      <SelectItem value="low_stock">Low Stock</SelectItem>
-                      <SelectItem value="out_of_stock">Out of Stock</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    placeholder="Search SKU"
-                    value={filters.sku}
-                    onChange={(e) => setFilters(prev => ({ ...prev, sku: e.target.value }))}
-                  />
-                </div>
-              </>
-            )}
+        {/* Main Content Area with Vertical Filters */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* Advanced Filters Sidebar */}
+          <div className="w-80 bg-white border-r border-[#ddd] p-4 overflow-y-auto">
+            <AdvancedProductFilters
+              filters={{
+                search: filters.search,
+                categoryId: "",
+                region: filters.region,
+                platform: filters.platform,
+                priceMin: filters.priceMin,
+                priceMax: filters.priceMax,
+                stockLevel: filters.stockLevel,
+                dateAdded: filters.dateAdded,
+                sku: filters.sku,
+                priceRange: [0, 1000] as [number, number],
+                availability: [] as string[],
+                sortBy: "",
+                sortOrder: "asc" as "asc" | "desc"
+              }}
+              onFiltersChange={(advancedFilters) => {
+                setFilters({
+                  search: advancedFilters.search,
+                  region: advancedFilters.region,
+                  platform: advancedFilters.platform,
+                  priceMin: advancedFilters.priceMin,
+                  priceMax: advancedFilters.priceMax,
+                  stockLevel: advancedFilters.stockLevel,
+                  dateAdded: advancedFilters.dateAdded,
+                  sku: advancedFilters.sku,
+                });
+              }}
+              productCount={products.length}
+            />
           </div>
 
           {/* Products Section */}
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-gray-700">Found {products.length} KM products</h3>
-            <div className="text-sm text-gray-500 flex items-center">
-              <List className="w-4 h-4 mr-1" />
-              List View
+          <div className="flex-1 p-6 overflow-auto">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-700">Found {products.length} KM products</h3>
+              <div className="text-sm text-gray-500 flex items-center">
+                <List className="w-4 h-4 mr-1" />
+                List View
+              </div>
             </div>
-          </div>
 
-          {/* Product Table */}
-          <div className="bg-white rounded-[8px] shadow-[0_2px_5px_rgba(0,0,0,0.1)] overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="min-w-full">
-                <thead className="bg-[#6E6F71] text-white">
-                  <tr>
-                    <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">SKU</th>
-                    <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">IMAGE</th>
-                    <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.5px]">PRODUCT</th>
-                    <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">PRICE (KM)</th>
-                    <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">REGION</th>
-                    <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">PLATFORM</th>
-                    <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">STOCK</th>
-                    <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">QUANTITY</th>
-                    <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">ACTION</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-[#e5e5e5]">
-                  {productsLoading ? (
+            {/* Product Table */}
+            <div className="bg-white rounded-[8px] shadow-[0_2px_5px_rgba(0,0,0,0.1)] overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead className="bg-[#6E6F71] text-white">
                     <tr>
-                      <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
-                        Loading KM products...
-                      </td>
+                      <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">SKU</th>
+                      <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">IMAGE</th>
+                      <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.5px]">PRODUCT</th>
+                      <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">PRICE (KM)</th>
+                      <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">REGION</th>
+                      <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">PLATFORM</th>
+                      <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">STOCK</th>
+                      <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">QUANTITY</th>
+                      <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">ACTION</th>
                     </tr>
-                  ) : products.length === 0 ? (
-                    <tr>
-                      <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
-                        No KM products found
-                      </td>
-                    </tr>
-                  ) : (
-                    products.map((product: ProductWithStock) => (
-                      <KMProductRow
-                        key={product.id}
-                        product={product}
-                        onAddToCart={handleAddToCart}
-                        isLoading={addingProductId === product.id}
-                      />
-                    ))
-                  )}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-[#e5e5e5]">
+                    {productsLoading ? (
+                      <tr>
+                        <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
+                          Loading KM products...
+                        </td>
+                      </tr>
+                    ) : products.length === 0 ? (
+                      <tr>
+                        <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
+                          No KM products found
+                        </td>
+                      </tr>
+                    ) : (
+                      products.map((product: ProductWithStock) => (
+                        <KMProductRow
+                          key={product.id}
+                          product={product}
+                          onAddToCart={handleAddToCart}
+                          isLoading={addingProductId === product.id}
+                        />
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
