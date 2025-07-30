@@ -124,6 +124,7 @@ export const licenseKeys = pgTable("license_keys", {
   tenantId: varchar("tenant_id").notNull().default("eur"), // EUR or KM tenant
   keyValue: text("key_value").notNull().unique(),
   isUsed: boolean("is_used").default(false).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
   usedBy: varchar("used_by").references(() => users.id),
   usedAt: timestamp("used_at"),
   createdAt: timestamp("created_at").defaultNow(),
