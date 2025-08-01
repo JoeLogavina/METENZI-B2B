@@ -24,6 +24,12 @@ import type { Currency } from './middleware/tenant.middleware';
 import { tenantAuthMiddleware } from './middleware/tenant-auth.middleware';
 import express from "express";
 import path from "path";
+import { 
+  apiRateLimit, 
+  adminRateLimit, 
+  protectSensitiveOperation,
+  validateSessionSecurity
+} from "./middleware/security-simple.middleware";
 
 // Authentication middleware
 const isAuthenticated = (req: any, res: any, next: any) => {
@@ -34,8 +40,11 @@ const isAuthenticated = (req: any, res: any, next: any) => {
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Add tenant resolution middleware to all routes
+  // Add tenant resolution middleware first
   app.use(tenantResolutionMiddleware);
+  
+  // Basic security middleware (simplified for now)
+  app.use(apiRateLimit);
 
   // Health check endpoints (before auth middleware)
   app.get('/health', async (req, res) => {
@@ -116,15 +125,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Set up authentication
-  setupAuth(app);
+  // Authentication is now set up above (before CSRF)
 
   // Using application-level tenant filtering for security instead of RLS
 
   // Rate limiting disabled for simplicity
 
-  // Use the admin router
-  app.use('/api/admin', adminRouter);
+  // Setup authentication
+  setupAuth(app);
+
+  // Simple CSRF token endpoint (without middleware for now)
+  app.get('/api/csrf-token', (req, res) => {
+    // Return a simple token for now
+    res.json({ csrfToken: 'dev-token-' + Date.now() });
+  });
+  
+  // Use the admin router with additional rate limiting
+  app.use('/api/admin', adminRateLimit, protectSensitiveOperation, adminRouter);
 
   // REMOVED: Duplicate products route - Using tenant-aware version below
 

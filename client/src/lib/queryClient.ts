@@ -1,6 +1,30 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import { requestBatcher } from "./request-batcher";
 
+// Global CSRF token storage
+let csrfToken: string | null = null;
+
+// Function to fetch and cache CSRF token
+const fetchCsrfToken = async (): Promise<string | null> => {
+  try {
+    const response = await fetch('/api/csrf-token', {
+      credentials: 'include'
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      csrfToken = data.csrfToken;
+      return csrfToken;
+    }
+  } catch (error) {
+    console.warn('Failed to fetch CSRF token:', error);
+  }
+  return null;
+};
+
+// Initialize CSRF token
+fetchCsrfToken();
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
@@ -28,10 +52,24 @@ export async function apiRequest(
     }
   }
 
+  // For state-changing operations, ensure we have a CSRF token
+  const needsCsrf = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method);
+  
+  if (needsCsrf && !csrfToken) {
+    await fetchCsrfToken();
+  }
+
+  const headers: Record<string, string> = data ? { "Content-Type": "application/json" } : {};
+
+  // Add CSRF token for state-changing operations
+  if (needsCsrf && csrfToken) {
+    headers['X-CSRF-Token'] = csrfToken;
+  }
+
   // Regular fetch for POST/PUT/DELETE or when batching fails
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers,
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });

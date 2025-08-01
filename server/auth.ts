@@ -7,6 +7,7 @@ import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import connectPg from "connect-pg-simple";
+import { loginRateLimit } from "./middleware/security-simple.middleware";
 
 declare global {
   namespace Express {
@@ -56,7 +57,8 @@ export function setupAuth(app: Express) {
     }),
     cookie: {
       httpOnly: true,
-      secure: false, // Set to true in production with HTTPS
+      secure: process.env.NODE_ENV === 'production', // Enable secure cookies in production
+      sameSite: 'strict', // CSRF protection
       maxAge: 7 * 24 * 60 * 60 * 1000, // 1 week
     },
   };
@@ -133,9 +135,17 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/login", passport.authenticate("local"), (req, res) => {
-    res.status(200).json(req.user);
-  });
+  app.post("/api/login", 
+    loginRateLimit,
+    passport.authenticate("local"), 
+    (req, res) => {
+      // Store user agent for session security
+      if (req.session) {
+        (req.session as any).userAgent = req.get('User-Agent');
+      }
+      res.status(200).json(req.user);
+    }
+  );
 
   app.post("/api/logout", (req, res, next) => {
     req.logout((err) => {
