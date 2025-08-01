@@ -5,7 +5,7 @@ import { memo, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Check } from "lucide-react";
+import { ShoppingCart, Check, Eye } from "lucide-react";
 import type { ProductWithStock } from "@shared/schema";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -16,13 +16,15 @@ interface ProductCardProps {
   product: ProductWithStock;
   isInCart: boolean;
   onAddToCart?: (productId: string) => void;
+  onQuickView?: (product: ProductWithStock) => void;
 }
 
 // Memoized ProductCard to prevent unnecessary re-renders
 const ProductCard = memo(function ProductCard({ 
   product, 
   isInCart, 
-  onAddToCart 
+  onAddToCart,
+  onQuickView 
 }: ProductCardProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -80,6 +82,11 @@ const ProductCard = memo(function ProductCard({
     }
   }, [isInCart, product.stockCount, addToCartMutation]);
 
+  // Memoized quick view handler
+  const handleQuickView = useCallback(() => {
+    onQuickView?.(product);
+  }, [onQuickView, product]);
+
   // Memoized button content to prevent unnecessary recalculation
   const buttonContent = useMemo(() => {
     if (addToCartMutation.isPending) {
@@ -112,7 +119,12 @@ const ProductCard = memo(function ProductCard({
     <Card className="h-full flex flex-col">
       <CardHeader>
         <div className="flex justify-between items-start">
-          <CardTitle className="text-lg line-clamp-2">{product.name}</CardTitle>
+          <CardTitle 
+            className="text-lg line-clamp-2 cursor-pointer hover:text-[#FFB20F] transition-colors"
+            onClick={handleQuickView}
+          >
+            {product.name}
+          </CardTitle>
           <Badge variant={stockStatus.variant} className="ml-2 shrink-0">
             {stockStatus.text}
           </Badge>
@@ -148,11 +160,20 @@ const ProductCard = memo(function ProductCard({
         </div>
       </CardContent>
       
-      <CardFooter>
+      <CardFooter className="flex gap-2">
+        <Button
+          onClick={handleQuickView}
+          variant="outline"
+          size="sm"
+          className="flex-1"
+        >
+          <Eye className="mr-2 h-4 w-4" />
+          Quick View
+        </Button>
         <Button
           onClick={handleAddToCart}
           disabled={product.stockCount === 0 || isInCart || addToCartMutation.isPending}
-          className="w-full"
+          className="flex-1"
           variant={isInCart ? "secondary" : "default"}
         >
           {buttonContent}
