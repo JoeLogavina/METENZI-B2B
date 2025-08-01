@@ -290,10 +290,8 @@ export default function B2BShop() {
 
   // Modal handlers
   const handleProductClick = (product: ProductWithStock) => {
-    console.log('🔥 Product clicked:', product.name);
     setSelectedProduct(product);
     setIsModalOpen(true);
-    console.log('🔥 Modal should be open:', true);
   };
 
   const handleCloseModal = () => {
@@ -519,24 +517,9 @@ export default function B2BShop() {
           <div className="flex-1 p-6 overflow-auto">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-sm font-semibold text-gray-700">Found {products.length} products</h3>
-              <div className="flex items-center gap-4">
-                {products.length > 0 && (
-                  <Button 
-                    onClick={() => {
-                      console.log('🔥 Test button clicked');
-                      handleProductClick(products[0]);
-                    }}
-                    size="sm"
-                    variant="outline"
-                    className="bg-red-100 border-red-300 text-red-700 hover:bg-red-200"
-                  >
-                    TEST MODAL
-                  </Button>
-                )}
-                <div className="text-sm text-gray-500 flex items-center">
-                  <List className="w-4 h-4 mr-1" />
-                  List View
-                </div>
+              <div className="text-sm text-gray-500 flex items-center">
+                <List className="w-4 h-4 mr-1" />
+                List View
               </div>
             </div>
 
@@ -627,15 +610,7 @@ function ProductRow({ product, onAddToCart, onProductClick, isLoading }: {
         {product.sku || product.id.slice(0, 8).toUpperCase()}
       </td>
       <td className="px-3 py-3 whitespace-nowrap text-center">
-        <div 
-          className="w-10 h-10 bg-gray-200 rounded-[5px] flex items-center justify-center mx-auto overflow-hidden cursor-pointer hover:opacity-80 transition-opacity" 
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            console.log('🔥 ProductRow Image clicked for:', product.name);
-            onProductClick();
-          }}
-        >
+        <div className="w-10 h-10 bg-gray-200 rounded-[5px] flex items-center justify-center mx-auto overflow-hidden cursor-pointer hover:opacity-80 transition-opacity" onClick={onProductClick}>
           {product.imageUrl ? (
             <img
               src={product.imageUrl}
@@ -652,22 +627,12 @@ function ProductRow({ product, onAddToCart, onProductClick, isLoading }: {
           )}
         </div>
       </td>
-      <td className="px-3 py-3">
-        <div 
-          className="cursor-pointer hover:bg-blue-50 p-2 rounded transition-colors"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            console.log('🔥 ProductRow name clicked for:', product.name);
-            onProductClick();
-          }}
-        >
-          <div className="text-sm font-semibold text-gray-900 hover:text-blue-600 transition-colors flex items-center">
-            {product.name}
-            <Eye className="w-3 h-3 ml-1 opacity-60" />
-          </div>
-          <div className="text-sm text-gray-500">{product.description}</div>
+      <td className="px-3 py-3 cursor-pointer hover:bg-blue-50" onClick={onProductClick}>
+        <div className="text-sm font-semibold text-gray-900 hover:text-blue-600 transition-colors flex items-center">
+          {product.name}
+          <Eye className="w-3 h-3 ml-1 opacity-60" />
         </div>
+        <div className="text-sm text-gray-500">{product.description}</div>
       </td>
       <td className="px-3 py-3 whitespace-nowrap text-center">
         <div className="text-sm font-mono font-semibold text-[#FFB20F]">
