@@ -290,8 +290,10 @@ export default function B2BShop() {
 
   // Modal handlers
   const handleProductClick = (product: ProductWithStock) => {
+    console.log('🔥 Product clicked:', product.name);
     setSelectedProduct(product);
     setIsModalOpen(true);
+    console.log('🔥 Modal should be open:', true);
   };
 
   const handleCloseModal = () => {
@@ -610,7 +612,10 @@ function ProductRow({ product, onAddToCart, onProductClick, isLoading }: {
         {product.sku || product.id.slice(0, 8).toUpperCase()}
       </td>
       <td className="px-3 py-3 whitespace-nowrap text-center">
-        <div className="w-10 h-10 bg-gray-200 rounded-[5px] flex items-center justify-center mx-auto overflow-hidden cursor-pointer hover:opacity-80 transition-opacity" onClick={onProductClick}>
+        <div className="w-10 h-10 bg-gray-200 rounded-[5px] flex items-center justify-center mx-auto overflow-hidden cursor-pointer hover:opacity-80 transition-opacity" onClick={() => {
+          console.log('🔥 ProductRow Image clicked for:', product.name);
+          onProductClick();
+        }}>
           {product.imageUrl ? (
             <img
               src={product.imageUrl}
@@ -627,7 +632,10 @@ function ProductRow({ product, onAddToCart, onProductClick, isLoading }: {
           )}
         </div>
       </td>
-      <td className="px-3 py-3 cursor-pointer hover:bg-blue-50" onClick={onProductClick}>
+      <td className="px-3 py-3 cursor-pointer hover:bg-blue-50" onClick={() => {
+        console.log('🔥 ProductRow TD clicked for:', product.name);
+        onProductClick();
+      }}>
         <div className="text-sm font-semibold text-gray-900 hover:text-blue-600 transition-colors flex items-center">
           {product.name}
           <Eye className="w-3 h-3 ml-1 opacity-60" />
