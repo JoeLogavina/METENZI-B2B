@@ -98,8 +98,13 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
   // Update profile data when user data loads
   useEffect(() => {
     if (userData && typeof userData === 'object') {
-      const user = userData as any;
-      console.log('🔍 DEBUG: User data loaded:', { userId, tenantId: user.tenantId, userData: user });
+      const user = (userData as any)?.data || userData as any;
+      console.log('🔍 DEBUG: User data loaded:', { 
+        userId, 
+        tenantId: user.tenantId, 
+        userDataKeys: Object.keys(user),
+        fullUserData: user 
+      });
       setProfileData({
         firstName: user.firstName || '',
         lastName: user.lastName || '',
@@ -164,11 +169,12 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
     }
   }, [products]);
 
-  // Helper function to format currency
+  // Helper function to format currency - use the actual user data
   const formatCurrency = (amount: string | number, userTenantId?: string) => {
     const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
-    console.log('🔍 DEBUG: formatCurrency called:', { amount, userTenantId, numAmount });
-    if (userTenantId === 'km') {
+    const actualTenantId = userTenantId || ((userData as any)?.data?.tenantId || (userData as any)?.tenantId);
+    console.log('🔍 DEBUG: formatCurrency called:', { amount, userTenantId, actualTenantId, numAmount });
+    if (actualTenantId === 'km') {
       console.log('🔍 DEBUG: Using KM currency');
       return `${numAmount.toFixed(2)} KM`;
     } else {
@@ -627,19 +633,19 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
                           <span className="text-gray-500">Deposit Balance:</span>
-                          <p className="font-medium text-[#FFB20F]">{formatCurrency((walletData as any)?.data?.depositBalance || '0.00', (userData as any)?.tenantId)}</p>
+                          <p className="font-medium text-[#FFB20F]">{formatCurrency((walletData as any)?.data?.depositBalance || '0.00', (userData as any)?.data?.tenantId || (userData as any)?.tenantId)}</p>
                         </div>
                         <div>
                           <span className="text-gray-500">Credit Used:</span>
-                          <p className="font-medium text-red-600">{formatCurrency((walletData as any)?.data?.creditUsed || '0.00', (userData as any)?.tenantId)}</p>
+                          <p className="font-medium text-red-600">{formatCurrency((walletData as any)?.data?.creditUsed || '0.00', (userData as any)?.data?.tenantId || (userData as any)?.tenantId)}</p>
                         </div>
                         <div>
                           <span className="text-gray-500">Credit Limit:</span>
-                          <p className="font-medium">{formatCurrency((walletData as any)?.data?.creditLimit || '0.00', (userData as any)?.tenantId)}</p>
+                          <p className="font-medium">{formatCurrency((walletData as any)?.data?.creditLimit || '0.00', (userData as any)?.data?.tenantId || (userData as any)?.tenantId)}</p>
                         </div>
                         <div>
                           <span className="text-gray-500">Total Available:</span>
-                          <p className="font-bold text-green-600">{formatCurrency((walletData as any)?.data?.totalAvailable || '0.00', (userData as any)?.tenantId)}</p>
+                          <p className="font-bold text-green-600">{formatCurrency((walletData as any)?.data?.totalAvailable || '0.00', (userData as any)?.data?.tenantId || (userData as any)?.tenantId)}</p>
                         </div>
                       </div>
                     </div>
@@ -649,8 +655,13 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
                       <h4 className="font-medium text-[#6E6F71]">Add Deposit</h4>
                       <div>
                         <Label htmlFor="depositAmount">Amount ({(() => {
-                          console.log('🔍 DEBUG: Deposit amount label - userData.tenantId:', (userData as any)?.tenantId);
-                          return (userData as any)?.tenantId === 'km' ? 'KM' : 'EUR';
+                          const tenantId = (userData as any)?.data?.tenantId || (userData as any)?.tenantId;
+                          console.log('🔍 DEBUG: Deposit amount label rendering:', { 
+                            userDataExists: !!userData, 
+                            tenantId, 
+                            fullUserData: userData 
+                          });
+                          return tenantId === 'km' ? 'KM' : 'EUR';
                         })()})</Label>
                         <Input
                           id="depositAmount"
@@ -685,8 +696,13 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
                       <h4 className="font-medium text-[#6E6F71]">Update Credit Limit</h4>
                       <div>
                         <Label htmlFor="creditLimit">Credit Limit ({(() => {
-                          console.log('🔍 DEBUG: Credit limit label - userData.tenantId:', (userData as any)?.tenantId);
-                          return (userData as any)?.tenantId === 'km' ? 'KM' : 'EUR';
+                          const tenantId = (userData as any)?.data?.tenantId || (userData as any)?.tenantId;
+                          console.log('🔍 DEBUG: Credit limit label rendering:', { 
+                            userDataExists: !!userData, 
+                            tenantId, 
+                            fullUserData: userData 
+                          });
+                          return tenantId === 'km' ? 'KM' : 'EUR';
                         })()})</Label>
                         <Input
                           id="creditLimit"
