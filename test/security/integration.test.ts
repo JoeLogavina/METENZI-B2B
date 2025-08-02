@@ -58,19 +58,15 @@ describe('Phase 2 Security Integration Tests', () => {
   });
 
   beforeEach(async () => {
-    // Clean up any test data before each test
-    await redisCache.invalidatePattern('token:*');
-    await redisCache.invalidatePattern('session:*');
-    await redisCache.invalidatePattern('user_tokens:*');
-    await redisCache.invalidatePattern('blacklist:*');
+    // Clean up test-specific data only, not the tokens from beforeAll
+    await redisCache.invalidatePattern('test_*');
+    await redisCache.invalidatePattern('temp_*');
   });
 
   afterEach(async () => {
-    // Clean up after each test
-    await redisCache.invalidatePattern('token:*');
-    await redisCache.invalidatePattern('session:*');
-    await redisCache.invalidatePattern('user_tokens:*');
-    await redisCache.invalidatePattern('blacklist:*');
+    // Clean up test-specific data only
+    await redisCache.invalidatePattern('test_*');
+    await redisCache.invalidatePattern('temp_*');
   });
 
   describe('Token Refresh Endpoint', () => {

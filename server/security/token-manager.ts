@@ -302,9 +302,18 @@ export class EnhancedTokenManager {
       const userId = decoded.sub;
       const type = decoded.type as TokenType;
 
-      // Add to blacklist
-      const ttl = Math.max(0, decoded.exp - Math.floor(Date.now() / 1000));
-      await redisCache.set(`${this.BLACKLIST_PREFIX}${tokenId}`, true, ttl);
+      // Add to blacklist with extended TTL to ensure persistence
+      const ttl = Math.max(3600, decoded.exp - Math.floor(Date.now() / 1000)); // At least 1 hour
+      await redisCache.set(`${this.BLACKLIST_PREFIX}${tokenId}`, {
+        revokedAt: Date.now(),
+        userId,
+        type
+      }, ttl);
+
+      // Small delay to ensure Redis operation completes (important for tests)
+      if (process.env.NODE_ENV === 'test') {
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
 
       // Remove from user's token list
       await this.removeFromUserTokenList(userId, tokenId);

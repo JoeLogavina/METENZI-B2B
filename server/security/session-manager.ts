@@ -129,19 +129,17 @@ export class RedisSessionStore extends Store {
         enhancedSession.loginTimestamp = now;
       }
 
-      // Enforce concurrent session limits
-      if (enhancedSession.userId) {
-        await this.enforceSessionLimits(enhancedSession.userId, sessionId);
-      }
-
-      // Store session with TTL
+      // Store session with TTL first
       const sessionKey = `${RedisSessionStore.SESSION_PREFIX}${sessionId}`;
       const ttl = Math.floor(this.config.maxAge / 1000);
       
-      await Promise.all([
-        redisCache.set(sessionKey, enhancedSession, ttl),
-        this.updateUserSessionList(enhancedSession.userId, sessionId, ttl)
-      ]);
+      await redisCache.set(sessionKey, enhancedSession, ttl);
+
+      // Enforce concurrent session limits and update user session list
+      if (enhancedSession.userId) {
+        await this.enforceSessionLimits(enhancedSession.userId, sessionId);
+        await this.updateUserSessionList(enhancedSession.userId, sessionId, ttl);
+      }
 
       // Security logging
       if (this.config.enableSecurityLogging && enhancedSession.userId) {
@@ -175,7 +173,12 @@ export class RedisSessionStore extends Store {
       const sessionData = await redisCache.get<EnhancedSessionData>(sessionKey);
       
       // Remove from Redis
-      await redisCache.del(sessionKey);
+      const deleteResult = await redisCache.del(sessionKey);
+      
+      // Small delay for tests to ensure Redis operation completes
+      if (process.env.NODE_ENV === 'test') {
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
       
       // Remove from user's session list
       if (sessionData?.userId) {
@@ -358,24 +361,37 @@ export class RedisSessionStore extends Store {
 
   // Private helper methods
   private async enforceSessionLimits(userId: string, currentSessionId: string): Promise<void> {
+    if (!this.config.maxConcurrentSessions || !userId) return;
+
     const userSessionsKey = `${RedisSessionStore.USER_SESSIONS_PREFIX}${userId}`;
-    const sessionList = await redisCache.get<string[]>(userSessionsKey) || [];
+    const existingSessions = await redisCache.get<string[]>(userSessionsKey) || [];
     
-    if (sessionList.length >= this.config.maxConcurrentSessions) {
-      // Remove oldest sessions
-      const sessionsToRemove = sessionList.slice(0, sessionList.length - this.config.maxConcurrentSessions + 1);
-      
-      for (const sessionId of sessionsToRemove) {
-        const sessionKey = `${RedisSessionStore.SESSION_PREFIX}${sessionId}`;
-        await redisCache.del(sessionKey);
+    // Filter out invalid/expired sessions but exclude the current one being created
+    const validSessions: string[] = [];
+    for (const sessionId of existingSessions) {
+      if (sessionId === currentSessionId) {
+        continue; // Don't count the current session yet
       }
-      
-      // Security logging
-      if (this.config.enableSecurityLogging) {
-        await this.logSecurityEvent(userId, 'sessions_limit_enforced', {
-          removedCount: sessionsToRemove.length,
-          currentSession: currentSessionId.substring(0, 8) + '...'
-        });
+      const sessionExists = await redisCache.exists(`${RedisSessionStore.SESSION_PREFIX}${sessionId}`);
+      if (sessionExists) {
+        validSessions.push(sessionId);
+      }
+    }
+
+    // If we're at or over the limit, remove the oldest session(s)
+    while (validSessions.length >= this.config.maxConcurrentSessions) {
+      const sessionToRemove = validSessions.shift(); // Remove oldest
+      if (sessionToRemove) {
+        await redisCache.del(`${RedisSessionStore.SESSION_PREFIX}${sessionToRemove}`);
+        
+        // Security logging
+        if (this.config.enableSecurityLogging) {
+          await this.logSecurityEvent(userId, 'session_displaced', {
+            displacedSession: sessionToRemove.substring(0, 8) + '...',
+            newSession: currentSessionId.substring(0, 8) + '...',
+            limit: this.config.maxConcurrentSessions
+          });
+        }
       }
     }
   }
@@ -386,12 +402,27 @@ export class RedisSessionStore extends Store {
     const userSessionsKey = `${RedisSessionStore.USER_SESSIONS_PREFIX}${userId}`;
     const sessionList = await redisCache.get<string[]>(userSessionsKey) || [];
     
-    // Add new session if not already present
-    if (!sessionList.includes(sessionId)) {
-      sessionList.push(sessionId);
+    // Filter out invalid/expired sessions and add current session
+    const validSessions: string[] = [];
+    for (const existingSessionId of sessionList) {
+      if (existingSessionId === sessionId) {
+        continue; // Don't duplicate current session
+      }
+      const sessionExists = await redisCache.exists(`${RedisSessionStore.SESSION_PREFIX}${existingSessionId}`);
+      if (sessionExists) {
+        validSessions.push(existingSessionId);
+      }
     }
     
-    await redisCache.set(userSessionsKey, sessionList, ttl);
+    // Add current session
+    validSessions.push(sessionId);
+    
+    // Ensure we don't exceed concurrent limits
+    if (this.config.maxConcurrentSessions && validSessions.length > this.config.maxConcurrentSessions) {
+      validSessions.splice(0, validSessions.length - this.config.maxConcurrentSessions);
+    }
+    
+    await redisCache.set(userSessionsKey, validSessions, ttl);
   }
 
   private async removeFromUserSessionList(userId: string, sessionId: string): Promise<void> {

@@ -70,31 +70,51 @@ class RedisCache {
   }
 
   async del(key: string): Promise<boolean> {
-    if (!this.isConnected) return false;
+    if (!this.isConnected) {
+      return inMemoryCache.del(key);
+    }
     
     try {
-      await this.client.del(key);
-      return true;
+      const result = await this.client.del(key);
+      return result > 0;
     } catch (error) {
-      // Redis DEL error
-      return false;
+      // Redis DEL error, try in-memory fallback
+      return inMemoryCache.del(key);
     }
   }
 
   async exists(key: string): Promise<boolean> {
-    if (!this.isConnected) return false;
+    if (!this.isConnected) {
+      return inMemoryCache.exists(key);
+    }
     
     try {
       const result = await this.client.exists(key);
       return result === 1;
     } catch (error) {
-      // Redis EXISTS error
-      return false;
+      // Redis EXISTS error, try in-memory fallback
+      return inMemoryCache.exists(key);
     }
   }
 
   async invalidatePattern(pattern: string): Promise<void> {
-    if (!this.isConnected) return;
+    if (!this.isConnected) {
+      // For in-memory cache, we need to handle pattern matching manually
+      const keysToDelete: string[] = [];
+      for (const key of inMemoryCache.cache.keys()) {
+        if (pattern.includes('*')) {
+          const regexPattern = pattern.replace(/\*/g, '.*');
+          const regex = new RegExp(regexPattern);
+          if (regex.test(key)) {
+            keysToDelete.push(key);
+          }
+        } else if (key === pattern) {
+          keysToDelete.push(key);
+        }
+      }
+      keysToDelete.forEach(key => inMemoryCache.del(key));
+      return;
+    }
     
     try {
       const keys = await this.client.keys(pattern);
@@ -102,7 +122,20 @@ class RedisCache {
         await this.client.del(...keys);
       }
     } catch (error) {
-      // Redis pattern invalidation error
+      // Redis pattern invalidation error, fallback to in-memory
+      const keysToDelete: string[] = [];
+      for (const key of inMemoryCache.cache.keys()) {
+        if (pattern.includes('*')) {
+          const regexPattern = pattern.replace(/\*/g, '.*');
+          const regex = new RegExp(regexPattern);
+          if (regex.test(key)) {
+            keysToDelete.push(key);
+          }
+        } else if (key === pattern) {
+          keysToDelete.push(key);
+        }
+      }
+      keysToDelete.forEach(key => inMemoryCache.del(key));
     }
   }
 
@@ -179,6 +212,18 @@ class InMemoryCache {
 
   del(key: string): boolean {
     return this.cache.delete(key);
+  }
+
+  exists(key: string): boolean {
+    const entry = this.cache.get(key);
+    if (!entry) return false;
+    
+    if (entry.expiry < Date.now()) {
+      this.cache.delete(key);
+      return false;
+    }
+    
+    return true;
   }
 
   clear(): void {
