@@ -429,6 +429,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Use the admin router with additional security
   app.use('/api/admin', adminRouter);
   
+  // Register admin security routes
+  const adminSecurityRoutes = await import('./routes/admin-security');
+  app.use('/api/admin/security', adminSecurityRoutes.default);
+  
   // Apply security test routes (for development and testing)
   if (process.env.NODE_ENV !== 'production') {
     app.use('/api/security', securityTestRoutes);
