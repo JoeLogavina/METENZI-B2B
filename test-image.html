@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Image Test</title>
+</head>
+<body>
+    <h1>Testing Product Images</h1>
+    <div>
+        <h2>Direct Image Test:</h2>
+        <img src="/uploads/products/product-1753657091883-847599090.png" alt="Test Image" style="max-width: 200px;" onload="console.log('Image loaded successfully')" onerror="console.error('Image failed to load')">
+    </div>
+    
+    <div>
+        <h2>Full URL Test:</h2>
+        <img src="http://localhost:5000/uploads/products/product-1753657091883-847599090.png" alt="Test Image Full URL" style="max-width: 200px;" onload="console.log('Full URL Image loaded successfully')" onerror="console.error('Full URL Image failed to load')">
+    </div>
+    
+    <script>
+        console.log('Testing image paths...');
+        console.log('Relative path: /uploads/products/product-1753657091883-847599090.png');
+        console.log('Full URL: http://localhost:5000/uploads/products/product-1753657091883-847599090.png');
+    </script>
+</body>
+</html>
