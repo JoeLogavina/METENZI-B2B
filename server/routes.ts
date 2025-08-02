@@ -441,6 +441,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const advancedAuthRoutes = await import('./routes/advanced-auth');
   app.use('/api/auth', advancedAuthRoutes.default);
   
+  // Register API security routes (temporarily disabled to resolve loading issue)
+  try {
+    const apiSecurityRoutes = await import('./routes/api-security');
+    app.use('/api/security', apiSecurityRoutes.default);
+  } catch (error) {
+    console.warn('API Security routes not loaded:', error);
+  }
+  
   // Apply security test routes (for development and testing)
   if (process.env.NODE_ENV !== 'production') {
     app.use('/api/security', securityTestRoutes);

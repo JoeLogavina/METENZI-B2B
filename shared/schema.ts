@@ -530,3 +530,4 @@ export type ProductWithKeys = Product & {
 // Export all schemas and types
 export * from './digital-key-schema';
 export * from './advanced-auth-schema';
+export * from './api-security-schema';
