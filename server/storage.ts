@@ -720,32 +720,57 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getOrders(userId?: string): Promise<(Order & { items: (OrderItem & { product: Product })[] })[]> {
-    const ordersList = userId 
-      ? await db.select().from(orders).where(eq(orders.userId, userId)).orderBy(desc(orders.createdAt))
-      : await db.select().from(orders).orderBy(desc(orders.createdAt));
+    // PERFORMANCE OPTIMIZATION: Use single query with JSON aggregation to avoid N+1 problem
+    const result = await db.execute(sql`
+      SELECT 
+        o.*,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id', oi.id,
+              'orderId', oi.order_id,
+              'productId', oi.product_id,
+              'licenseKeyId', oi.license_key_id,
+              'quantity', oi.quantity,
+              'unitPrice', oi.unit_price,
+              'totalPrice', oi.total_price,
+              'product', json_build_object(
+                'id', p.id,
+                'sku', p.sku,
+                'name', p.name,
+                'description', p.description,
+                'price', p.price,
+                'priceKm', p.price_km,
+                'platform', p.platform,
+                'region', p.region,
+                'imageUrl', p.image_url,
+                'isActive', p.is_active
+              )
+            )
+          ) FILTER (WHERE oi.id IS NOT NULL),
+          '[]'::json
+        ) as items
+      FROM orders o
+      LEFT JOIN order_items oi ON o.id = oi.order_id
+      LEFT JOIN products p ON oi.product_id = p.id
+      ${userId ? sql`WHERE o.user_id = ${userId}` : sql``}
+      GROUP BY o.id
+      ORDER BY o.created_at DESC
+    `);
 
-    const ordersWithItems = await Promise.all(
-      ordersList.map(async (order) => {
-        const items = await db
-          .select({
-            id: orderItems.id,
-            orderId: orderItems.orderId,
-            productId: orderItems.productId,
-            licenseKeyId: orderItems.licenseKeyId,
-            quantity: orderItems.quantity,
-            unitPrice: orderItems.unitPrice,
-            totalPrice: orderItems.totalPrice,
-            product: products,
-          })
-          .from(orderItems)
-          .innerJoin(products, eq(orderItems.productId, products.id))
-          .where(eq(orderItems.orderId, order.id));
-
-        return { ...order, items };
-      })
-    );
-
-    return ordersWithItems;
+    return result.rows.map((row: any) => ({
+      ...row,
+      createdAt: new Date(row.created_at),
+      updatedAt: new Date(row.updated_at),
+      items: Array.isArray(row.items) ? row.items.map((item: any) => ({
+        ...item,
+        product: {
+          ...item.product,
+          createdAt: new Date(item.product.created_at || Date.now()),
+          updatedAt: new Date(item.product.updated_at || Date.now())
+        }
+      })) : []
+    }));
   }
 
   async updateOrderStatus(orderId: string, status: string): Promise<void> {
