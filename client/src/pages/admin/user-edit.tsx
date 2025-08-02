@@ -206,9 +206,10 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
         title: "Success",
         description: "User profile updated successfully",
       });
-      // Only invalidate the users list cache, don't refetch this user's data to avoid overwriting form
+      // Invalidate the users list cache AND this specific user's cache 
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-      // Note: We're not calling refetchUser() to prevent form data from being overwritten
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/users/${userId}`] });
+      // Note: We're not calling refetchUser() to prevent form data from being overwritten in the current session
     },
     onError: (error: any) => {
       toast({
