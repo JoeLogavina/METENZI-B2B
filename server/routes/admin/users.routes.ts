@@ -123,6 +123,15 @@ const updateUserSchema = z.object({
   lastName: z.string().optional(),
   role: z.enum(['b2b_user', 'admin', 'super_admin']).optional(),
   isActive: z.boolean().optional(),
+  // B2B Profile fields
+  companyName: z.string().optional(),
+  contactPerson: z.string().optional(),
+  companyDescription: z.string().optional(),
+  phone: z.string().optional(),
+  country: z.string().optional(),
+  city: z.string().optional(),
+  address: z.string().optional(),
+  vatOrRegistrationNo: z.string().optional(),
 });
 
 router.patch('/:id',

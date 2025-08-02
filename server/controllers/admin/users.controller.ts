@@ -280,9 +280,20 @@ export class AdminUsersController {
         lastName: z.string().optional(),
         role: z.enum(['b2b_user', 'admin', 'super_admin']).optional(),
         isActive: z.boolean().optional(),
+        // B2B Profile fields
+        companyName: z.string().optional(),
+        contactPerson: z.string().optional(),
+        companyDescription: z.string().optional(),
+        phone: z.string().optional(),
+        country: z.string().optional(),
+        city: z.string().optional(),
+        address: z.string().optional(),
+        vatOrRegistrationNo: z.string().optional(),
       });
       
+      console.log('🔍 DEBUG ADMIN CONTROLLER: Raw request body:', JSON.stringify(req.body, null, 2));
       const updateData = updateUserSchema.parse(req.body);
+      console.log('🔍 DEBUG ADMIN CONTROLLER: Parsed update data:', JSON.stringify(updateData, null, 2));
       
       // Prevent self-deactivation
       if (req.user?.id === id && updateData.isActive === false) {
@@ -293,6 +304,11 @@ export class AdminUsersController {
       }
       
       const user = await userService.updateUser(id, updateData);
+      console.log('🔍 DEBUG ADMIN CONTROLLER: Updated user:', {
+        companyName: user.companyName,
+        phone: user.phone,
+        country: user.country
+      });
       
       // Remove password from response
       const { password, ...safeUser } = user;
@@ -301,6 +317,7 @@ export class AdminUsersController {
         message: 'User updated successfully'
       });
     } catch (error) {
+      console.error('🔍 DEBUG ADMIN CONTROLLER: Update error:', error);
       if (isServiceError(error)) {
         return res.status(error.statusCode).json(formatErrorResponse(error));
       }
