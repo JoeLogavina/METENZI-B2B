@@ -99,6 +99,8 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
   useEffect(() => {
     if (userData && typeof userData === 'object') {
       const user = (userData as any)?.data || userData as any;
+      
+      // Convert null values to empty strings for proper form display
       setProfileData({
         firstName: user.firstName || '',
         lastName: user.lastName || '',
@@ -486,7 +488,7 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
                     <Label htmlFor="firstName">First Name *</Label>
                     <Input
                       id="firstName"
-                      value={profileData.firstName || ((userData as any)?.data?.firstName || (userData as any)?.firstName || '')}
+                      value={profileData.firstName}
                       onChange={(e) => setProfileData(prev => ({ ...prev, firstName: e.target.value }))}
                       required
                     />
@@ -495,7 +497,7 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
                     <Label htmlFor="lastName">Last Name *</Label>
                     <Input
                       id="lastName"
-                      value={profileData.lastName || ((userData as any)?.data?.lastName || (userData as any)?.lastName || '')}
+                      value={profileData.lastName}
                       onChange={(e) => setProfileData(prev => ({ ...prev, lastName: e.target.value }))}
                       required
                     />
@@ -507,7 +509,7 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
                   <Input
                     id="email"
                     type="email"
-                    value={profileData.email || ((userData as any)?.data?.email || (userData as any)?.email || '')}
+                    value={profileData.email}
                     onChange={(e) => setProfileData(prev => ({ ...prev, email: e.target.value }))}
                     required
                   />
@@ -517,7 +519,7 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
                   <Label htmlFor="companyName">Company Name *</Label>
                   <Input
                     id="companyName"
-                    value={profileData.companyName || ((userData as any)?.data?.companyName || (userData as any)?.companyName || '')}
+                    value={profileData.companyName}
                     onChange={(e) => setProfileData(prev => ({ ...prev, companyName: e.target.value }))}
                     required
                   />
@@ -527,7 +529,7 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
                   <Label htmlFor="contactPerson">Contact Person</Label>
                   <Input
                     id="contactPerson"
-                    value={profileData.contactPerson || ((userData as any)?.data?.contactPerson || (userData as any)?.contactPerson || '')}
+                    value={profileData.contactPerson}
                     onChange={(e) => setProfileData(prev => ({ ...prev, contactPerson: e.target.value }))}
                   />
                 </div>
@@ -536,7 +538,7 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
                   <Label htmlFor="companyDescription">A word about your company</Label>
                   <Textarea
                     id="companyDescription"
-                    value={profileData.companyDescription || ((userData as any)?.data?.companyDescription || (userData as any)?.companyDescription || '')}
+                    value={profileData.companyDescription}
                     onChange={(e) => setProfileData(prev => ({ ...prev, companyDescription: e.target.value }))}
                     rows={3}
                   />
@@ -547,7 +549,7 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
                     <Label htmlFor="phone">Phone *</Label>
                     <Input
                       id="phone"
-                      value={profileData.phone || ((userData as any)?.data?.phone || (userData as any)?.phone || '')}
+                      value={profileData.phone}
                       onChange={(e) => setProfileData(prev => ({ ...prev, phone: e.target.value }))}
                       required
                     />
@@ -556,7 +558,7 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
                     <Label htmlFor="country">Country *</Label>
                     <Input
                       id="country"
-                      value={profileData.country || ((userData as any)?.data?.country || (userData as any)?.country || '')}
+                      value={profileData.country}
                       onChange={(e) => setProfileData(prev => ({ ...prev, country: e.target.value }))}
                       required
                     />
@@ -568,7 +570,7 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
                     <Label htmlFor="city">City *</Label>
                     <Input
                       id="city"
-                      value={profileData.city || ((userData as any)?.data?.city || (userData as any)?.city || '')}
+                      value={profileData.city}
                       onChange={(e) => setProfileData(prev => ({ ...prev, city: e.target.value }))}
                       required
                     />
@@ -577,7 +579,7 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
                     <Label htmlFor="vatOrRegistrationNo">VAT or Registration No. *</Label>
                     <Input
                       id="vatOrRegistrationNo"
-                      value={profileData.vatOrRegistrationNo || ((userData as any)?.data?.vatOrRegistrationNo || (userData as any)?.vatOrRegistrationNo || '')}
+                      value={profileData.vatOrRegistrationNo}
                       onChange={(e) => setProfileData(prev => ({ ...prev, vatOrRegistrationNo: e.target.value }))}
                       required
                     />
@@ -588,7 +590,7 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
                   <Label htmlFor="address">Address *</Label>
                   <Textarea
                     id="address"
-                    value={profileData.address || ((userData as any)?.data?.address || (userData as any)?.address || '')}
+                    value={profileData.address}
                     onChange={(e) => setProfileData(prev => ({ ...prev, address: e.target.value }))}
                     rows={2}
                     required
