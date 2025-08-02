@@ -475,11 +475,12 @@ const AdvancedProductFilters: React.FC<AdvancedProductFiltersProps> = ({
                 <div key={status.id} className="flex items-center space-x-2">
                   <Checkbox
                     id={status.id}
-                    checked={filters.availability.includes(status.id)}
+                    checked={filters.availability?.includes(status.id) || false}
                     onCheckedChange={(checked) => {
+                      const currentAvailability = filters.availability || [];
                       const newAvailability = checked
-                        ? [...filters.availability, status.id]
-                        : filters.availability.filter(id => id !== status.id);
+                        ? [...currentAvailability, status.id]
+                        : currentAvailability.filter(id => id !== status.id);
                       handleFilterChange('availability', newAvailability);
                     }}
                   />

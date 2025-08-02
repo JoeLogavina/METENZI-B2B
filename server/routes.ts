@@ -981,8 +981,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         console.log('Filtered products count:', products.length);
       } else {
-        // For admin users, get all active products
-        products = await productService.getActiveProducts(filters);
+        // For admin users, get all active products and apply client-side filtering
+        const allProducts = await productService.getActiveProducts({});
+        
+        // Apply same filtering logic as B2B users
+        products = allProducts.filter((product: any) => {
+          // Search filter
+          if (filters.search) {
+            const searchLower = filters.search.toLowerCase();
+            if (!product.name.toLowerCase().includes(searchLower) && 
+                !product.description.toLowerCase().includes(searchLower)) {
+              console.log(`Product ${product.name} filtered out: search term ${filters.search} not found`);
+              return false;
+            }
+          }
+          
+          // SKU filter
+          if (filters.sku) {
+            const skuLower = filters.sku.toLowerCase();
+            if (!product.sku.toLowerCase().includes(skuLower)) {
+              console.log(`Product ${product.name} filtered out: SKU ${product.sku} does not contain ${filters.sku}`);
+              return false;
+            }
+          }
+          
+          // Basic filters (case-insensitive)
+          if (filters.region && filters.region !== 'all' && product.region.toLowerCase() !== filters.region.toLowerCase()) {
+            console.log(`Product ${product.name} filtered out: region ${product.region} !== ${filters.region}`);
+            return false;
+          }
+          if (filters.platform && filters.platform !== 'all' && product.platform.toLowerCase() !== filters.platform.toLowerCase()) {
+            console.log(`Product ${product.name} filtered out: platform ${product.platform} !== ${filters.platform}`);
+            return false;
+          }
+          if (filters.category && product.categoryId !== filters.category) {
+            console.log(`Product ${product.name} filtered out: categoryId ${product.categoryId} !== ${filters.category}`);
+            return false;
+          }
+          
+          // Price filters
+          const priceToUse = req.tenant?.id === 'km' ? (product.priceKm || product.price) : product.price;
+          const productPrice = parseFloat(priceToUse);
+          console.log(`Price check for ${product.name}: productPrice=${productPrice}, priceMin=${filters.priceMin}, priceMax=${filters.priceMax}, tenant=${req.tenant?.id}`);
+          
+          if (filters.priceMin !== undefined && filters.priceMin !== null) {
+            console.log(`Checking priceMin: ${productPrice} >= ${filters.priceMin}?`);
+            if (productPrice < filters.priceMin) {
+              console.log(`Product ${product.name} filtered out: price ${productPrice} < min ${filters.priceMin}`);
+              return false;
+            }
+          }
+          if (filters.priceMax !== undefined && filters.priceMax !== null) {
+            console.log(`Checking priceMax: ${productPrice} <= ${filters.priceMax}?`);
+            if (productPrice > filters.priceMax) {
+              console.log(`Product ${product.name} filtered out: price ${productPrice} > max ${filters.priceMax}`);
+              return false;
+            }
+          }
+          
+          // Stock level filter
+          if (filters.stockLevel && filters.stockLevel !== 'all') {
+            const stock = product.stockCount || product.stock || 0;
+            switch (filters.stockLevel) {
+              case 'in-stock':
+                if (stock <= 0) {
+                  console.log(`Product ${product.name} filtered out: out of stock (${stock})`);
+                  return false;
+                }
+                break;
+              case 'low-stock':
+                if (stock > 10) {
+                  console.log(`Product ${product.name} filtered out: not low stock (${stock} > 10)`);
+                  return false;
+                }
+                break;
+              case 'out-of-stock':
+                if (stock > 0) {
+                  console.log(`Product ${product.name} filtered out: in stock (${stock} > 0)`);
+                  return false;
+                }
+                break;
+            }
+          }
+          
+          return true;
+        });
+        
+        console.log('Admin filtered products count:', products.length);
       }
       
       // Apply sorting if specified
