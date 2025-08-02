@@ -95,13 +95,27 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
     enabled: !!userId && activeTab === 'payments',
   });
 
-  // Update profile data when user data loads
+  // Track whether we've initialized the form data to prevent overwriting user input
+  const [isFormInitialized, setIsFormInitialized] = useState(false);
+
+  // Update profile data when user data loads (only on initial load)
   useEffect(() => {
-    if (userData && typeof userData === 'object') {
+    if (userData && typeof userData === 'object' && !isFormInitialized) {
       const user = (userData as any)?.data || userData as any;
       
+      console.log('🔍 DEBUG: Initial form load with userData:', { 
+        userId: user?.id, 
+        timestamp: new Date().toISOString(),
+        isFormInitialized,
+        hasNullValues: {
+          companyName: user?.companyName === null,
+          phone: user?.phone === null,
+          country: user?.country === null
+        }
+      });
+      
       // Convert null values to empty strings for proper form display
-      setProfileData({
+      const newProfileData = {
         firstName: user.firstName || '',
         lastName: user.lastName || '',
         email: user.email || '',
@@ -114,9 +128,13 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
         address: user.address || '',
         vatOrRegistrationNo: user.vatOrRegistrationNo || '',
         isActive: user.isActive ?? true
-      });
+      };
+      
+      console.log('🔍 DEBUG: Setting initial profile data:', newProfileData);
+      setProfileData(newProfileData);
+      setIsFormInitialized(true);
     }
-  }, [userData]);
+  }, [userData, isFormInitialized]);
 
   // Update wallet form when wallet data loads
   useEffect(() => {
@@ -183,14 +201,14 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
       return response.json();
     },
     onSuccess: (response) => {
+      console.log('🔍 DEBUG: Profile save successful:', response);
       toast({
         title: "Success",
         description: "User profile updated successfully",
       });
-      // Refetch user data to ensure form stays populated with latest data
-      queryClient.invalidateQueries({ queryKey: [`/api/admin/users/${userId}`] });
+      // Only invalidate the users list cache, don't refetch this user's data to avoid overwriting form
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-      refetchUser();
+      // Note: We're not calling refetchUser() to prevent form data from being overwritten
     },
     onError: (error: any) => {
       toast({
@@ -318,6 +336,7 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
 
   // Handle profile save
   const handleProfileSave = () => {
+    console.log('🔍 DEBUG: Saving profile data:', profileData);
     updateProfileMutation.mutate(profileData);
   };
 
