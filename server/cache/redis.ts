@@ -169,8 +169,9 @@ class RedisCache {
   }
 }
 
-// In-memory cache fallback
+// In-memory cache fallback - Singleton pattern
 class InMemoryCache {
+  private static instance: InMemoryCache;
   private cache = new Map<string, { value: any; expiry: number }>();
   private cleanupInterval: NodeJS.Timeout;
 
@@ -190,6 +191,13 @@ class InMemoryCache {
         // Cleaned expired cache entries
       }
     }, 2 * 60 * 1000);
+  }
+
+  static getInstance(): InMemoryCache {
+    if (!InMemoryCache.instance) {
+      InMemoryCache.instance = new InMemoryCache();
+    }
+    return InMemoryCache.instance;
   }
 
   get<T>(key: string): T | null {

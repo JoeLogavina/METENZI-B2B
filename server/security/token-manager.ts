@@ -22,13 +22,15 @@ export enum TokenType {
 
 // Token metadata structure
 export interface TokenMetadata {
+  tokenId: string;
   userId: string;
   type: TokenType;
-  scope: string[];
+  roles: string[];
   tenantId?: string;
   deviceId?: string;
   ipAddress?: string;
   userAgent?: string;
+  deviceFingerprint?: string;
   createdAt: number;
   expiresAt: number;
   lastUsed?: number;
@@ -133,13 +135,15 @@ export class EnhancedTokenManager {
       
       // Create token metadata
       const metadata: TokenMetadata = {
+        tokenId,
         userId,
         type,
-        scope,
+        roles: scope,
         tenantId: options.tenantId,
         deviceId: options.deviceId || this.generateDeviceFingerprint(options.userAgent, options.ipAddress),
         ipAddress: options.ipAddress,
         userAgent: options.userAgent,
+        deviceFingerprint: options.deviceId || this.generateDeviceFingerprint(options.userAgent, options.ipAddress),
         createdAt: now,
         expiresAt,
         permissions: options.permissions || []
@@ -172,8 +176,17 @@ export class EnhancedTokenManager {
       const ttlSeconds = Math.floor(config.expirationMinutes * 60);
       
       await Promise.all([
-        // Store token metadata
-        redisCache.set(tokenKey, metadata, ttlSeconds),
+        // Store token metadata with debug logging
+        redisCache.set(tokenKey, metadata, ttlSeconds).then(() => {
+          if (process.env.NODE_ENV === 'test') {
+            logger.debug('Token metadata stored', { 
+              tokenKey, 
+              tokenId: tokenId.substring(0, 8) + '...', 
+              userId,
+              ttlSeconds 
+            });
+          }
+        }),
         // Add to user's token list
         this.addToUserTokenList(userId, tokenId, type, ttlSeconds),
         // Update token statistics
@@ -240,6 +253,12 @@ export class EnhancedTokenManager {
           audience: 'b2b-users'
         });
       } catch (jwtError) {
+        logger.debug('Token validation failed: JWT signature invalid', {
+          tokenId: tokenId.substring(0, 8) + '...',
+          error: jwtError instanceof Error ? jwtError.message : 'Unknown JWT error',
+          environment: process.env.NODE_ENV,
+          category: 'security'
+        });
         return { isValid: false, error: 'Token signature invalid' };
       }
 
@@ -248,6 +267,15 @@ export class EnhancedTokenManager {
       const metadata = await redisCache.get<TokenMetadata>(tokenKey);
 
       if (!metadata) {
+        // Try to check if key exists in Redis for debugging
+        const keyExists = await redisCache.exists(tokenKey);
+        logger.debug('Token validation failed: metadata not found', {
+          tokenId: tokenId.substring(0, 8) + '...',
+          tokenKey,
+          keyExists,
+          environment: process.env.NODE_ENV,
+          category: 'security'
+        });
         return { isValid: false, error: 'Token metadata not found' };
       }
 
