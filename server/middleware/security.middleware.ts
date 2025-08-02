@@ -29,8 +29,8 @@ export const loginRateLimit = rateLimit({
   legacyHeaders: false,
   // Skip successful requests
   skipSuccessfulRequests: true,
-  // Use standard IP-based key generation (IPv6 compatible)
-  keyGenerator: rateLimit.ipKeyGenerator,
+  // Use default IP-based key generation (IPv6 compatible)
+  keyGenerator: (req) => req.ip || req.socket.remoteAddress || 'unknown',
 });
 
 // Rate limiting for API endpoints
