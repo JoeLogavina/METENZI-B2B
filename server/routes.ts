@@ -854,7 +854,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     productsCacheMiddleware,
     async (req: any, res) => {
     try {
-      const { region, platform, category, search, priceMin, priceMax } = req.query;
+      const { region, platform, category, categoryId, search, priceMin, priceMax, stockLevel, availability, sortBy, sortOrder, sku } = req.query;
       const currency = req.tenant.currency;
       const userId = req.user.id;
       const userRole = req.user.role;
@@ -862,10 +862,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const filters = {
         region: region as string,
         platform: platform as string,
-        category: category as string,
+        category: (category || categoryId) as string, // Support both category and categoryId
         search: search as string,
-        priceMin: priceMin ? parseFloat(priceMax as string) : undefined,
+        sku: sku as string,
+        priceMin: priceMin ? parseFloat(priceMin as string) : undefined,
         priceMax: priceMax ? parseFloat(priceMax as string) : undefined,
+        stockLevel: stockLevel as string,
+        availability: availability as string,
+        sortBy: sortBy as string,
+        sortOrder: sortOrder as string,
         currency: currency // Add currency filter
       };
 
@@ -877,6 +882,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Filter by search and other criteria if provided
         products = userPricing.filter((product: any) => {
+          // Search filter
           if (filters.search) {
             const searchLower = filters.search.toLowerCase();
             if (!product.name.toLowerCase().includes(searchLower) && 
@@ -884,14 +890,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
               return false;
             }
           }
-          if (filters.region && product.region !== filters.region) return false;
-          if (filters.platform && product.platform !== filters.platform) return false;
+          
+          // SKU filter
+          if (filters.sku) {
+            const skuLower = filters.sku.toLowerCase();
+            if (!product.sku.toLowerCase().includes(skuLower)) {
+              return false;
+            }
+          }
+          
+          // Basic filters
+          if (filters.region && filters.region !== 'all' && product.region !== filters.region) return false;
+          if (filters.platform && filters.platform !== 'all' && product.platform !== filters.platform) return false;
           if (filters.category && product.categoryId !== filters.category) return false;
+          
+          // Price filters
+          if (filters.priceMin !== undefined) {
+            const productPrice = currency === 'KM' ? (product.priceKm || product.price) : product.price;
+            if (productPrice < filters.priceMin) return false;
+          }
+          if (filters.priceMax !== undefined) {
+            const productPrice = currency === 'KM' ? (product.priceKm || product.price) : product.price;
+            if (productPrice > filters.priceMax) return false;
+          }
+          
+          // Stock level filter
+          if (filters.stockLevel && filters.stockLevel !== 'all') {
+            const stock = product.stock || 0;
+            switch (filters.stockLevel) {
+              case 'in-stock':
+                if (stock <= 0) return false;
+                break;
+              case 'low-stock':
+                if (stock > 10) return false;
+                break;
+              case 'out-of-stock':
+                if (stock > 0) return false;
+                break;
+            }
+          }
+          
           return true;
         });
       } else {
         // For admin users, get all active products
         products = await productService.getActiveProducts(filters);
+      }
+      
+      // Apply sorting if specified
+      if (filters.sortBy && filters.sortBy !== 'default') {
+        products.sort((a: any, b: any) => {
+          let aValue, bValue;
+          
+          switch (filters.sortBy) {
+            case 'name':
+              aValue = a.name.toLowerCase();
+              bValue = b.name.toLowerCase();
+              break;
+            case 'price':
+              aValue = currency === 'KM' ? (a.priceKm || a.price) : a.price;
+              bValue = currency === 'KM' ? (b.priceKm || b.price) : b.price;
+              break;
+            case 'dateAdded':
+              aValue = new Date(a.createdAt);
+              bValue = new Date(b.createdAt);
+              break;
+            case 'stock':
+              aValue = a.stock || 0;
+              bValue = b.stock || 0;
+              break;
+            default:
+              return 0;
+          }
+          
+          if (aValue < bValue) return filters.sortOrder === 'desc' ? 1 : -1;
+          if (aValue > bValue) return filters.sortOrder === 'desc' ? -1 : 1;
+          return 0;
+        });
       }
       
       // Transform products for tenant-specific pricing
