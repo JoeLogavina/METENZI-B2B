@@ -88,10 +88,7 @@ export class RateLimitConfig {
 export class CSRFConfig {
   static createCSRFProtection() {
     return csrf({
-      cookie: {
-        ...SecurityConfig.getCookieSettings(),
-        key: '_csrf',
-      },
+      cookie: false, // Use session store instead of cookies to avoid conflicts
       ignoreMethods: ['GET', 'HEAD', 'OPTIONS'],
       value: (req) => {
         // Check multiple sources for CSRF token

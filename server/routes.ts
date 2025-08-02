@@ -126,11 +126,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Rate limiting disabled for simplicity
 
-  // Setup authentication
+  // Setup authentication first
   setupAuth(app);
 
-  // Setup CSRF protection (after authentication)
-  SecurityFramework.setupCSRFProtection(app);
+  // Simple CSRF protection for development (real implementation for production)
+  app.get('/api/csrf-token', (req, res) => {
+    const token = SecurityConfig.isDevelopment() 
+      ? `dev-csrf-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      : require('crypto').randomBytes(32).toString('hex');
+    
+    // Store token in session for validation
+    if (req.session) {
+      (req.session as any).csrfToken = token;
+    }
+    
+    res.json({ 
+      csrfToken: token,
+      expires: Date.now() + (24 * 60 * 60 * 1000)
+    });
+  });
+
+  // CSRF validation middleware for state-changing operations
+  const validateCSRF = (req: any, res: any, next: any) => {
+    if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+      return next();
+    }
+
+    const token = req.body._csrf || 
+                  req.query._csrf || 
+                  req.headers['x-csrf-token'] || 
+                  req.headers['x-xsrf-token'];
+
+    const sessionToken = req.session?.csrfToken;
+
+    if (!token || !sessionToken || token !== sessionToken) {
+      return res.status(403).json({
+        error: 'CSRF_TOKEN_INVALID',
+        message: 'Invalid or missing CSRF token'
+      });
+    }
+
+    next();
+  };
+
+  // Apply CSRF validation to API routes (except login)
+  app.use('/api', (req: any, res: any, next: any) => {
+    if (req.path === '/login' || req.path === '/admin/login' || req.path === '/csrf-token') {
+      return next();
+    }
+    return validateCSRF(req, res, next);
+  });
   
   // Use the admin router with additional security
   app.use('/api/admin', SecurityFramework.getSensitiveOperationProtection(), adminRouter);
