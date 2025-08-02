@@ -56,7 +56,7 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
   const [searchTerm, setSearchTerm] = useState('');
 
   // Fetch user data
-  const { data: userData, isLoading: userLoading } = useQuery({
+  const { data: userData, isLoading: userLoading, error: userError, refetch: refetchUser } = useQuery({
     queryKey: [`/api/admin/users/${userId}`],
     enabled: !!userId,
   });

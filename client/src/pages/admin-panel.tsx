@@ -52,6 +52,16 @@ export default function AdminPanel() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
+
+  // Helper function to format currency based on user's tenant
+  const formatCurrency = (amount: string | number, userTenantId?: string) => {
+    const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+    if (userTenantId === 'km') {
+      return `${numAmount.toFixed(2)} KM`;
+    } else {
+      return `€${numAmount.toFixed(2)}`;
+    }
+  };
   
   // Check if we're on the edit product page
   const urlParams = new URLSearchParams(window.location.search);
@@ -543,10 +553,10 @@ export default function AdminPanel() {
                                   {userData.role === 'b2b_user' && userWallet ? (
                                     <div className="text-sm">
                                       <div className="text-[#6E6F71] font-medium">
-                                        €{userWallet.balance.totalAvailable}
+                                        {formatCurrency(userWallet.balance.totalAvailable, userData.tenantId)}
                                       </div>
                                       <div className="text-xs text-gray-500">
-                                        Deposits: €{userWallet.balance.depositBalance} | Credit: €{userWallet.balance.availableCredit}
+                                        Deposits: {formatCurrency(userWallet.balance.depositBalance, userData.tenantId)} | Credit: {formatCurrency(userWallet.balance.availableCredit, userData.tenantId)}
                                       </div>
                                     </div>
                                   ) : userData.role === 'b2b_user' ? (
