@@ -24,12 +24,7 @@ import type { Currency } from './middleware/tenant.middleware';
 import { tenantAuthMiddleware } from './middleware/tenant-auth.middleware';
 import express from "express";
 import path from "path";
-import { 
-  apiRateLimit, 
-  adminRateLimit, 
-  protectSensitiveOperation,
-  validateSessionSecurity
-} from "./middleware/security-simple.middleware";
+import { SecurityFramework } from "./middleware/security-framework.middleware";
 
 // Authentication middleware
 const isAuthenticated = (req: any, res: any, next: any) => {
@@ -43,8 +38,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Add tenant resolution middleware first
   app.use(tenantResolutionMiddleware);
   
-  // Basic security middleware (simplified for now)
-  app.use(apiRateLimit);
+  // Apply comprehensive security framework
+  SecurityFramework.applySecurityMiddleware(app);
 
   // Health check endpoints (before auth middleware)
   app.get('/health', async (req, res) => {
@@ -134,14 +129,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication
   setupAuth(app);
 
-  // Simple CSRF token endpoint (without middleware for now)
-  app.get('/api/csrf-token', (req, res) => {
-    // Return a simple token for now
-    res.json({ csrfToken: 'dev-token-' + Date.now() });
-  });
+  // Setup CSRF protection (after authentication)
+  SecurityFramework.setupCSRFProtection(app);
   
-  // Use the admin router with additional rate limiting
-  app.use('/api/admin', adminRateLimit, protectSensitiveOperation, adminRouter);
+  // Use the admin router with additional security
+  app.use('/api/admin', SecurityFramework.getSensitiveOperationProtection(), adminRouter);
 
   // REMOVED: Duplicate products route - Using tenant-aware version below
 

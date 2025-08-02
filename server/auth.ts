@@ -7,7 +7,7 @@ import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import connectPg from "connect-pg-simple";
-import { loginRateLimit } from "./middleware/security-simple.middleware";
+import { RateLimitConfig } from "./middleware/security-framework.middleware";
 
 declare global {
   namespace Express {
@@ -136,12 +136,12 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", 
-    loginRateLimit,
     passport.authenticate("local"), 
     (req, res) => {
       // Store user agent for session security
       if (req.session) {
         (req.session as any).userAgent = req.get('User-Agent');
+        (req.session as any).createdAt = Date.now();
       }
       res.status(200).json(req.user);
     }

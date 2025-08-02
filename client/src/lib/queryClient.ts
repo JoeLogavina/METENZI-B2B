@@ -14,6 +14,12 @@ const fetchCsrfToken = async (): Promise<string | null> => {
     if (response.ok) {
       const data = await response.json();
       csrfToken = data.csrfToken;
+      
+      // Log token refresh for debugging (remove in production)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🛡️ CSRF token refreshed:', data.expires ? new Date(data.expires).toLocaleTimeString() : 'no expiry');
+      }
+      
       return csrfToken;
     }
   } catch (error) {
