@@ -437,6 +437,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const secureDownloadRoutes = await import('./routes/secure-download');
   app.use('/api/secure-download', secureDownloadRoutes.default);
   
+  // Register advanced authentication routes
+  const advancedAuthRoutes = await import('./routes/advanced-auth');
+  app.use('/api/auth', advancedAuthRoutes.default);
+  
   // Apply security test routes (for development and testing)
   if (process.env.NODE_ENV !== 'production') {
     app.use('/api/security', securityTestRoutes);

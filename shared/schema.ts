@@ -526,3 +526,7 @@ export type ProductWithKeys = Product & {
   usedKeys: number;
   availableKeys: number;
 };
+
+// Export all schemas and types
+export * from './digital-key-schema';
+export * from './advanced-auth-schema';
