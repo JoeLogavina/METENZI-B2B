@@ -898,6 +898,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const searchLower = filters.search.toLowerCase();
             if (!product.name.toLowerCase().includes(searchLower) && 
                 !product.description.toLowerCase().includes(searchLower)) {
+              console.log(`Product ${product.name} filtered out: search term ${filters.search} not found`);
               return false;
             }
           }
@@ -906,16 +907,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (filters.sku) {
             const skuLower = filters.sku.toLowerCase();
             if (!product.sku.toLowerCase().includes(skuLower)) {
+              console.log(`Product ${product.name} filtered out: SKU ${product.sku} does not contain ${filters.sku}`);
               return false;
             }
           }
           
-          // Basic filters
-          if (filters.region && filters.region !== 'all' && product.region !== filters.region) {
+          // Basic filters (case-insensitive)
+          if (filters.region && filters.region !== 'all' && product.region.toLowerCase() !== filters.region.toLowerCase()) {
             console.log(`Product ${product.name} filtered out: region ${product.region} !== ${filters.region}`);
             return false;
           }
-          if (filters.platform && filters.platform !== 'all' && product.platform !== filters.platform) {
+          if (filters.platform && filters.platform !== 'all' && product.platform.toLowerCase() !== filters.platform.toLowerCase()) {
             console.log(`Product ${product.name} filtered out: platform ${product.platform} !== ${filters.platform}`);
             return false;
           }
@@ -946,16 +948,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Stock level filter
           if (filters.stockLevel && filters.stockLevel !== 'all') {
-            const stock = product.stock || 0;
+            const stock = product.stockCount || product.stock || 0;
             switch (filters.stockLevel) {
               case 'in-stock':
-                if (stock <= 0) return false;
+                if (stock <= 0) {
+                  console.log(`Product ${product.name} filtered out: out of stock (${stock})`);
+                  return false;
+                }
                 break;
               case 'low-stock':
-                if (stock > 10) return false;
+                if (stock > 10) {
+                  console.log(`Product ${product.name} filtered out: not low stock (${stock} > 10)`);
+                  return false;
+                }
                 break;
               case 'out-of-stock':
-                if (stock > 0) return false;
+                if (stock > 0) {
+                  console.log(`Product ${product.name} filtered out: in stock (${stock} > 0)`);
+                  return false;
+                }
                 break;
             }
           }
