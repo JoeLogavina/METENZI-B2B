@@ -62,6 +62,7 @@ const AdvancedProductFilters: React.FC<AdvancedProductFiltersProps> = ({
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
     new Set(['search', 'categories', 'price', 'availability'])
   );
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000]);
 
   // Fetch categories for the filter
@@ -117,6 +118,19 @@ const AdvancedProductFilters: React.FC<AdvancedProductFiltersProps> = ({
     });
   };
 
+  const toggleCategoryExpanded = (categoryId: string, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent category selection when clicking expand/collapse
+    setExpandedCategories(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(categoryId)) {
+        newSet.delete(categoryId);
+      } else {
+        newSet.add(categoryId);
+      }
+      return newSet;
+    });
+  };
+
   const handleFilterChange = (key: keyof FilterState, value: any) => {
     onFiltersChange({
       ...filters,
@@ -160,6 +174,7 @@ const AdvancedProductFilters: React.FC<AdvancedProductFiltersProps> = ({
   const renderCategoryOption = (category: Category & { children: (Category & { children: any[] })[] }, depth: number = 0) => {
     const hasChildren = category.children && category.children.length > 0;
     const isSelected = filters.categoryId === category.id;
+    const isExpanded = expandedCategories.has(category.id);
 
     return (
       <div key={category.id} className="w-full">
@@ -171,7 +186,16 @@ const AdvancedProductFilters: React.FC<AdvancedProductFiltersProps> = ({
           onClick={() => handleFilterChange('categoryId', isSelected ? '' : category.id)}
         >
           {hasChildren ? (
-            <ChevronRight className="h-3 w-3 text-gray-400" />
+            <div
+              onClick={(e) => toggleCategoryExpanded(category.id, e)}
+              className="cursor-pointer hover:bg-gray-200 rounded p-0.5"
+            >
+              {isExpanded ? (
+                <ChevronDown className="h-3 w-3 text-gray-600" />
+              ) : (
+                <ChevronRight className="h-3 w-3 text-gray-600" />
+              )}
+            </div>
           ) : (
             <div className="w-3" />
           )}
@@ -193,7 +217,7 @@ const AdvancedProductFilters: React.FC<AdvancedProductFiltersProps> = ({
           </Badge>
         </div>
 
-        {hasChildren && (
+        {hasChildren && isExpanded && (
           <div>
             {category.children.map(child => renderCategoryOption(child, depth + 1))}
           </div>
