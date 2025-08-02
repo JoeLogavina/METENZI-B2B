@@ -911,19 +911,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           
           // Basic filters
-          if (filters.region && filters.region !== 'all' && product.region !== filters.region) return false;
-          if (filters.platform && filters.platform !== 'all' && product.platform !== filters.platform) return false;
-          if (filters.category && product.categoryId !== filters.category) return false;
+          if (filters.region && filters.region !== 'all' && product.region !== filters.region) {
+            console.log(`Product ${product.name} filtered out: region ${product.region} !== ${filters.region}`);
+            return false;
+          }
+          if (filters.platform && filters.platform !== 'all' && product.platform !== filters.platform) {
+            console.log(`Product ${product.name} filtered out: platform ${product.platform} !== ${filters.platform}`);
+            return false;
+          }
+          if (filters.category && product.categoryId !== filters.category) {
+            console.log(`Product ${product.name} filtered out: categoryId ${product.categoryId} !== ${filters.category}`);
+            return false;
+          }
           
           // Price filters
           if (filters.priceMin !== undefined) {
-            const productPrice = currency === 'KM' ? (product.priceKm || product.price) : product.price;
-            console.log(`Price filter check - Product: ${product.name}, Price: ${productPrice}, Min: ${filters.priceMin}, Max: ${filters.priceMax}`);
-            if (productPrice < filters.priceMin) return false;
+            // Convert string prices to numbers and use tenant-appropriate currency
+            const priceToUse = req.tenant.id === 'km' ? (product.priceKm || product.price) : product.price;
+            const productPrice = parseFloat(priceToUse);
+            console.log(`Price filter check - Product: ${product.name}, Price: ${productPrice} (${req.tenant.id}), Min: ${filters.priceMin}, Max: ${filters.priceMax}`);
+            if (productPrice < filters.priceMin) {
+              console.log(`Product ${product.name} filtered out: price ${productPrice} < min ${filters.priceMin}`);
+              return false;
+            }
           }
           if (filters.priceMax !== undefined) {
-            const productPrice = currency === 'KM' ? (product.priceKm || product.price) : product.price;
-            if (productPrice > filters.priceMax) return false;
+            const priceToUse = req.tenant.id === 'km' ? (product.priceKm || product.price) : product.price;
+            const productPrice = parseFloat(priceToUse);
+            if (productPrice > filters.priceMax) {
+              console.log(`Product ${product.name} filtered out: price ${productPrice} > max ${filters.priceMax}`);
+              return false;
+            }
           }
           
           // Stock level filter
@@ -962,8 +980,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               bValue = b.name.toLowerCase();
               break;
             case 'price':
-              aValue = currency === 'KM' ? (a.priceKm || a.price) : a.price;
-              bValue = currency === 'KM' ? (b.priceKm || b.price) : b.price;
+              aValue = parseFloat(req.tenant.id === 'km' ? (a.priceKm || a.price) : a.price);
+              bValue = parseFloat(req.tenant.id === 'km' ? (b.priceKm || b.price) : b.price);
               break;
             case 'dateAdded':
               aValue = new Date(a.createdAt);
@@ -986,8 +1004,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Transform products for tenant-specific pricing
       const tenantProducts = products.map(product => ({
         ...product,
-        price: currency === 'KM' ? product.priceKm || product.price : product.price,
-        displayCurrency: currency
+        price: req.tenant.id === 'km' ? (product.priceKm || product.price) : product.price,
+        displayCurrency: req.tenant.currency
       }));
 
       res.setHeader('Content-Type', 'application/json');
