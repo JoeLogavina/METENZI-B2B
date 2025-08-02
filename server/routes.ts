@@ -855,6 +855,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     async (req: any, res) => {
     try {
       const { region, platform, category, categoryId, search, priceMin, priceMax, stockLevel, availability, sortBy, sortOrder, sku } = req.query;
+      
+      // DEBUG: Log raw query parameters
+      console.log('Raw query params:', { priceMin, priceMax, region, platform, category, categoryId });
       const currency = req.tenant.currency;
       const userId = req.user.id;
       const userRole = req.user.role;
@@ -865,8 +868,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         category: (category || categoryId) as string, // Support both category and categoryId
         search: search as string,
         sku: sku as string,
-        priceMin: priceMin ? parseFloat(priceMin as string) : undefined,
-        priceMax: priceMax ? parseFloat(priceMax as string) : undefined,
+        priceMin: (priceMin && priceMin !== 'undefined' && priceMin !== '') ? parseFloat(priceMin as string) : undefined,
+        priceMax: (priceMax && priceMax !== 'undefined' && priceMax !== '') ? parseFloat(priceMax as string) : undefined,
         stockLevel: stockLevel as string,
         availability: availability as string,
         sortBy: sortBy as string,
@@ -929,9 +932,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           
           // Price filters
-          const priceToUse = req.tenant.id === 'km' ? (product.priceKm || product.price) : product.price;
+          const priceToUse = req.tenant?.id === 'km' ? (product.priceKm || product.price) : product.price;
           const productPrice = parseFloat(priceToUse);
-          console.log(`Price check for ${product.name}: productPrice=${productPrice}, priceMin=${filters.priceMin}, priceMax=${filters.priceMax}, tenant=${req.tenant.id}`);
+          console.log(`Price check for ${product.name}: productPrice=${productPrice}, priceMin=${filters.priceMin}, priceMax=${filters.priceMax}, tenant=${req.tenant?.id}`);
           
           if (filters.priceMin !== undefined && filters.priceMin !== null) {
             console.log(`Checking priceMin: ${productPrice} >= ${filters.priceMin}?`);
