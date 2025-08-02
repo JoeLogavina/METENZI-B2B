@@ -99,12 +99,6 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
   useEffect(() => {
     if (userData && typeof userData === 'object') {
       const user = (userData as any)?.data || userData as any;
-      console.log('🔍 DEBUG: User data loaded:', { 
-        userId, 
-        tenantId: user.tenantId, 
-        userDataKeys: Object.keys(user),
-        fullUserData: user 
-      });
       setProfileData({
         firstName: user.firstName || '',
         lastName: user.lastName || '',
@@ -173,12 +167,9 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
   const formatCurrency = (amount: string | number, userTenantId?: string) => {
     const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
     const actualTenantId = userTenantId || ((userData as any)?.data?.tenantId || (userData as any)?.tenantId);
-    console.log('🔍 DEBUG: formatCurrency called:', { amount, userTenantId, actualTenantId, numAmount });
     if (actualTenantId === 'km') {
-      console.log('🔍 DEBUG: Using KM currency');
       return `${numAmount.toFixed(2)} KM`;
     } else {
-      console.log('🔍 DEBUG: Using EUR currency');
       return `€${numAmount.toFixed(2)}`;
     }
   };
@@ -495,7 +486,7 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
                     <Label htmlFor="firstName">First Name *</Label>
                     <Input
                       id="firstName"
-                      value={profileData.firstName}
+                      value={profileData.firstName || ((userData as any)?.data?.firstName || (userData as any)?.firstName || '')}
                       onChange={(e) => setProfileData(prev => ({ ...prev, firstName: e.target.value }))}
                       required
                     />
@@ -504,7 +495,7 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
                     <Label htmlFor="lastName">Last Name *</Label>
                     <Input
                       id="lastName"
-                      value={profileData.lastName}
+                      value={profileData.lastName || ((userData as any)?.data?.lastName || (userData as any)?.lastName || '')}
                       onChange={(e) => setProfileData(prev => ({ ...prev, lastName: e.target.value }))}
                       required
                     />
@@ -516,7 +507,7 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
                   <Input
                     id="email"
                     type="email"
-                    value={profileData.email}
+                    value={profileData.email || ((userData as any)?.data?.email || (userData as any)?.email || '')}
                     onChange={(e) => setProfileData(prev => ({ ...prev, email: e.target.value }))}
                     required
                   />
@@ -526,7 +517,7 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
                   <Label htmlFor="companyName">Company Name *</Label>
                   <Input
                     id="companyName"
-                    value={profileData.companyName}
+                    value={profileData.companyName || ((userData as any)?.data?.companyName || (userData as any)?.companyName || '')}
                     onChange={(e) => setProfileData(prev => ({ ...prev, companyName: e.target.value }))}
                     required
                   />
@@ -536,7 +527,7 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
                   <Label htmlFor="contactPerson">Contact Person</Label>
                   <Input
                     id="contactPerson"
-                    value={profileData.contactPerson}
+                    value={profileData.contactPerson || ((userData as any)?.data?.contactPerson || (userData as any)?.contactPerson || '')}
                     onChange={(e) => setProfileData(prev => ({ ...prev, contactPerson: e.target.value }))}
                   />
                 </div>
@@ -545,7 +536,7 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
                   <Label htmlFor="companyDescription">A word about your company</Label>
                   <Textarea
                     id="companyDescription"
-                    value={profileData.companyDescription}
+                    value={profileData.companyDescription || ((userData as any)?.data?.companyDescription || (userData as any)?.companyDescription || '')}
                     onChange={(e) => setProfileData(prev => ({ ...prev, companyDescription: e.target.value }))}
                     rows={3}
                   />
@@ -556,7 +547,7 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
                     <Label htmlFor="phone">Phone *</Label>
                     <Input
                       id="phone"
-                      value={profileData.phone}
+                      value={profileData.phone || ((userData as any)?.data?.phone || (userData as any)?.phone || '')}
                       onChange={(e) => setProfileData(prev => ({ ...prev, phone: e.target.value }))}
                       required
                     />
@@ -565,7 +556,7 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
                     <Label htmlFor="country">Country *</Label>
                     <Input
                       id="country"
-                      value={profileData.country}
+                      value={profileData.country || ((userData as any)?.data?.country || (userData as any)?.country || '')}
                       onChange={(e) => setProfileData(prev => ({ ...prev, country: e.target.value }))}
                       required
                     />
@@ -577,7 +568,7 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
                     <Label htmlFor="city">City *</Label>
                     <Input
                       id="city"
-                      value={profileData.city}
+                      value={profileData.city || ((userData as any)?.data?.city || (userData as any)?.city || '')}
                       onChange={(e) => setProfileData(prev => ({ ...prev, city: e.target.value }))}
                       required
                     />
@@ -586,7 +577,7 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
                     <Label htmlFor="vatOrRegistrationNo">VAT or Registration No. *</Label>
                     <Input
                       id="vatOrRegistrationNo"
-                      value={profileData.vatOrRegistrationNo}
+                      value={profileData.vatOrRegistrationNo || ((userData as any)?.data?.vatOrRegistrationNo || (userData as any)?.vatOrRegistrationNo || '')}
                       onChange={(e) => setProfileData(prev => ({ ...prev, vatOrRegistrationNo: e.target.value }))}
                       required
                     />
@@ -597,7 +588,7 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
                   <Label htmlFor="address">Address *</Label>
                   <Textarea
                     id="address"
-                    value={profileData.address}
+                    value={profileData.address || ((userData as any)?.data?.address || (userData as any)?.address || '')}
                     onChange={(e) => setProfileData(prev => ({ ...prev, address: e.target.value }))}
                     rows={2}
                     required
@@ -656,11 +647,6 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
                       <div>
                         <Label htmlFor="depositAmount">Amount ({(() => {
                           const tenantId = (userData as any)?.data?.tenantId || (userData as any)?.tenantId;
-                          console.log('🔍 DEBUG: Deposit amount label rendering:', { 
-                            userDataExists: !!userData, 
-                            tenantId, 
-                            fullUserData: userData 
-                          });
                           return tenantId === 'km' ? 'KM' : 'EUR';
                         })()})</Label>
                         <Input
@@ -697,11 +683,6 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
                       <div>
                         <Label htmlFor="creditLimit">Credit Limit ({(() => {
                           const tenantId = (userData as any)?.data?.tenantId || (userData as any)?.tenantId;
-                          console.log('🔍 DEBUG: Credit limit label rendering:', { 
-                            userDataExists: !!userData, 
-                            tenantId, 
-                            fullUserData: userData 
-                          });
                           return tenantId === 'km' ? 'KM' : 'EUR';
                         })()})</Label>
                         <Input
