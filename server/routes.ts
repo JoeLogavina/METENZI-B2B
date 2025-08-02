@@ -879,7 +879,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         query: req.query,
         filters,
         userRole,
-        currency
+        currency,
+        priceMinType: typeof filters.priceMin,
+        priceMaxType: typeof filters.priceMax
       });
 
       // For B2B users, get only products visible to them via user_product_pricing
@@ -927,19 +929,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           
           // Price filters
-          if (filters.priceMin !== undefined) {
-            // Convert string prices to numbers and use tenant-appropriate currency
-            const priceToUse = req.tenant.id === 'km' ? (product.priceKm || product.price) : product.price;
-            const productPrice = parseFloat(priceToUse);
-            console.log(`Price filter check - Product: ${product.name}, Price: ${productPrice} (${req.tenant.id}), Min: ${filters.priceMin}, Max: ${filters.priceMax}`);
+          const priceToUse = req.tenant.id === 'km' ? (product.priceKm || product.price) : product.price;
+          const productPrice = parseFloat(priceToUse);
+          console.log(`Price check for ${product.name}: productPrice=${productPrice}, priceMin=${filters.priceMin}, priceMax=${filters.priceMax}, tenant=${req.tenant.id}`);
+          
+          if (filters.priceMin !== undefined && filters.priceMin !== null) {
+            console.log(`Checking priceMin: ${productPrice} >= ${filters.priceMin}?`);
             if (productPrice < filters.priceMin) {
               console.log(`Product ${product.name} filtered out: price ${productPrice} < min ${filters.priceMin}`);
               return false;
             }
           }
-          if (filters.priceMax !== undefined) {
-            const priceToUse = req.tenant.id === 'km' ? (product.priceKm || product.price) : product.price;
-            const productPrice = parseFloat(priceToUse);
+          if (filters.priceMax !== undefined && filters.priceMax !== null) {
+            console.log(`Checking priceMax: ${productPrice} <= ${filters.priceMax}?`);
             if (productPrice > filters.priceMax) {
               console.log(`Product ${product.name} filtered out: price ${productPrice} > max ${filters.priceMax}`);
               return false;
