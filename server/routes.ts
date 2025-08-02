@@ -9,6 +9,7 @@ import { db } from "./db";
 import { sql, eq, and } from "drizzle-orm";
 import { adminRouter } from "./routes/admin";
 import { errorHandler } from "./middleware/auth.middleware";
+import { securityTestRoutes } from "./routes/security-test.routes";
 import { 
   productsCacheMiddleware, 
   walletCacheMiddleware, 
@@ -69,6 +70,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: 'unhealthy',
         timestamp: new Date().toISOString(),
         error: (error as Error).message
+      });
+    }
+  });
+
+  // Enhanced Key Management System Test - Phase 1 Implementation  
+  app.get('/api/security-test', async (req, res) => {
+    try {
+      const { EnterpriseKeyManager, EnhancedDigitalKeyEncryption } = await import('./security/enhanced-key-manager');
+      
+      // Test 1: Key validation
+      const validation = EnterpriseKeyManager.validateKeyConfiguration();
+      
+      // Test 2: Performance test  
+      const startTime = Date.now();
+      const testKey = EnterpriseKeyManager.getEncryptionKey('LICENSE');
+      const keyDerivationTime = Date.now() - startTime;
+      
+      // Test 3: Encryption/Decryption integrity
+      const licenseData = EnhancedDigitalKeyEncryption.generateSecureLicenseKey('PHASE1_TEST', 'SYSTEM_USER');
+      const decrypted = EnhancedDigitalKeyEncryption.decryptLicenseKey(licenseData.encryptedKey);
+      const integrityTest = decrypted === licenseData.plainKey;
+      
+      const allTestsPassed = validation.isValid && keyDerivationTime < 500 && integrityTest;
+      
+      res.json({
+        success: allTestsPassed,
+        phase: 'PHASE_1_ENHANCED_KEY_MANAGEMENT',
+        overallResult: allTestsPassed ? 'ALL_TESTS_PASSED' : 'SOME_TESTS_FAILED',
+        tests: [
+          {
+            name: 'Key Configuration Validation',
+            passed: validation.isValid,
+            details: validation
+          },
+          {
+            name: 'Key Derivation Performance',
+            passed: keyDerivationTime < 500,
+            details: { derivationTime: `${keyDerivationTime}ms`, fingerprint: EnterpriseKeyManager.getKeyFingerprint(testKey) }
+          },
+          {
+            name: 'Encryption/Decryption Integrity',
+            passed: integrityTest,
+            details: { keyFingerprint: licenseData.keyFingerprint, keyVersion: licenseData.keyVersion }
+          }
+        ],
+        cacheStats: EnterpriseKeyManager.getCacheStats(),
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        phase: 'PHASE_1_ENHANCED_KEY_MANAGEMENT',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  // Key rotation test endpoint
+  app.post('/api/security-test-rotation', async (req, res) => {
+    try {
+      const { keyType = 'LICENSE', initiatedBy = 'SYSTEM_TEST' } = req.body;
+      const { EnterpriseKeyManager } = await import('./security/enhanced-key-manager');
+      
+      if (!['LICENSE', 'VAULT', 'JWT', 'SESSION'].includes(keyType)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid key type. Must be one of: LICENSE, VAULT, JWT, SESSION'
+        });
+      }
+
+      const rotationResult = await EnterpriseKeyManager.rotateKeys(keyType as any, initiatedBy);
+      
+      res.json({
+        success: rotationResult.success,
+        phase: 'PHASE_1_KEY_ROTATION',
+        rotation: rotationResult,
+        cacheStats: EnterpriseKeyManager.getCacheStats(),
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        phase: 'PHASE_1_KEY_ROTATION',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
       });
     }
   });
@@ -192,6 +279,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Use the admin router with additional security
   app.use('/api/admin', adminRouter);
+  
+  // Apply security test routes (for development and testing)
+  if (process.env.NODE_ENV !== 'production') {
+    app.use('/api/security', securityTestRoutes);
+  }
 
   // REMOVED: Duplicate products route - Using tenant-aware version below
 
