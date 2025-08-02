@@ -155,7 +155,10 @@ export async function timeOperation<T>(
     performanceService.endTiming(timingId, userId, metadata);
     return result;
   } catch (error) {
-    performanceService.endTiming(timingId, userId, { ...metadata, error: error.message });
+    performanceService.endTiming(timingId, userId, { 
+      ...metadata, 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
     throw error;
   }
 }

@@ -3,6 +3,7 @@ import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import csrf from 'csurf';
 import crypto from 'crypto';
+import { logger } from '../lib/logger';
 
 // Centralized Security Configuration
 export class SecurityConfig {
@@ -20,7 +21,7 @@ export class SecurityConfig {
       if (this.isProduction()) {
         throw new Error(`Critical: ${keyName} not configured in production`);
       }
-      console.warn(`⚠️ Using development fallback for ${keyName}`);
+      // Using development fallback for security key
       return `dev-${keyName.toLowerCase()}-${crypto.randomBytes(8).toString('hex')}`;
     }
     return key;
@@ -173,13 +174,14 @@ export class SessionSecurity {
         
         // Check for session hijacking indicators
         if (sessionUserAgent && sessionUserAgent !== currentUserAgent) {
-          console.warn('🚨 Potential session hijacking detected:', {
+          // Potential session hijacking detected - logging via structured logger
+          logger.warn('Potential session hijacking detected', {
+            category: 'security',
             userId: (req.user as any).id,
             username: (req.user as any).username,
             ip: req.ip,
             sessionUserAgent,
-            currentUserAgent,
-            timestamp: new Date().toISOString()
+            currentUserAgent
           });
           
           // Destroy suspicious session
@@ -222,24 +224,24 @@ export class SessionSecurity {
       
       // Log suspicious activity
       if (!userAgent) {
-        console.warn('🚨 Suspicious request without User-Agent:', {
+        logger.warn('Suspicious request without User-Agent', {
+          category: 'security',
           ip: req.ip,
           path: req.path,
           method: req.method,
-          user: (req.user as any)?.username,
-          timestamp: new Date().toISOString()
+          user: (req.user as any)?.username
         });
       }
       
       // Check for CSRF attempts (additional to middleware)
       if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
         if (!referer && !origin) {
-          console.warn('🚨 State-changing request without referer/origin:', {
+          logger.warn('State-changing request without referer/origin', {
+            category: 'security',
             ip: req.ip,
             path: req.path,
             method: req.method,
-            user: (req.user as any)?.username,
-            timestamp: new Date().toISOString()
+            user: (req.user as any)?.username
           });
         }
       }

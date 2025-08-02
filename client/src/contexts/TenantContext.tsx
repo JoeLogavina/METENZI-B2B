@@ -26,7 +26,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     // Detect tenant from current URL path
     const path = window.location.pathname;
     
-    console.log('TenantProvider initial setup:', { path, userTenant: user?.tenantId });
+    // Initial tenant setup based on URL path
     
     if (path.startsWith('/admin')) {
       return {
@@ -56,7 +56,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   // Update tenant based on user's tenantId when user data becomes available
   useEffect(() => {
     if (user?.tenantId) {
-      console.log('Updating tenant based on user:', { userTenant: user.tenantId, currentPath: window.location.pathname });
+      // Update tenant context based on authenticated user
       
       const path = window.location.pathname;
       let newTenant: TenantContext;
@@ -84,7 +84,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         };
       }
       
-      console.log('Setting new tenant context:', newTenant);
+      // Update tenant context
       setTenant(newTenant);
     }
   }, [user?.tenantId]);
@@ -119,7 +119,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         };
       }
       
-      console.log('Route change detected, setting new tenant:', newTenant);
+      // Route change detected, updating tenant
       setTenant(newTenant);
     };
 

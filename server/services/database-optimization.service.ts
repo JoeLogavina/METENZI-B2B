@@ -166,7 +166,7 @@ export class DatabaseOptimizationService {
       if ((error as any).message?.includes('already exists')) {
 
       } else {
-        console.error(`❌ Failed to create index ${indexName}:`, error);
+        // Failed to create database index
         throw error;
       }
     }
@@ -188,7 +188,7 @@ export class DatabaseOptimizationService {
         try {
           await db.execute(sql.raw(`ANALYZE ${table}`));
         } catch (error) {
-          console.warn(`⚠️ Failed to update statistics for ${table}:`, error);
+          // Failed to update table statistics
         }
       }
       
@@ -216,7 +216,7 @@ export class DatabaseOptimizationService {
       return result.rows as any[];
     } catch (error) {
       // pg_stat_statements might not be available
-      console.warn('pg_stat_statements not available:', error);
+      // pg_stat_statements extension not available
       return [];
     }
   }

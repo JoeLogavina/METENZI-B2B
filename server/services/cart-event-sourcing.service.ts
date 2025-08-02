@@ -60,7 +60,7 @@ export class CartEventSourcingService {
       await this.updateMaterializedView(userId, productId, quantity, 'ADD');
 
       const totalTime = Date.now() - startTime;
-      console.log(`⚡ ULTRA-FAST cart add completed in ${totalTime}ms`);
+      // Cart add operation completed
 
       // Return optimized cart item structure
       return {
@@ -109,7 +109,7 @@ export class CartEventSourcingService {
         .orderBy(desc(cartView.lastUpdated));
 
       const totalTime = Date.now() - startTime;
-      console.log(`🚀 Event sourcing cart read completed in ${totalTime}ms`);
+      // Cart read operation completed
 
       return items.map(item => ({
         id: item.id,
@@ -146,6 +146,7 @@ export class CartEventSourcingService {
 
     await Promise.all([
       this.appendEvent({
+        tenantId: 'default', // TODO: Get from user context
         userId,
         eventType: 'ITEM_UPDATED',
         productId,
@@ -164,6 +165,7 @@ export class CartEventSourcingService {
     const sequenceNumber = await this.getNextSequenceNumber(userId);
     
     await this.appendEvent({
+      tenantId: 'default', // TODO: Get from user context
       userId,
       eventType: 'ITEM_REMOVED',
       productId,
@@ -186,6 +188,7 @@ export class CartEventSourcingService {
     const itemCount = items.length;
 
     await this.appendEvent({
+      tenantId: 'default', // TODO: Get from user context
       userId,
       eventType: 'CART_CLEARED',
       productId: null,
@@ -307,7 +310,7 @@ export class CartEventSourcingService {
    * Run this periodically or on-demand for data integrity
    */
   async rebuildCartFromEvents(userId: string): Promise<void> {
-    console.log('🔄 Rebuilding cart view from events for user:', userId);
+    // Rebuilding cart view from events
     
     // Clear current view
     await this.clearMaterializedView(userId);
@@ -347,7 +350,7 @@ export class CartEventSourcingService {
     }
     
     // Rebuild materialized view
-    for (const [productId, quantity] of cartState.entries()) {
+    for (const [productId, quantity] of Array.from(cartState.entries())) {
       if (quantity > 0) {
         await db
           .insert(cartView)
@@ -360,7 +363,7 @@ export class CartEventSourcingService {
       }
     }
     
-    console.log('✅ Cart view rebuilt successfully');
+    // Cart view rebuilt successfully
   }
 }
 

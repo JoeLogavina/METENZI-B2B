@@ -12,7 +12,6 @@ class RedisCache {
       maxRetriesPerRequest: 0,
       lazyConnect: true,
       connectionName: 'b2b-portal',
-      retryDelayOnFailover: 100,
       connectTimeout: 2000,
       commandTimeout: 1000,
       enableAutoPipelining: false,
@@ -25,7 +24,7 @@ class RedisCache {
     let hasLoggedError = false;
     this.client.on('error', (error) => {
       if (!hasLoggedError) {
-        console.warn('⚠️ Redis unavailable, using in-memory cache fallback');
+        // Redis unavailable, using in-memory cache fallback
         hasLoggedError = true;
       }
       this.isConnected = false;
@@ -37,7 +36,7 @@ class RedisCache {
     
     // Try to connect once and fallback silently if it fails
     this.client.connect().catch(() => {
-      console.log('🔄 Redis unavailable, using in-memory cache');
+      // Redis unavailable, using in-memory cache
       this.isConnected = false;
     });
   }
@@ -51,7 +50,7 @@ class RedisCache {
       const value = await this.client.get(key);
       return value ? JSON.parse(value) : null;
     } catch (error) {
-      console.warn('Redis GET error, using in-memory:', error.message);
+      // Redis GET error, using in-memory fallback
       return inMemoryCache.get<T>(key);
     }
   }
@@ -65,7 +64,7 @@ class RedisCache {
       await this.client.setex(key, ttlSeconds, JSON.stringify(value));
       return true;
     } catch (error) {
-      console.warn('Redis SET error, using in-memory:', error.message);
+      // Redis SET error, using in-memory fallback
       return inMemoryCache.set(key, value, ttlSeconds);
     }
   }
@@ -77,7 +76,7 @@ class RedisCache {
       await this.client.del(key);
       return true;
     } catch (error) {
-      console.warn('Redis DEL error:', error);
+      // Redis DEL error
       return false;
     }
   }
@@ -89,7 +88,7 @@ class RedisCache {
       const result = await this.client.exists(key);
       return result === 1;
     } catch (error) {
-      console.warn('Redis EXISTS error:', error);
+      // Redis EXISTS error
       return false;
     }
   }
@@ -103,7 +102,7 @@ class RedisCache {
         await this.client.del(...keys);
       }
     } catch (error) {
-      console.warn('Redis pattern invalidation error:', error);
+      // Redis pattern invalidation error
     }
   }
 
@@ -132,7 +131,7 @@ class RedisCache {
     try {
       await this.client.disconnect();
     } catch (error) {
-      console.warn('Error disconnecting Redis:', error);
+      // Error disconnecting Redis
     }
   }
 }
@@ -143,19 +142,19 @@ class InMemoryCache {
   private cleanupInterval: NodeJS.Timeout;
 
   constructor() {
-    console.log('🔄 In-memory cache initialized as Redis fallback');
+    // In-memory cache initialized as Redis fallback
     // Clean up expired entries every 2 minutes
     this.cleanupInterval = setInterval(() => {
       const now = Date.now();
       let cleaned = 0;
-      for (const [key, entry] of this.cache.entries()) {
+      for (const [key, entry] of Array.from(this.cache.entries())) {
         if (entry.expiry < now) {
           this.cache.delete(key);
           cleaned++;
         }
       }
       if (cleaned > 0) {
-        console.log(`🧹 Cleaned ${cleaned} expired cache entries`);
+        // Cleaned expired cache entries
       }
     }, 2 * 60 * 1000);
   }

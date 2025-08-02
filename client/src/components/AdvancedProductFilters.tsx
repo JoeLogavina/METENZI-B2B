@@ -56,9 +56,7 @@ const AdvancedProductFilters: React.FC<AdvancedProductFiltersProps> = ({
   onFiltersChange,
   productCount = 0
 }) => {
-  console.log('🔥🔥🔥 ADVANCED PRODUCT FILTERS IS DEFINITELY RENDERING! 🔥🔥🔥');
-  console.log('Filters received:', filters);
-  console.log('Product count:', productCount);
+  // Advanced product filters component rendering
   
   const { formatPrice } = useTenant();
   const [expandedSections, setExpandedSections] = useState<Set<string>>(

@@ -8,6 +8,7 @@ import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import connectPg from "connect-pg-simple";
 import { RateLimitConfig } from "./middleware/security-framework.middleware";
+import { logger, logAuth } from "./lib/logger";
 
 declare global {
   namespace Express {
@@ -71,25 +72,29 @@ export function setupAuth(app: Express) {
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
-        console.log(`Login attempt for username: ${username}`);
         const user = await storage.getUserByUsername(username);
 
         if (!user) {
-          console.log(`User not found: ${username}`);
+          logAuth.loginFailure(username, 'unknown', 'User not found');
           return done(null, false);
         }
 
-        console.log(`User found: ${user.username}, stored password: ${user.password}`);
         const passwordMatch = await comparePasswords(password, user.password);
-        console.log(`Password match result: ${passwordMatch}`);
 
         if (!passwordMatch) {
+          logAuth.loginFailure(username, 'unknown', 'Invalid password');
           return done(null, false);
         } else {
+          logAuth.loginSuccess(user.id, user.username, 'unknown');
           return done(null, user);
         }
       } catch (error) {
-        console.error('Login error:', error);
+        logger.error('Authentication error', {
+          category: 'auth',
+          username,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined
+        });
         return done(error);
       }
     }),
@@ -98,17 +103,28 @@ export function setupAuth(app: Express) {
   passport.serializeUser((user, done) => done(null, user.id));
   passport.deserializeUser(async (id: string, done) => {
   try {
-    console.log(`Deserializing user with ID: ${id}`);
     const user = await storage.getUser(id);
     if (user) {
-      console.log(`User deserialized successfully: ${user.username}`);
+      logger.debug('User deserialized successfully', {
+        category: 'auth',
+        userId: user.id,
+        username: user.username
+      });
       done(null, user);
     } else {
-      console.log(`User not found for ID: ${id}`);
+      logger.warn('User not found during deserialization', {
+        category: 'auth',
+        userId: id
+      });
       done(null, false);
     }
   } catch (error) {
-    console.error('Error deserializing user:', error);
+    logger.error('Error deserializing user', {
+      category: 'auth',
+      userId: id,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    });
     done(null, false);
   }
 });
@@ -130,7 +146,13 @@ export function setupAuth(app: Express) {
         res.status(201).json(user);
       });
     } catch (error) {
-      console.error("Registration error:", error);
+      logger.error('User registration failed', {
+        category: 'auth',
+        username: req.body?.username,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        ip: req.ip
+      });
       res.status(500).send("Registration failed");
     }
   });

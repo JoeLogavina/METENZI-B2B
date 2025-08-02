@@ -104,9 +104,7 @@ export function useOrdersPreload() {
         staleTime: 2 * 60 * 1000, // 2 minutes stale time
         gcTime: 15 * 60 * 1000, // 15 minutes cache retention
       }).then(() => {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('🗄️ Orders data preloaded aggressively');
-        }
+        // Orders data preloaded in development mode
       }).catch(() => {
         // Silent failure
       });

@@ -25,7 +25,7 @@ export function BundleStats() {
           JSON.stringify(prev) !== JSON.stringify(newInsights) ? newInsights : prev
         );
       } catch (error) {
-        console.warn('Bundle stats update error:', error);
+        // Bundle stats update error
       }
     }, 5000); // Longer interval to prevent issues
 
