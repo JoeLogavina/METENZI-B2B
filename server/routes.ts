@@ -874,11 +874,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         currency: currency // Add currency filter
       };
 
+      // DEBUG: Log filter values
+      console.log('Product filters received:', {
+        query: req.query,
+        filters,
+        userRole,
+        currency
+      });
+
       // For B2B users, get only products visible to them via user_product_pricing
       let products;
       if (userRole === 'b2b_user') {
         // Get user's visible products with custom pricing using storage method
         const userPricing = await storage.getUserVisibleProducts(userId);
+        
+        console.log('User visible products count:', userPricing.length);
+        console.log('Sample product for debugging:', userPricing[0]);
         
         // Filter by search and other criteria if provided
         products = userPricing.filter((product: any) => {
@@ -907,6 +918,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Price filters
           if (filters.priceMin !== undefined) {
             const productPrice = currency === 'KM' ? (product.priceKm || product.price) : product.price;
+            console.log(`Price filter check - Product: ${product.name}, Price: ${productPrice}, Min: ${filters.priceMin}, Max: ${filters.priceMax}`);
             if (productPrice < filters.priceMin) return false;
           }
           if (filters.priceMax !== undefined) {
@@ -932,6 +944,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           return true;
         });
+        
+        console.log('Filtered products count:', products.length);
       } else {
         // For admin users, get all active products
         products = await productService.getActiveProducts(filters);
