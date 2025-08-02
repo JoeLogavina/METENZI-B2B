@@ -82,10 +82,13 @@ export default function EditProduct() {
   });
 
   // Fetch license keys
-  const { data: existingLicenseKeys = [], refetch: refetchLicenseKeys } = useQuery({
+  const { data: licenseKeysResponse, refetch: refetchLicenseKeys } = useQuery({
     queryKey: [`/api/admin/license-keys/${productId}`],
     enabled: !!productId && isAuthenticated
   });
+
+  // Extract license keys from API response structure
+  const existingLicenseKeys = (licenseKeysResponse as any)?.data || [];
 
   // CRITICAL FIX: Force state updates whenever product data changes
   useEffect(() => {
@@ -694,31 +697,31 @@ XYZ12-ABC34-DEF56-GHI78-JKL90
               {/* Existing keys section */}
               <div>
                 <h3 className="text-md font-medium text-gray-700 uppercase tracking-[0.5px] mb-4">
-                  Existing License Keys ({(existingLicenseKeys as any[]).length})
+                  Existing License Keys ({existingLicenseKeys.length})
                 </h3>
-                {(existingLicenseKeys as any[]).length === 0 ? (
+                {existingLicenseKeys.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     <Key className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                     <p>No license keys added yet</p>
                   </div>
                 ) : (
                   <div className="space-y-2 max-h-96 overflow-y-auto">
-                    {(existingLicenseKeys as any[]).map((key: any) => (
+                    {existingLicenseKeys.map((key: any) => (
                       <div key={key.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                         <div className="flex items-center space-x-3">
                           <code className="text-sm font-mono bg-white px-2 py-1 rounded border">
-                            {key.keyValue}
+                            {key.keyValue || key.key_value}
                           </code>
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            key.isUsed 
+                            (key.isUsed || key.is_used)
                               ? 'bg-red-100 text-red-800' 
                               : 'bg-green-100 text-green-800'
                           }`}>
-                            {key.isUsed ? 'Used' : 'Available'}
+                            {(key.isUsed || key.is_used) ? 'Used' : 'Available'}
                           </span>
-                          {key.isUsed && key.usedAt && (
+                          {(key.isUsed || key.is_used) && (key.usedAt || key.used_at) && (
                             <span className="text-xs text-gray-500">
-                              Used {new Date(key.usedAt).toLocaleDateString()}
+                              Used {new Date(key.usedAt || key.used_at).toLocaleDateString()}
                             </span>
                           )}
                         </div>
@@ -726,11 +729,11 @@ XYZ12-ABC34-DEF56-GHI78-JKL90
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => navigator.clipboard.writeText(key.keyValue)}
+                            onClick={() => navigator.clipboard.writeText(key.keyValue || key.key_value)}
                           >
                             <Copy className="w-4 h-4" />
                           </Button>
-                          {!key.isUsed && (
+                          {!(key.isUsed || key.is_used) && (
                             <Button
                               size="sm"
                               variant="outline"
