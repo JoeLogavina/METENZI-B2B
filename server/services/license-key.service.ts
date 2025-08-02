@@ -2,6 +2,8 @@ import { db } from "../db";
 import { licenseKeys, products } from "@shared/schema";
 import { eq, and, count } from "drizzle-orm";
 import type { InsertLicenseKey, LicenseKey } from "@shared/schema";
+import { EnhancedDigitalKeyEncryption, EnterpriseKeyManager } from '../security/enhanced-key-manager';
+import { logger } from '../lib/logger';
 
 class ServiceError extends Error {
   constructor(message: string) {
@@ -16,6 +18,10 @@ export interface ILicenseKeyService {
   removeKey(keyId: string): Promise<void>;
   getKeyStats(productId: string, tenantId?: string): Promise<{ total: number, used: number, available: number }>;
   validateKeys(keyValues: string[]): string[];
+  // Enhanced Key Management integration
+  encryptLicenseKey(licenseKey: string, userId?: string): { encryptedKey: string, keyFingerprint: string, keyVersion: string };
+  decryptLicenseKey(encryptedKey: string): string;
+  generateSecureLicenseKey(productId: string, userId: string): { plainKey: string, encryptedKey: string, keyFingerprint: string, keyVersion: string };
 }
 
 export class LicenseKeyServiceImpl implements ILicenseKeyService {
@@ -200,6 +206,114 @@ export class LicenseKeyServiceImpl implements ILicenseKeyService {
     
     console.log('DEBUG: Total valid keys:', validKeys.length);
     return validKeys;
+  }
+
+  // Enhanced Key Management System Integration
+  encryptLicenseKey(licenseKey: string, userId: string = 'SYSTEM'): { encryptedKey: string, keyFingerprint: string, keyVersion: string } {
+    try {
+      logger.info('Encrypting license key with Enhanced Key Management', { 
+        keyLength: licenseKey.length,
+        userId,
+        environment: process.env.NODE_ENV 
+      });
+
+      // Use the direct encryption method, not the key generation method
+      const encryptedKey = EnhancedDigitalKeyEncryption.encryptLicenseKey(licenseKey);
+      const encryptionKey = EnterpriseKeyManager.getEncryptionKey('LICENSE');
+      const keyFingerprint = EnterpriseKeyManager.getKeyFingerprint(encryptionKey);
+      
+      const result = {
+        encryptedKey,
+        keyFingerprint,
+        keyVersion: 'v1'
+      };
+      
+      logger.info('License key encrypted successfully', { 
+        keyFingerprint: result.keyFingerprint,
+        keyVersion: result.keyVersion,
+        userId 
+      });
+
+      return {
+        encryptedKey: result.encryptedKey,
+        keyFingerprint: result.keyFingerprint,
+        keyVersion: result.keyVersion
+      };
+    } catch (error) {
+      logger.error('Enhanced license key encryption failed', { 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        userId,
+        keyLength: licenseKey.length
+      });
+      throw new ServiceError('Failed to encrypt license key with enhanced security');
+    }
+  }
+
+  decryptLicenseKey(encryptedKey: string): string {
+    try {
+      logger.info('Decrypting license key with Enhanced Key Management', { 
+        encryptedKeyPrefix: encryptedKey.substring(0, 20) + '...',
+        environment: process.env.NODE_ENV 
+      });
+
+      const decryptedKey = EnhancedDigitalKeyEncryption.decryptLicenseKey(encryptedKey);
+      
+      logger.info('License key decrypted successfully', { 
+        decryptedKeyLength: decryptedKey.length 
+      });
+
+      return decryptedKey;
+    } catch (error) {
+      logger.error('Enhanced license key decryption failed', { 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        encryptedKeyPrefix: encryptedKey.substring(0, 20) + '...'
+      });
+      throw new ServiceError('Failed to decrypt license key');
+    }
+  }
+
+  generateSecureLicenseKey(productId: string, userId: string): { plainKey: string, encryptedKey: string, keyFingerprint: string, keyVersion: string } {
+    try {
+      logger.info('Generating secure license key', { 
+        productId, 
+        userId,
+        environment: process.env.NODE_ENV 
+      });
+
+      // Generate a secure license key pattern
+      const keyBlocks = [];
+      for (let i = 0; i < 5; i++) {
+        const block = Math.random().toString(36).substring(2, 8).toUpperCase();
+        keyBlocks.push(block);
+      }
+      const plainKey = keyBlocks.join('-');
+
+      // Encrypt the generated key using the direct encryption method
+      const encryptedKey = EnhancedDigitalKeyEncryption.encryptLicenseKey(plainKey);
+      const encryptionKey = EnterpriseKeyManager.getEncryptionKey('LICENSE');
+      const keyFingerprint = EnterpriseKeyManager.getKeyFingerprint(encryptionKey);
+      
+      logger.info('Secure license key generated successfully', { 
+        productId,
+        userId,
+        keyFingerprint,
+        keyVersion: 'v1'
+      });
+
+      return {
+        plainKey,
+        encryptedKey,
+        keyFingerprint,
+        keyVersion: 'v1'
+      };
+    } catch (error) {
+      logger.error('Secure license key generation failed', { 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        productId,
+        userId
+      });
+      throw new ServiceError('Failed to generate secure license key');
+    }
   }
 }
 

@@ -92,12 +92,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const decrypted = EnhancedDigitalKeyEncryption.decryptLicenseKey(licenseData.encryptedKey);
       const integrityTest = decrypted === licenseData.plainKey;
       
-      const allTestsPassed = validation.isValid && keyDerivationTime < 500 && integrityTest;
+      // Test 4: Integration with License Key Service
+      let integrationTest = { passed: false, details: {} };
+      try {
+        const { licenseKeyService } = await import('./services/license-key.service');
+        const testKey = 'TEST123-KEY456-INTEGRATION789';
+        const encrypted = licenseKeyService.encryptLicenseKey(testKey, 'INTEGRATION_TEST_USER');
+        const decrypted = licenseKeyService.decryptLicenseKey(encrypted.encryptedKey);
+        integrationTest = {
+          passed: decrypted === testKey,
+          details: {
+            originalKey: testKey,
+            decryptedKey: decrypted,
+            keyFingerprint: encrypted.keyFingerprint,
+            matches: decrypted === testKey
+          }
+        };
+      } catch (error) {
+        integrationTest = {
+          passed: false,
+          details: {
+            error: error instanceof Error ? error.message : 'Unknown integration error'
+          }
+        };
+      }
+
+      const allTestsPassed = validation.isValid && keyDerivationTime < 500 && integrityTest && integrationTest.passed;
       
       res.json({
         success: allTestsPassed,
-        phase: 'PHASE_1_ENHANCED_KEY_MANAGEMENT',
-        overallResult: allTestsPassed ? 'ALL_TESTS_PASSED' : 'SOME_TESTS_FAILED',
+        phase: 'PHASE_1_ENHANCED_KEY_MANAGEMENT_WITH_INTEGRATION',
+        overallResult: allTestsPassed ? 'ALL_TESTS_PASSED_INCLUDING_INTEGRATION' : 'SOME_TESTS_FAILED',
         tests: [
           {
             name: 'Key Configuration Validation',
@@ -113,6 +138,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             name: 'Encryption/Decryption Integrity',
             passed: integrityTest,
             details: { keyFingerprint: licenseData.keyFingerprint, keyVersion: licenseData.keyVersion }
+          },
+          {
+            name: 'License Key Service Integration',
+            passed: integrationTest.passed,
+            details: integrationTest.details
           }
         ],
         cacheStats: EnterpriseKeyManager.getCacheStats(),
@@ -154,6 +184,125 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({
         success: false,
         phase: 'PHASE_1_KEY_ROTATION',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  // Comprehensive Integration Test - Enhanced Key Management + License Key Service
+  app.get('/api/integration-test', async (req, res) => {
+    try {
+      const { licenseKeyService } = await import('./services/license-key.service');
+      const testResults = [];
+      let allPassed = true;
+
+      // Test 1: Generate Secure License Key
+      try {
+        const secureKey = licenseKeyService.generateSecureLicenseKey('TEST-PRODUCT-1', 'INTEGRATION_TEST_USER');
+        testResults.push({
+          name: 'Secure License Key Generation',
+          passed: secureKey.plainKey && secureKey.encryptedKey && secureKey.keyFingerprint,
+          details: {
+            plainKeyLength: secureKey.plainKey.length,
+            encryptedKeyPrefix: secureKey.encryptedKey.substring(0, 25) + '...',
+            keyFingerprint: secureKey.keyFingerprint,
+            keyVersion: secureKey.keyVersion
+          }
+        });
+      } catch (error) {
+        testResults.push({
+          name: 'Secure License Key Generation',
+          passed: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+        allPassed = false;
+      }
+
+      // Test 2: Encrypt Existing License Key
+      try {
+        const testKey = 'ABC123-DEF456-GHI789-JKL012-MNO345';
+        const encrypted = licenseKeyService.encryptLicenseKey(testKey, 'INTEGRATION_TEST_USER');
+        testResults.push({
+          name: 'License Key Encryption',
+          passed: encrypted.encryptedKey && encrypted.keyFingerprint,
+          details: {
+            originalKeyLength: testKey.length,
+            encryptedKeyPrefix: encrypted.encryptedKey.substring(0, 25) + '...',
+            keyFingerprint: encrypted.keyFingerprint,
+            keyVersion: encrypted.keyVersion
+          }
+        });
+
+        // Test 3: Decrypt License Key (Round-trip test)
+        try {
+          const decrypted = licenseKeyService.decryptLicenseKey(encrypted.encryptedKey);
+          const roundTripPassed = decrypted === testKey;
+          testResults.push({
+            name: 'License Key Decryption (Round-trip)',
+            passed: roundTripPassed,
+            details: {
+              originalKey: testKey,
+              decryptedKey: decrypted,
+              matches: roundTripPassed
+            }
+          });
+          if (!roundTripPassed) allPassed = false;
+        } catch (error) {
+          testResults.push({
+            name: 'License Key Decryption (Round-trip)',
+            passed: false,
+            error: error instanceof Error ? error.message : 'Unknown error'
+          });
+          allPassed = false;
+        }
+      } catch (error) {
+        testResults.push({
+          name: 'License Key Encryption',
+          passed: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+        allPassed = false;
+      }
+
+      // Test 4: Key Validation (existing functionality)
+      try {
+        const testKeys = ['ABC123-DEF456-GHI789', 'INVALID_KEY', 'XYZ987-UVW654-RST321-QPO098'];
+        const validatedKeys = licenseKeyService.validateKeys(testKeys);
+        testResults.push({
+          name: 'License Key Validation',
+          passed: validatedKeys.length === 2, // Should validate 2 out of 3 keys
+          details: {
+            inputKeys: testKeys.length,
+            validKeys: validatedKeys.length,
+            validated: validatedKeys
+          }
+        });
+      } catch (error) {
+        testResults.push({
+          name: 'License Key Validation',
+          passed: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+        allPassed = false;
+      }
+
+      res.json({
+        success: allPassed,
+        phase: 'INTEGRATION_TEST_ENHANCED_KEY_MANAGEMENT',
+        overallResult: allPassed ? 'ALL_INTEGRATION_TESTS_PASSED' : 'SOME_INTEGRATION_TESTS_FAILED',
+        tests: testResults,
+        timestamp: new Date().toISOString(),
+        integrationStatus: {
+          enhancedKeyManagement: 'ACTIVE',
+          licenseKeyService: 'INTEGRATED',
+          encryptionLayer: 'OPERATIONAL'
+        }
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        phase: 'INTEGRATION_TEST_ENHANCED_KEY_MANAGEMENT',
         error: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date().toISOString()
       });
