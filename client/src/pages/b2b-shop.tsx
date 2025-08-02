@@ -518,66 +518,110 @@ export default function B2BShop() {
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-sm font-semibold text-gray-700">Found {products.length} products</h3>
               <div className="text-sm text-gray-500 flex items-center">
-                <List className="w-4 h-4 mr-1" />
-                List View
+                {viewMode === 'table' ? (
+                  <>
+                    <List className="w-4 h-4 mr-1" />
+                    List View
+                  </>
+                ) : (
+                  <>
+                    <Grid className="w-4 h-4 mr-1" />
+                    Grid View
+                  </>
+                )}
               </div>
             </div>
 
-            {/* Product Table */}
-            <div className="bg-white rounded-[8px] shadow-[0_2px_5px_rgba(0,0,0,0.1)] overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="min-w-full">
-                  <thead className="bg-[#6E6F71] text-white">
-                    <tr>
-                      <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">SKU</th>
-                      <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">IMAGE</th>
-                      <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.5px]">PRODUCT</th>
-                      <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">PRICE</th>
-                      <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">REGION</th>
-                      <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">PLATFORM</th>
-                      <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">STOCK</th>
-                      <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">QUANTITY</th>
-                      <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">ACTION</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-[#e5e5e5]">
-                    {productsLoading ? (
+            {/* Render different views based on viewMode */}
+            {viewMode === 'table' ? (
+              /* Product Table */
+              <div className="bg-white rounded-[8px] shadow-[0_2px_5px_rgba(0,0,0,0.1)] overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full">
+                    <thead className="bg-[#6E6F71] text-white">
                       <tr>
-                        <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
-                          Loading products...
-                        </td>
+                        <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">SKU</th>
+                        <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">IMAGE</th>
+                        <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.5px]">PRODUCT</th>
+                        <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">PRICE</th>
+                        <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">REGION</th>
+                        <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">PLATFORM</th>
+                        <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">STOCK</th>
+                        <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">QUANTITY</th>
+                        <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">ACTION</th>
                       </tr>
-                    ) : productsError ? (
-                      <tr>
-                        <td colSpan={9} className="px-4 py-8 text-center text-red-500">
-                          Error loading products: {productsError.message}
-                          <br />
-                          <small>User authenticated: {isAuthenticated ? 'Yes' : 'No'}</small>
-                        </td>
-                      </tr>
-                    ) : products.length === 0 ? (
-                      <tr>
-                        <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
-                          No products found
-                          <br />
-                          <small>User authenticated: {isAuthenticated ? 'Yes' : 'No'}</small>
-                        </td>
-                      </tr>
-                    ) : (
-                      products.map((product) => (
-                        <ProductRow
-                          key={product.id}
-                          product={product}
-                          onAddToCart={(quantity) => addToCartMutation.mutate({ productId: product.id, quantity })}
-                          onProductClick={() => handleProductClick(product)}
-                          isLoading={addingProductId === product.id}
-                        />
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-[#e5e5e5]">
+                      {productsLoading ? (
+                        <tr>
+                          <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
+                            Loading products...
+                          </td>
+                        </tr>
+                      ) : productsError ? (
+                        <tr>
+                          <td colSpan={9} className="px-4 py-8 text-center text-red-500">
+                            Error loading products: {productsError.message}
+                            <br />
+                            <small>User authenticated: {isAuthenticated ? 'Yes' : 'No'}</small>
+                          </td>
+                        </tr>
+                      ) : products.length === 0 ? (
+                        <tr>
+                          <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
+                            No products found
+                            <br />
+                            <small>User authenticated: {isAuthenticated ? 'Yes' : 'No'}</small>
+                          </td>
+                        </tr>
+                      ) : (
+                        products.map((product) => (
+                          <ProductRow
+                            key={product.id}
+                            product={product}
+                            onAddToCart={(quantity) => addToCartMutation.mutate({ productId: product.id, quantity })}
+                            onProductClick={() => handleProductClick(product)}
+                            isLoading={addingProductId === product.id}
+                          />
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
+            ) : (
+              /* Product Grid */
+              <div className="bg-white rounded-[8px] shadow-[0_2px_5px_rgba(0,0,0,0.1)] p-6">
+                {productsLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-[#FFB20F]" />
+                    <span className="ml-2 text-gray-500">Loading products...</span>
+                  </div>
+                ) : productsError ? (
+                  <div className="text-center py-12">
+                    <div className="text-red-500 mb-2">Error loading products: {productsError.message}</div>
+                    <small className="text-gray-500">User authenticated: {isAuthenticated ? 'Yes' : 'No'}</small>
+                  </div>
+                ) : products.length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="text-gray-500 mb-2">No products found</div>
+                    <small className="text-gray-500">User authenticated: {isAuthenticated ? 'Yes' : 'No'}</small>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {products.map((product) => (
+                      <div key={product.id} onClick={() => handleProductClick(product)} className="cursor-pointer">
+                        <ProductCard
+                          product={product}
+                          isInCart={cartItems.some(item => item.productId === product.id)}
+                          onAddToCart={(productId) => addToCartMutation.mutate({ productId, quantity: 1 })}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

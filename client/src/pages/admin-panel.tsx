@@ -2362,13 +2362,7 @@ XYZ12-ABC34-DEF56-GHI78-JKL90
         </Dialog>
       )}
       
-      {/* Integrated User Editing Modal */}
-      {editingUserId && (
-        <UserEditModal 
-          user={{ id: editingUserId }} 
-          onClose={() => setEditingUserId(null)} 
-        />
-      )}
+
     </div>
   );
 }
