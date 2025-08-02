@@ -1,3 +1,4 @@
+import React from "react";
 import { Switch, Route, Redirect, useLocation } from "wouter";
 import { lazy, Suspense, useEffect } from "react";
 import { queryClient } from "./lib/queryClient";
@@ -202,9 +203,9 @@ function Router() {
             );
           }} />
 
-          <Route path="/admin/users/edit" component={() => (
+          <Route path="/admin/users/edit/:userId" component={({ userId }: { userId: string }) => (
             <Suspense fallback={<AdminLoadingFallback />}>
-              <UserEditPage />
+              <UserEditPage userId={userId} onBack={() => window.history.back()} />
             </Suspense>
           )} />
           <Route path="/admin/category-hierarchy-demo" component={() => (
