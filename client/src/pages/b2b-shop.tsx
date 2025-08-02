@@ -654,7 +654,7 @@ function ProductRow({ product, onAddToCart, onProductClick, isLoading }: {
         {product.sku || product.id.slice(0, 8).toUpperCase()}
       </td>
       <td className="px-3 py-3 whitespace-nowrap text-center">
-        <div className="w-10 h-10 bg-gray-200 rounded-[5px] flex items-center justify-center mx-auto overflow-hidden cursor-pointer hover:opacity-80 transition-opacity" onClick={onProductClick}>
+        <div className="w-12 h-12 bg-gray-100 rounded-[5px] flex items-center justify-center mx-auto overflow-hidden cursor-pointer hover:opacity-80 transition-opacity border border-gray-200" onClick={onProductClick}>
           {product.imageUrl ? (
             <img
               src={product.imageUrl}
@@ -666,9 +666,13 @@ function ProductRow({ product, onAddToCart, onProductClick, isLoading }: {
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
                 console.error(`❌ Table image failed: ${product.imageUrl} for ${product.name}`);
-                console.error('Testing alternative URL:', `http://localhost:5000${product.imageUrl}`);
+                console.error('Image error details:', e);
+                // Don't replace with placeholder immediately - let the image try to load
                 target.style.display = 'none';
-                target.parentElement!.innerHTML = '<div class="w-6 h-6 text-gray-400"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12,2A3,3 0 0,1 15,5V11A3,3 0 0,1 12,14A3,3 0 0,1 9,11V5A3,3 0 0,1 12,2M19,11C19,14.53 16.39,17.44 13,17.93V21H11V17.93C7.61,17.44 5,14.53 5,11H7A5,5 0 0,0 12,16A5,5 0 0,0 17,11H19Z" /></svg></div>';
+                const fallbackDiv = document.createElement('div');
+                fallbackDiv.className = 'w-6 h-6 text-gray-400 flex items-center justify-center';
+                fallbackDiv.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12,2A3,3 0 0,1 15,5V11A3,3 0 0,1 12,14A3,3 0 0,1 9,11V5A3,3 0 0,1 12,2M19,11C19,14.53 16.39,17.44 13,17.93V21H11V17.93C7.61,17.44 5,14.53 5,11H7A5,5 0 0,0 12,16A5,5 0 0,0 17,11H19Z" /></svg>';
+                target.parentElement!.appendChild(fallbackDiv);
               }}
             />
           ) : (
