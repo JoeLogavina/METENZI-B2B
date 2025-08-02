@@ -7,13 +7,14 @@ import path from 'path';
 
 const app = express();
 
-// Initialize database optimizations
-await initializeDatabase();
+// Initialize database optimizations - moved to async wrapper
+async function startServer() {
+  await initializeDatabase();
 
 // Enterprise Performance Optimization: Response Compression
 // Provides 30-50% bandwidth reduction for API responses
 app.use(compression({ 
-  filter: (req, res) => {
+  filter: (req: any, res: any) => {
     // Compress all text responses, JSON, and API responses
     if (req.headers['x-no-compression']) return false;
     return compression.filter(req, res);
@@ -60,15 +61,19 @@ app.use((req, res, next) => {
   next();
 });
 
-const httpServer = await registerRoutes(app);
+  const httpServer = await registerRoutes(app);
 
-if (process.env.NODE_ENV === "production") {
-  serveStatic(app);
-} else {
-  await setupVite(app, httpServer);
+  if (process.env.NODE_ENV === "production") {
+    serveStatic(app);
+  } else {
+    await setupVite(app, httpServer);
+  }
+
+  const port = 5000;
+  httpServer.listen(port, "0.0.0.0", () => {
+    log(`serving on port ${port}`);
+  });
 }
 
-const port = 5000;
-httpServer.listen(port, "0.0.0.0", () => {
-  log(`serving on port ${port}`);
-});
+// Start the server
+startServer().catch(console.error);
