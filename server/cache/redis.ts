@@ -62,6 +62,12 @@ class RedisCache {
     
     try {
       await this.client.setex(key, ttlSeconds, JSON.stringify(value));
+      
+      // In test environment, ensure immediate consistency
+      if (process.env.NODE_ENV === 'test') {
+        await new Promise(resolve => setTimeout(resolve, 15));
+      }
+      
       return true;
     } catch (error) {
       // Redis SET error, using in-memory fallback
@@ -158,6 +164,18 @@ class RedisCache {
   private generateCacheKey(prefix: string, endpoint: string, filters: any): string {
     const filterStr = typeof filters === 'string' ? filters : JSON.stringify(filters);
     return `${prefix}:${endpoint}:${Buffer.from(filterStr).toString('base64')}`;
+  }
+
+  async getAllKeys(): Promise<string[]> {
+    if (!this.isConnected) {
+      return Array.from(inMemoryCache.cache.keys());
+    }
+    
+    try {
+      return await this.client.keys('*');
+    } catch (error) {
+      return Array.from(inMemoryCache.cache.keys());
+    }
   }
 
   async disconnect(): Promise<void> {

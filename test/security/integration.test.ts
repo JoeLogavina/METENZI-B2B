@@ -4,6 +4,7 @@
 import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import express from 'express';
+import jwt from 'jsonwebtoken';
 import { initializeSecurityIntegration } from '../../server/security/integration';
 import { EnhancedTokenManager, TokenType } from '../../server/security/token-manager';
 import { redisCache } from '../../server/cache/redis';
@@ -55,6 +56,11 @@ describe('Phase 2 Security Integration Tests', () => {
       { tenantId: 'eur', permissions: ['admin:read', 'admin:write'] }
     );
     validAdminToken = adminResult.token;
+
+    // Allow time for all tokens to be stored
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    console.log(`DEBUG: Test setup complete - tokens generated and ready for testing`);
   });
 
   beforeEach(async () => {

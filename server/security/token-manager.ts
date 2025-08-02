@@ -176,9 +176,20 @@ export class EnhancedTokenManager {
       const ttlSeconds = Math.floor(config.expirationMinutes * 60);
       
       // Store token metadata first (most critical operation)
-      await redisCache.set(tokenKey, metadata, ttlSeconds);
+      const stored = await redisCache.set(tokenKey, metadata, ttlSeconds);
       
       if (process.env.NODE_ENV === 'test') {
+        console.log(`DEBUG: Token generation - stored with tokenId: ${tokenId} and key: ${tokenKey}, success: ${stored}`);
+        
+        // In test environment, verify the token was actually stored
+        await new Promise(resolve => setTimeout(resolve, 50));
+        const verification = await redisCache.get(tokenKey);
+        console.log(`DEBUG: Token storage verification - found: ${!!verification}`);
+        
+        if (!verification) {
+          throw new Error(`Failed to store token metadata in cache for key: ${tokenKey}`);
+        }
+        
         logger.debug('Token metadata stored', { 
           tokenKey, 
           tokenId: tokenId.substring(0, 8) + '...', 
@@ -230,6 +241,10 @@ export class EnhancedTokenManager {
       const type = decoded.type as TokenType;
       const config = this.TOKEN_CONFIGS[type];
 
+      if (process.env.NODE_ENV === 'test') {
+        console.log(`DEBUG: Token validation - extracted tokenId: ${tokenId} from JWT`);
+      }
+
       if (!config) {
         return { isValid: false, error: 'Unknown token type' };
       }
@@ -268,24 +283,33 @@ export class EnhancedTokenManager {
       const metadata = await redisCache.get<TokenMetadata>(tokenKey);
 
       if (!metadata) {
+        if (process.env.NODE_ENV === 'test') {
+          console.log(`DEBUG: Token validation - metadata not found for key: ${tokenKey}`);
+          // List all keys in cache for debugging
+          const allKeys = await redisCache.getAllKeys();
+          console.log(`DEBUG: Available cache keys: ${allKeys.filter(k => k.includes('token:')).slice(0, 5)}`);
+        }
+        
         // In test environment, try one more time with delay for cache consistency
         if (process.env.NODE_ENV === 'test') {
           await new Promise(resolve => setTimeout(resolve, 100));
           const retryMetadata = await redisCache.get<TokenMetadata>(tokenKey);
           if (retryMetadata) {
+            console.log(`DEBUG: Token found on retry!`);
             // Update last used timestamp and return success
             retryMetadata.lastUsed = Date.now();
             const remainingTtl = Math.floor((retryMetadata.expiresAt - Date.now()) / 1000);
             await redisCache.set(tokenKey, retryMetadata, remainingTtl);
             await this.updateTokenStats(retryMetadata.userId, type, 'validated');
             return { isValid: true, metadata: retryMetadata, needsRefresh: false };
+          } else {
+            console.log(`DEBUG: Token still not found after retry for key: ${tokenKey}`);
           }
         }
         
         logger.debug('Token validation failed: metadata not found', {
           tokenId: tokenId.substring(0, 8) + '...',
           tokenKey,
-          keyExists,
           environment: process.env.NODE_ENV,
           category: 'security'
         });
@@ -320,12 +344,19 @@ export class EnhancedTokenManager {
 
       return { isValid: true, metadata, needsRefresh };
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      if (process.env.NODE_ENV === 'test') {
+        console.log(`DEBUG: Token validation exception caught: ${errorMessage}`);
+        console.log(`DEBUG: Error details:`, error);
+      }
+      
       logger.error('Token validation failed', {
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: errorMessage,
         environment: process.env.NODE_ENV,
         category: 'security'
       });
-      return { isValid: false, error: 'Token validation error' };
+      return { isValid: false, error: `Token validation error: ${errorMessage}` };
     }
   }
 
