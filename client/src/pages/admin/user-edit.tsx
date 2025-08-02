@@ -99,6 +99,7 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
   useEffect(() => {
     if (userData && typeof userData === 'object') {
       const user = userData as any;
+      console.log('🔍 DEBUG: User data loaded:', { userId, tenantId: user.tenantId, userData: user });
       setProfileData({
         firstName: user.firstName || '',
         lastName: user.lastName || '',
@@ -166,9 +167,12 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
   // Helper function to format currency
   const formatCurrency = (amount: string | number, userTenantId?: string) => {
     const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+    console.log('🔍 DEBUG: formatCurrency called:', { amount, userTenantId, numAmount });
     if (userTenantId === 'km') {
+      console.log('🔍 DEBUG: Using KM currency');
       return `${numAmount.toFixed(2)} KM`;
     } else {
+      console.log('🔍 DEBUG: Using EUR currency');
       return `€${numAmount.toFixed(2)}`;
     }
   };
@@ -644,7 +648,10 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
                     <div className="space-y-3">
                       <h4 className="font-medium text-[#6E6F71]">Add Deposit</h4>
                       <div>
-                        <Label htmlFor="depositAmount">Amount ({(userData as any)?.tenantId === 'km' ? 'KM' : 'EUR'})</Label>
+                        <Label htmlFor="depositAmount">Amount ({(() => {
+                          console.log('🔍 DEBUG: Deposit amount label - userData.tenantId:', (userData as any)?.tenantId);
+                          return (userData as any)?.tenantId === 'km' ? 'KM' : 'EUR';
+                        })()})</Label>
                         <Input
                           id="depositAmount"
                           type="number"
@@ -677,7 +684,10 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
                     <div className="space-y-3">
                       <h4 className="font-medium text-[#6E6F71]">Update Credit Limit</h4>
                       <div>
-                        <Label htmlFor="creditLimit">Credit Limit ({(userData as any)?.tenantId === 'km' ? 'KM' : 'EUR'})</Label>
+                        <Label htmlFor="creditLimit">Credit Limit ({(() => {
+                          console.log('🔍 DEBUG: Credit limit label - userData.tenantId:', (userData as any)?.tenantId);
+                          return (userData as any)?.tenantId === 'km' ? 'KM' : 'EUR';
+                        })()})</Label>
                         <Input
                           id="creditLimit"
                           type="number"

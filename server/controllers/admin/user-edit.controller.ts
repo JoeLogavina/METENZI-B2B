@@ -54,6 +54,12 @@ export class UserEditController {
       // Remove password from response
       const { password, ...userWithoutPassword } = user;
 
+      console.log('🔍 DEBUG: getUserById returning user data:', { 
+        userId, 
+        tenantId: userWithoutPassword.tenantId,
+        userData: userWithoutPassword 
+      });
+
       res.json(userWithoutPassword);
     } catch (error) {
       console.error("Error fetching user:", error);
