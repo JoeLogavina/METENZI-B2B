@@ -128,6 +128,7 @@ Core features include:
   - **Enterprise Monitoring**: Comprehensive performance tracking with slow query detection and optimization statistics
 - **Code Splitting & Lazy Loading**: Route-based lazy loading for all private routes and heavy components, with intelligent preloading and professional loading states for faster initial load times.
 - **Production Readiness**: Enterprise-grade structured logging with Winston, removal of all debug outputs, complete LSP error resolution, and comprehensive performance monitoring infrastructure.
+- **SKU Format Enhancement**: Updated SKU generation to use "SKU-12345" format for improved readability and consistency across the platform.
 
 ### System Design Choices
 - **Frontend**: React 18 with TypeScript, Wouter for routing, and TanStack Query for server state management.

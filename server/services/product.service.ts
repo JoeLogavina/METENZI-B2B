@@ -238,10 +238,11 @@ export class ProductServiceImpl implements ProductService {
   }
 
   private async generateSKU(productData: InsertProduct): Promise<string> {
-    const prefix = productData.name.substring(0, 3).toUpperCase();
-    const timestamp = Date.now().toString().slice(-6);
-    const random = Math.random().toString(36).substring(2, 4).toUpperCase();
-    return `${prefix}${timestamp}${random}`;
+    // Generate a 5-digit number using timestamp and random
+    const timestamp = Date.now().toString().slice(-4);
+    const random = Math.floor(Math.random() * 90) + 10; // 2-digit random number (10-99)
+    const skuNumber = `${timestamp}${random}`.padStart(5, '0');
+    return `SKU-${skuNumber}`;
   }
 
   private async validatePriceUpdate(productId: string, newPrice: number | string): Promise<void> {
