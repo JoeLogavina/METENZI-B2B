@@ -463,13 +463,13 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
           </Button>
           <div>
             <h3 className="text-lg font-semibold text-[#6E6F71] uppercase tracking-[0.5px]">
-              EDIT USER: {(userData as any)?.firstName} {(userData as any)?.lastName}
+              EDIT USER: {(userData as any)?.data?.firstName || (userData as any)?.firstName} {(userData as any)?.data?.lastName || (userData as any)?.lastName}
             </h3>
-            <p className="text-sm text-[#6E6F71]">@{(userData as any)?.username} • {(userData as any)?.email}</p>
+            <p className="text-sm text-[#6E6F71]">@{(userData as any)?.data?.username || (userData as any)?.username} • {(userData as any)?.data?.email || (userData as any)?.email}</p>
           </div>
         </div>
-        <Badge variant={(userData as any)?.isActive ? "default" : "destructive"}>
-          {(userData as any)?.isActive ? "Active" : "Inactive"}
+        <Badge variant={(userData as any)?.data?.isActive || (userData as any)?.isActive ? "default" : "destructive"}>
+          {(userData as any)?.data?.isActive || (userData as any)?.isActive ? "Active" : "Inactive"}
         </Badge>
       </div>
 
