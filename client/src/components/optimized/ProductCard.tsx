@@ -28,9 +28,10 @@ const ProductCard = memo(function ProductCard({
   const queryClient = useQueryClient();
   const { tenant, formatPrice } = useTenant();
 
-  // Debug logging for product image URLs
+  // Debug logging for product image URLs - Enhanced debugging
   console.log(`🖼️ Product: ${product.name}`);
   console.log(`📸 Image URL: ${product.imageUrl || 'No image URL'}`);
+  console.log(`🔗 Testing full URL: http://localhost:5000${product.imageUrl}`);
   console.log(`🏷️ SKU: ${product.sku}`);
   console.log(`💰 Price: ${product.price} | Price KM: ${product.priceKm || 'N/A'}`);
   console.log('---');
