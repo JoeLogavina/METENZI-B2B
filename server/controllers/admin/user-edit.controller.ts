@@ -65,7 +65,12 @@ export class UserEditController {
   static async updateProfile(req: Request, res: Response) {
     try {
       const { userId } = req.params;
+      
+      console.log('🔍 DEBUG SERVER: Raw request body:', JSON.stringify(req.body, null, 2));
+      
       const profileData = updateProfileSchema.parse(req.body);
+      
+      console.log('🔍 DEBUG SERVER: Parsed profile data:', JSON.stringify(profileData, null, 2));
 
       // Check if user exists
       const [existingUser] = await db
@@ -78,15 +83,33 @@ export class UserEditController {
         return res.status(404).json({ error: "User not found" });
       }
 
+      console.log('🔍 DEBUG SERVER: Existing user before update:', {
+        companyName: existingUser.companyName,
+        phone: existingUser.phone,
+        country: existingUser.country
+      });
+
       // Update user and return updated data
+      const updateData = {
+        ...profileData,
+        updatedAt: new Date()
+      };
+      
+      console.log('🔍 DEBUG SERVER: Data being used for update:', JSON.stringify(updateData, null, 2));
+
       const [updatedUser] = await db
         .update(users)
-        .set({
-          ...profileData,
-          updatedAt: new Date()
-        })
+        .set(updateData)
         .where(eq(users.id, userId))
         .returning();
+
+      console.log('🔍 DEBUG SERVER: Updated user from database:', {
+        companyName: updatedUser.companyName,
+        phone: updatedUser.phone,
+        country: updatedUser.country,
+        city: updatedUser.city,
+        address: updatedUser.address
+      });
 
       // Remove password from response
       const { password, ...userWithoutPassword } = updatedUser;
@@ -98,6 +121,7 @@ export class UserEditController {
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
+        console.error('🔍 DEBUG SERVER: Validation error:', error.errors);
         return res.status(400).json({ error: error.errors[0].message });
       }
       console.error("Error updating profile:", error);
