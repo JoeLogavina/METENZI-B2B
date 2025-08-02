@@ -59,6 +59,7 @@ describe('Phase 2 Security Integration Tests', () => {
 
   beforeEach(async () => {
     // Clean up test-specific data only, not the tokens from beforeAll
+    // Note: Do not invalidate token:* keys as they contain our auth tokens
     await redisCache.invalidatePattern('test_*');
     await redisCache.invalidatePattern('temp_*');
   });
