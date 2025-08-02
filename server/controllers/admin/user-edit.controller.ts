@@ -78,16 +78,24 @@ export class UserEditController {
         return res.status(404).json({ error: "User not found" });
       }
 
-      // Update user
-      await db
+      // Update user and return updated data
+      const [updatedUser] = await db
         .update(users)
         .set({
           ...profileData,
           updatedAt: new Date()
         })
-        .where(eq(users.id, userId));
+        .where(eq(users.id, userId))
+        .returning();
 
-      res.json({ success: true, message: "Profile updated successfully" });
+      // Remove password from response
+      const { password, ...userWithoutPassword } = updatedUser;
+
+      res.json({ 
+        success: true, 
+        message: "Profile updated successfully", 
+        data: userWithoutPassword 
+      });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: error.errors[0].message });
