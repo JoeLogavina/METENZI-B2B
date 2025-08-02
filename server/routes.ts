@@ -8,7 +8,7 @@ import { z } from "zod";
 import { db } from "./db";
 import { sql, eq, and } from "drizzle-orm";
 import { adminRouter } from "./routes/admin";
-import { errorHandler, rateLimit } from "./middleware/auth.middleware";
+import { errorHandler } from "./middleware/auth.middleware";
 import { 
   productsCacheMiddleware, 
   walletCacheMiddleware, 
@@ -249,7 +249,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(403).json({ message: "Insufficient permissions" });
         }
 
-        const categoryData = insertCategorySchema.parse(req.body);
+        // Extract the required fields from request body
+        const { name, description, parentId, level, sortOrder, isActive } = req.body;
+        
+        // Generate path and pathName based on parent and name
+        let path = '';
+        let pathName = '';
+        
+        if (parentId) {
+          // Get parent category to build path
+          const parentCategory = await storage.getCategoryById(parentId);
+          if (parentCategory) {
+            path = `${parentCategory.path}/${name.toLowerCase().replace(/\s+/g, '-')}`;
+            pathName = `${parentCategory.pathName} > ${name}`;
+          } else {
+            return res.status(400).json({ message: "Parent category not found" });
+          }
+        } else {
+          // Root level category
+          path = `/${name.toLowerCase().replace(/\s+/g, '-')}`;
+          pathName = name;
+        }
+
+        // Create complete category data with generated paths
+        const categoryData = {
+          name,
+          description: description || '',
+          parentId: parentId || null,
+          level: level || 1,
+          path,
+          pathName,
+          sortOrder: sortOrder || 1,
+          isActive: isActive !== undefined ? isActive : true
+        };
+
         const category = await storage.createCategory(categoryData);
         res.status(201).json(category);
       } catch (error) {
