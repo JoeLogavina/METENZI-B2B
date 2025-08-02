@@ -89,9 +89,20 @@ export class UserEditController {
         country: existingUser.country
       });
 
-      // Update user and return updated data
+      // Update user and return updated data - map camelCase to snake_case for database
       const updateData = {
-        ...profileData,
+        firstName: profileData.firstName,
+        lastName: profileData.lastName,
+        email: profileData.email,
+        companyName: profileData.companyName, // maps to company_name
+        contactPerson: profileData.contactPerson, // maps to contact_person  
+        companyDescription: profileData.companyDescription, // maps to company_description
+        phone: profileData.phone,
+        country: profileData.country,
+        city: profileData.city,
+        address: profileData.address,
+        vatOrRegistrationNo: profileData.vatOrRegistrationNo, // maps to vat_or_registration_no
+        isActive: profileData.isActive,
         updatedAt: new Date()
       };
       
