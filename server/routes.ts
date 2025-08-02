@@ -374,6 +374,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication first
   setupAuth(app);
 
+  // Note: SSL/TLS security middleware is disabled in development to prevent CSP conflicts with Vite
+  // It will be automatically enabled in production mode
+
   // Simplified CSRF protection for development
   app.get('/api/csrf-token', (req, res) => {
     const token = `csrf-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -447,6 +450,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use('/api/security', apiSecurityRoutes.default);
   } catch (error) {
     console.warn('API Security routes not loaded:', error);
+  }
+  
+  // Register SSL/TLS security routes
+  try {
+    const sslSecurityRoutes = await import('./routes/ssl-security');
+    app.use('/api/ssl-security', sslSecurityRoutes.default);
+  } catch (error) {
+    console.warn('SSL Security routes not loaded:', error);
   }
   
   // Apply security test routes (for development and testing)
