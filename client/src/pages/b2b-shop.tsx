@@ -22,12 +22,17 @@ import ProductFilters from "@/components/optimized/ProductFilters";
 import { ProductDetailModal } from "@/components/ProductDetailModal";
 import AdvancedProductFilters from "@/components/AdvancedProductFilters";
 
+// Mobile Components
+import { useDeviceDetection } from "@/hooks/mobile/useDeviceDetection";
+import { MobileB2BShop } from "@/components/mobile/MobileB2BShop";
+
 export default function B2BShop() {
   const { user, isLoading, isAuthenticated, logout, isLoggingOut } = useAuth();
   const { tenant, formatPrice: tenantFormatPrice } = useTenant();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [location, setLocation] = useLocation();
+  const { isMobile } = useDeviceDetection();
 
   const [filters, setFilters] = useState({
     search: "",
@@ -328,6 +333,24 @@ export default function B2BShop() {
     { icon: Settings, label: "SETTINGS", active: false, href: "/settings", allowed: true },
     { icon: HelpCircle, label: "SUPPORT", active: false, href: "/support", allowed: true },
   ].filter(item => item.allowed);
+
+  // Mobile-first conditional rendering
+  if (isMobile) {
+    return (
+      <MobileB2BShop
+        filters={filters}
+        setFilters={setFilters}
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+        products={products}
+        productsLoading={productsLoading}
+        selectedProduct={selectedProduct}
+        setSelectedProduct={setSelectedProduct}
+        isModalOpen={isModalOpen}
+        setIsModalOpen={setIsModalOpen}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f5f6f5] flex font-['Inter',-apple-system,BlinkMacSystemFont,sans-serif]">
