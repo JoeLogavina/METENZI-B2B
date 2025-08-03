@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Products with Images - Enterprise Image System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .product-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            background: #fafafa;
+        }
+        .product-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 4px;
+            background: #eee;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 14px;
+        }
+        .product-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+        .product-info {
+            margin-top: 15px;
+        }
+        .product-name {
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+        .product-sku {
+            color: #666;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .product-price {
+            color: #0066cc;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .load-btn {
+            background-color: #0066cc;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .load-btn:hover {
+            background-color: #0052a3;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .loading {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🖼️ Enterprise Image System - Product Display Test</h1>
+        <p>Testing the integration of the new image management system with product display.</p>
+        
+        <button class="load-btn" onclick="loadProducts()">Load Products with Images</button>
+        
+        <div id="status"></div>
+        <div id="products" class="product-grid"></div>
+    </div>
+
+    <script>
+        async function loadProducts() {
+            const statusDiv = document.getElementById('status');
+            const productsDiv = document.getElementById('products');
+            
+            statusDiv.innerHTML = '<div class="status loading">Loading products with enhanced image system...</div>';
+            productsDiv.innerHTML = '';
+            
+            try {
+                const response = await fetch('/api/products', {
+                    credentials: 'include',
+                    headers: {
+                        'Accept': 'application/json',
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const products = await response.json();
+                
+                statusDiv.innerHTML = `<div class="status success">✅ Loaded ${products.length} products successfully!</div>`;
+                
+                if (products.length === 0) {
+                    productsDiv.innerHTML = '<p>No products found.</p>';
+                    return;
+                }
+                
+                // Display products
+                products.forEach(product => {
+                    const productCard = createProductCard(product);
+                    productsDiv.appendChild(productCard);
+                });
+                
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="status error">❌ Error loading products: ${error.message}</div>`;
+                console.error('Error loading products:', error);
+            }
+        }
+        
+        function createProductCard(product) {
+            const card = document.createElement('div');
+            card.className = 'product-card';
+            
+            const imageContainer = document.createElement('div');
+            imageContainer.className = 'product-image';
+            
+            if (product.imageUrl) {
+                const img = document.createElement('img');
+                img.src = product.imageUrl;
+                img.alt = product.name;
+                img.onload = function() {
+                    console.log(`✅ Image loaded: ${product.imageUrl} for ${product.name}`);
+                };
+                img.onerror = function() {
+                    console.error(`❌ Failed to load image: ${product.imageUrl} for ${product.name}`);
+                    imageContainer.innerHTML = 'Image Load Failed';
+                };
+                imageContainer.appendChild(img);
+            } else {
+                imageContainer.innerHTML = 'No Image Available';
+            }
+            
+            const info = document.createElement('div');
+            info.className = 'product-info';
+            info.innerHTML = `
+                <div class="product-name">${product.name}</div>
+                <div class="product-sku">${product.sku}</div>
+                <div class="product-price">€${parseFloat(product.price).toLocaleString()}</div>
+                <div style="margin-top: 10px; font-size: 12px; color: #666;">
+                    Image URL: ${product.imageUrl || 'None'}
+                </div>
+            `;
+            
+            card.appendChild(imageContainer);
+            card.appendChild(info);
+            
+            return card;
+        }
+        
+        // Auto-load on page load
+        window.addEventListener('load', loadProducts);
+    </script>
+</body>
+</html>

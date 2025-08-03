@@ -1,0 +1,132 @@
+import { db } from '../db';
+import { products, productImages } from '../../shared/schema';
+import { eq, and, desc } from 'drizzle-orm';
+import type { ProductWithStock } from '../../shared/schema';
+
+/**
+ * Service to integrate the new Enterprise Image Management System with existing products
+ */
+export class ProductImageService {
+  /**
+   * Get the main image URL for a product using the new image management system
+   */
+  async getProductMainImageUrl(productId: string): Promise<string | null> {
+    try {
+      const [productImage] = await db
+        .select({
+          filePath: productImages.filePath,
+        })
+        .from(productImages)
+        .where(
+          and(
+            eq(productImages.productId, productId),
+            eq(productImages.isMain, true),
+            eq(productImages.status, 'active')
+          )
+        )
+        .limit(1);
+
+      if (productImage) {
+        // Return the URL for serving the image through our image system
+        return `/${productImage.filePath}`;
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error fetching product main image:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get all image URLs for a product
+   */
+  async getProductImageUrls(productId: string): Promise<string[]> {
+    try {
+      const images = await db
+        .select({
+          filePath: productImages.filePath,
+        })
+        .from(productImages)
+        .where(
+          and(
+            eq(productImages.productId, productId),
+            eq(productImages.status, 'active')
+          )
+        )
+        .orderBy(desc(productImages.isMain), desc(productImages.createdAt));
+
+      return images.map(img => `/${img.filePath}`);
+    } catch (error) {
+      console.error('Error fetching product images:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Enhance products with image URLs from the new image management system
+   */
+  async enhanceProductsWithImages(products: ProductWithStock[]): Promise<ProductWithStock[]> {
+    const enhancedProducts = await Promise.all(
+      products.map(async (product) => {
+        // First try to get image from new image management system
+        const imageUrl = await this.getProductMainImageUrl(product.id);
+        
+        // If new image system has an image, use it; otherwise fall back to existing imageUrl
+        const finalImageUrl = imageUrl || product.imageUrl;
+
+        return {
+          ...product,
+          imageUrl: finalImageUrl,
+        };
+      })
+    );
+
+    return enhancedProducts;
+  }
+
+  /**
+   * Update a product's legacy imageUrl to work with new system
+   */
+  async migrateLegacyImageToNewSystem(productId: string, legacyImagePath: string): Promise<boolean> {
+    try {
+      // Check if this product already has images in the new system
+      const [existingImage] = await db
+        .select()
+        .from(productImages)
+        .where(eq(productImages.productId, productId))
+        .limit(1);
+
+      if (existingImage) {
+        // Product already has images in new system
+        return true;
+      }
+
+      // Extract filename from legacy path
+      const filename = legacyImagePath.split('/').pop() || 'unknown';
+      
+      // Create a migration entry in the new image system
+      await db.insert(productImages).values({
+        productId,
+        originalFileName: filename,
+        fileName: filename,
+        filePath: legacyImagePath.startsWith('/') ? legacyImagePath.substring(1) : legacyImagePath,
+        mimeType: 'image/jpeg', // Default assumption
+        fileSize: 0, // Unknown for legacy images
+        width: 400,
+        height: 300,
+        isMain: true,
+        altText: `Legacy image for product ${productId}`,
+        status: 'active'
+      });
+
+      console.log(`✅ Migrated legacy image for product ${productId}: ${legacyImagePath}`);
+      return true;
+    } catch (error) {
+      console.error(`❌ Failed to migrate legacy image for product ${productId}:`, error);
+      return false;
+    }
+  }
+}
+
+export const productImageService = new ProductImageService();

@@ -231,7 +231,10 @@ export class DatabaseStorage implements IStorage {
         .orderBy(desc(products.createdAt));
 
 
-      return result as ProductWithStock[];
+      // Enhance products with images from new image management system
+      const { productImageService } = await import('./services/product-image.service');
+      const enhancedProducts = await productImageService.enhanceProductsWithImages(result as ProductWithStock[]);
+      return enhancedProducts;
     } catch (error) {
       console.error('Database error:', error);
       throw error;
@@ -270,7 +273,10 @@ export class DatabaseStorage implements IStorage {
       .groupBy(products.id)
       .orderBy(desc(products.createdAt));
 
-    return result as ProductWithStock[];
+    // Enhance products with images from new image management system
+    const { productImageService } = await import('./services/product-image.service');
+    const enhancedProducts = await productImageService.enhanceProductsWithImages(result as ProductWithStock[]);
+    return enhancedProducts;
   }
 
   async getProduct(id: string): Promise<Product | undefined> {
