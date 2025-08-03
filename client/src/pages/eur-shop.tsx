@@ -407,10 +407,16 @@ export default function EURShop() {
               </div>
             </div>
 
+            {/* Debug Info */}
+            <div className="mb-2 p-2 bg-blue-50 text-xs text-blue-700 rounded">
+              DEBUG: Screen width: {typeof window !== 'undefined' ? window.innerWidth : 'SSR'}, 
+              shouldUseMobileSidebar: {shouldUseMobileSidebar ? 'TRUE' : 'FALSE'}
+            </div>
+
             {/* Responsive Product Layout */}
             {shouldUseMobileSidebar ? (
               /* Mobile Grid Layout - 2 products per row */
-              <div className="grid grid-cols-2 gap-1.5 px-1">
+              <div className="mobile-grid-2 md:hidden">
                 {productsLoading ? (
                   <div className="col-span-2 py-8 text-center text-gray-500">
                     <div className="flex items-center justify-center">
@@ -519,9 +525,9 @@ function MobileProductCard({
   };
 
   return (
-    <div className="bg-white rounded-md shadow-sm border border-gray-200 p-1.5 flex flex-col text-center">
+    <div className="mobile-product-card">
       {/* Product Image */}
-      <div className="w-full h-12 bg-gray-50 rounded flex items-center justify-center mb-1.5 overflow-hidden">
+      <div className="mobile-product-image">
         {product.imageUrl ? (
           <img 
             src={product.imageUrl} 
