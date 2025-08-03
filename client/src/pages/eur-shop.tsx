@@ -410,7 +410,7 @@ export default function EURShop() {
             {/* Responsive Product Layout */}
             {shouldUseMobileSidebar ? (
               /* Mobile Grid Layout - 2 products per row */
-              <div className="grid grid-cols-2 gap-2 px-2">
+              <div className="grid grid-cols-2 gap-1.5 px-1">
                 {productsLoading ? (
                   <div className="col-span-2 py-8 text-center text-gray-500">
                     <div className="flex items-center justify-center">
@@ -519,14 +519,14 @@ function MobileProductCard({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2 flex flex-col h-full">
+    <div className="bg-white rounded-md shadow-sm border border-gray-200 p-1.5 flex flex-col text-center">
       {/* Product Image */}
-      <div className="w-full h-16 bg-gray-50 rounded-md flex items-center justify-center mb-2 overflow-hidden">
+      <div className="w-full h-12 bg-gray-50 rounded flex items-center justify-center mb-1.5 overflow-hidden">
         {product.imageUrl ? (
           <img 
             src={product.imageUrl} 
             alt={product.name}
-            className="w-full h-full object-cover rounded-md"
+            className="w-full h-full object-cover rounded"
             onError={(e) => {
               const target = e.target as HTMLImageElement;
               target.style.display = 'none';
@@ -534,51 +534,43 @@ function MobileProductCard({
             }}
           />
         ) : null}
-        <Package className={`w-6 h-6 text-gray-400 ${product.imageUrl ? 'hidden' : ''}`} />
+        <Package className={`w-4 h-4 text-gray-400 ${product.imageUrl ? 'hidden' : ''}`} />
       </div>
 
-      {/* Product Info */}
-      <div className="flex-1 mb-2">
-        <h3 className="text-xs font-semibold text-gray-900 mb-1 line-clamp-2 leading-tight">
-          {product.name}
-        </h3>
-        
-        {/* Price */}
-        <div className="text-sm font-bold text-[#FFB20F] mb-2">
-          {formatEURPrice(product.price)}
-        </div>
+      {/* Product Name */}
+      <h3 className="text-xs font-medium text-gray-900 mb-1 line-clamp-2 leading-tight h-8">
+        {product.name}
+      </h3>
+      
+      {/* Price */}
+      <div className="text-sm font-bold text-[#FFB20F] mb-1">
+        {formatEURPrice(product.price)}
+      </div>
 
-        {/* Meta Info */}
-        <div className="flex flex-wrap gap-1 mb-2">
-          <Badge variant="outline" className="text-xs px-1 py-0.5 border-gray-300 text-xs">
-            {product.region}
-          </Badge>
-          <Badge variant="secondary" className="text-xs px-1 py-0.5 bg-gray-100 text-xs">
-            {product.platform}
-          </Badge>
-        </div>
+      {/* Region/Platform - Compact */}
+      <div className="text-xs text-gray-500 mb-1">
+        {product.region} • {product.platform}
+      </div>
 
-        {/* Stock Status */}
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs text-gray-500">Stock:</span>
-          {product.stockCount > 10 ? (
-            <Badge variant="default" className="bg-[#4CAF50] text-white text-xs px-1 py-0.5">
-              {product.stockCount}
-            </Badge>
-          ) : product.stockCount > 5 ? (
-            <Badge variant="secondary" className="bg-[#FF9800] text-white text-xs px-1 py-0.5">
-              {product.stockCount}
-            </Badge>
-          ) : product.stockCount > 0 ? (
-            <Badge variant="destructive" className="bg-[#F44336] text-white text-xs px-1 py-0.5">
-              {product.stockCount}
-            </Badge>
-          ) : (
-            <Badge variant="outline" className="text-xs px-1 py-0.5 text-gray-500">
-              Out
-            </Badge>
-          )}
-        </div>
+      {/* Stock - Compact */}
+      <div className="flex items-center justify-center mb-1.5">
+        {product.stockCount > 10 ? (
+          <span className="text-xs bg-[#4CAF50] text-white px-1.5 py-0.5 rounded">
+            {product.stockCount}
+          </span>
+        ) : product.stockCount > 5 ? (
+          <span className="text-xs bg-[#FF9800] text-white px-1.5 py-0.5 rounded">
+            {product.stockCount}
+          </span>
+        ) : product.stockCount > 0 ? (
+          <span className="text-xs bg-[#F44336] text-white px-1.5 py-0.5 rounded">
+            {product.stockCount}
+          </span>
+        ) : (
+          <span className="text-xs text-gray-500 px-1.5 py-0.5 border rounded">
+            Out
+          </span>
+        )}
       </div>
 
       {/* Action Button */}
@@ -586,7 +578,7 @@ function MobileProductCard({
         size="sm"
         onClick={() => onAddToCart(product)}
         disabled={isLoading || product.stockCount === 0 || isInCart}
-        className="w-full bg-[#FFB20F] hover:bg-[#e6a00e] text-black font-semibold text-xs py-1.5"
+        className="w-full bg-[#FFB20F] hover:bg-[#e6a00e] text-black font-medium text-xs py-1 h-7"
       >
         {isLoading ? (
           <Loader2 className="h-3 w-3 animate-spin" />
