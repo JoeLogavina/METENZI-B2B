@@ -25,6 +25,8 @@ import AdvancedProductFilters from "@/components/AdvancedProductFilters";
 // Mobile Components
 import { useDeviceDetection } from "@/hooks/mobile/useDeviceDetection";
 import { MobileB2BShop } from "@/components/mobile/MobileB2BShop";
+import { testDeviceDetection } from "@/utils/deviceTest";
+import { MobileDebugPanel } from "@/components/debug/MobileDebugPanel";
 
 export default function B2BShop() {
   const { user, isLoading, isAuthenticated, logout, isLoggingOut } = useAuth();
@@ -334,8 +336,21 @@ export default function B2BShop() {
     { icon: HelpCircle, label: "SUPPORT", active: false, href: "/support", allowed: true },
   ].filter(item => item.allowed);
 
-  // Mobile-first conditional rendering
-  if (isMobile) {
+  // Mobile-first conditional rendering with enhanced debugging
+  const deviceTest = typeof window !== 'undefined' ? testDeviceDetection() : null;
+  
+  console.log('🔍 B2B Shop render check:', { 
+    isMobile, 
+    deviceTest,
+    screenWidth: typeof window !== 'undefined' ? window.innerWidth : 'SSR',
+    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'SSR'
+  });
+
+  // Force mobile mode if screen width is small enough
+  const shouldShowMobile = isMobile || (typeof window !== 'undefined' && window.innerWidth <= 768);
+
+  if (shouldShowMobile) {
+    console.log('📱 Rendering mobile B2B shop interface');
     return (
       <MobileB2BShop
         filters={filters}
@@ -351,6 +366,8 @@ export default function B2BShop() {
       />
     );
   }
+
+  console.log('🖥️ Rendering desktop B2B shop interface');
 
   return (
     <div className="min-h-screen bg-[#f5f6f5] flex font-['Inter',-apple-system,BlinkMacSystemFont,sans-serif]">
@@ -658,6 +675,9 @@ export default function B2BShop() {
         isInCart={cartItems.some(item => item.productId === selectedProduct?.id)}
         isLoading={addingProductId === selectedProduct?.id}
       />
+      
+      {/* Mobile Debug Panel - Temporary for testing */}
+      <MobileDebugPanel />
     </div>
   );
 }
@@ -783,3 +803,4 @@ function ProductRow({ product, onAddToCart, onProductClick, isLoading }: {
     </tr>
   );
 }
+

@@ -11,12 +11,12 @@ interface DeviceInfo {
 
 export function useDeviceDetection(): DeviceInfo {
   const [deviceInfo, setDeviceInfo] = useState<DeviceInfo>({
-    isMobile: false,
-    isTablet: false,
-    isDesktop: true,
+    isMobile: typeof window !== 'undefined' ? window.innerWidth <= 768 : false,
+    isTablet: typeof window !== 'undefined' ? window.innerWidth > 768 && window.innerWidth <= 1024 : false,
+    isDesktop: typeof window !== 'undefined' ? window.innerWidth > 1024 : true,
     screenWidth: typeof window !== 'undefined' ? window.innerWidth : 1024,
     screenHeight: typeof window !== 'undefined' ? window.innerHeight : 768,
-    isTouchDevice: false,
+    isTouchDevice: typeof window !== 'undefined' ? ('ontouchstart' in window || navigator.maxTouchPoints > 0) : false,
   });
 
   useEffect(() => {
@@ -25,14 +25,24 @@ export function useDeviceDetection(): DeviceInfo {
       const height = window.innerHeight;
       const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
-      setDeviceInfo({
+      const newDeviceInfo = {
         isMobile: width <= 768,
         isTablet: width > 768 && width <= 1024,
         isDesktop: width > 1024,
         screenWidth: width,
         screenHeight: height,
         isTouchDevice,
+      };
+
+      console.log('📱 Device detection update:', {
+        width,
+        height,
+        isMobile: newDeviceInfo.isMobile,
+        isTablet: newDeviceInfo.isTablet,
+        isDesktop: newDeviceInfo.isDesktop
       });
+
+      setDeviceInfo(newDeviceInfo);
     };
 
     // Initial check
