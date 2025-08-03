@@ -54,6 +54,13 @@ router.get('/low-stock',
   adminProductsController.getLowStockProducts.bind(adminProductsController)
 );
 
+// GET /api/admin/license-counts - Get available license counts by product
+router.get('/license-counts',
+  authorize(Permissions.PRODUCT_READ),
+  auditLog('admin:products:license-counts'),
+  adminProductsController.getLicenseCounts.bind(adminProductsController)
+);
+
 // GET /api/admin/products/:id - Get specific product
 router.get('/:id',
   authorize(Permissions.PRODUCT_READ),

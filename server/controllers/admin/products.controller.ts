@@ -302,6 +302,22 @@ export class AdminProductsController {
     }
   }
 
+  // GET /api/admin/license-counts
+  async getLicenseCounts(req: Request, res: Response) {
+    try {
+      const licenseCounts = await productService.getLicenseCounts();
+      res.json(licenseCounts);
+    } catch (error) {
+      if (isServiceError(error)) {
+        return res.status(error.statusCode).json(formatErrorResponse(error));
+      }
+      res.status(500).json({
+        error: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to fetch license counts',
+      });
+    }
+  }
+
   // POST /api/admin/products/:id/upload-image
   async uploadProductImage(req: Request, res: Response) {
     try {

@@ -74,6 +74,7 @@ export interface IStorage {
   getKeyById(keyId: string): Promise<LicenseKey | undefined>;
   markKeyAsUsed(keyId: string, userId: string): Promise<void>;
   getProductStock(productId: string): Promise<number>;
+  getLicenseCounts(): Promise<Record<string, number>>;
 
   // Cart operations
   getCartItems(userId: string, tenantId?: string): Promise<(CartItem & { product: Product })[]>;
@@ -494,6 +495,31 @@ export class DatabaseStorage implements IStorage {
       .from(licenseKeys)
       .where(and(...whereConditions));
     return result.count;
+  }
+
+  async getLicenseCounts(): Promise<Record<string, number>> {
+    try {
+      // Get all products with their license key counts
+      const result = await db
+        .select({
+          productId: licenseKeys.productId,
+          count: count(licenseKeys.id)
+        })
+        .from(licenseKeys)
+        .where(eq(licenseKeys.isUsed, false))
+        .groupBy(licenseKeys.productId);
+
+      // Convert to a record/object
+      const licenseCounts: Record<string, number> = {};
+      result.forEach(row => {
+        licenseCounts[row.productId] = row.count;
+      });
+
+      return licenseCounts;
+    } catch (error) {
+      console.error('Error getting license counts:', error);
+      throw new Error('Failed to get license counts');
+    }
   }
 
   // ENTERPRISE CART OPERATIONS WITH TRANSACTIONAL SAFETY

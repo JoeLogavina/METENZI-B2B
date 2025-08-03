@@ -33,6 +33,7 @@ export interface ProductService {
   // Analytics methods
   getProductAnalytics(productId?: string): Promise<any>;
   getLowStockProducts(threshold: number): Promise<ProductWithStock[]>;
+  getLicenseCounts(): Promise<any>;
 }
 
 export class ProductServiceImpl implements ProductService {
@@ -207,6 +208,14 @@ export class ProductServiceImpl implements ProductService {
       });
     } catch (error) {
       throw new ServiceError('Failed to get low stock products', error);
+    }
+  }
+
+  async getLicenseCounts(): Promise<any> {
+    try {
+      return await storage.getLicenseCounts();
+    } catch (error) {
+      throw new ServiceError('Failed to get license counts', error);
     }
   }
 

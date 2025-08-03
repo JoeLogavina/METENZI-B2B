@@ -18,13 +18,15 @@ interface HierarchicalCategorySelectorProps {
   selectedCategoryId: string | null;
   onSelect: (categoryId: string | null) => void;
   maxLevel?: number;
+  placeholder?: string;
 }
 
-const HierarchicalCategorySelector: React.FC<HierarchicalCategorySelectorProps> = ({
+export const HierarchicalCategorySelector: React.FC<HierarchicalCategorySelectorProps> = ({
   categories,
   selectedCategoryId,
   onSelect,
-  maxLevel = 3
+  maxLevel = 3,
+  placeholder = "Select category"
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -167,7 +169,7 @@ const HierarchicalCategorySelector: React.FC<HierarchicalCategorySelectorProps> 
               <span className="text-sm">{selectedCategory.pathName || selectedCategory.name}</span>
             </>
           ) : (
-            <span className="text-sm text-gray-500">Select parent category (optional)</span>
+            <span className="text-sm text-gray-500">{placeholder}</span>
           )}
         </div>
         <div className="flex items-center gap-2">
@@ -232,8 +234,7 @@ interface CategoryFormData {
   isActive: boolean;
 }
 
-// Export the HierarchicalCategorySelector for use in other components
-export { HierarchicalCategorySelector };
+// HierarchicalCategorySelector is already exported above
 
 export function CategoryManagement() {
   const { toast } = useToast();

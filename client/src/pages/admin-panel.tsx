@@ -39,6 +39,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { CategoryManagement } from "@/components/admin/CategoryManagement";
 import { EmbeddedKeyManagement } from "@/components/admin/EmbeddedKeyManagement";
+import { ComprehensiveProductForm } from "@/components/admin/ComprehensiveProductForm";
 
 interface DashboardStats {
   totalUsers: number;
@@ -773,57 +774,45 @@ export default function AdminPanel() {
               </div>
             )}
 
-            {/* Product Form Modal */}
-            {showProductForm && (
+            {/* Comprehensive Product Form Modal */}
+            {showProductForm && !editingProduct && (
+              <Dialog open={showProductForm} onOpenChange={setShowProductForm}>
+                <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+                  <ComprehensiveProductForm
+                    onCancel={() => {
+                      setShowProductForm(false);
+                      setEditingProduct(null);
+                    }}
+                    onSuccess={() => {
+                      setShowProductForm(false);
+                      setEditingProduct(null);
+                      refetchProducts();
+                      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+                    }}
+                  />
+                </DialogContent>
+              </Dialog>
+            )}
+
+            {/* Simple Product Form for Editing */}
+            {showProductForm && editingProduct && (
               <Dialog open={showProductForm} onOpenChange={setShowProductForm}>
                 <DialogContent className="max-w-2xl">
                   <DialogHeader>
                     <DialogTitle className="uppercase tracking-[0.5px]">
-                      {editingProduct ? 'EDIT PRODUCT' : 'ADD NEW PRODUCT'}
+                      EDIT PRODUCT
                     </DialogTitle>
                   </DialogHeader>
-                  <ProductForm 
-                    product={editingProduct}
-                    onSubmit={async (data) => {
-                      try {
-                        const url = editingProduct 
-                          ? `/api/admin/products/${editingProduct.id}`
-                          : '/api/admin/products';
-                        const method = editingProduct ? 'PUT' : 'POST';
-                        
-                        const response = await fetch(url, {
-                          method,
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify(data),
-                        });
-
-                        if (!response.ok) {
-                          const errorData = await response.json();
-                          console.error('Product save error:', errorData);
-                          throw new Error(errorData.message || 'Failed to save product');
-                        }
-
-                        toast({
-                          title: "Success",
-                          description: `Product ${editingProduct ? 'updated' : 'created'} successfully`,
-                        });
-
-                        setShowProductForm(false);
-                        setEditingProduct(null);
-                        refetchProducts();
-                        // Also invalidate the B2B shop products cache
-                        queryClient.invalidateQueries({ queryKey: ["/api/products"] });
-                      } catch (error) {
-                        toast({
-                          title: "Error",
-                          description: `Failed to ${editingProduct ? 'update' : 'create'} product`,
-                          variant: "destructive",
-                        });
-                      }
-                    }}
+                  <ComprehensiveProductForm
                     onCancel={() => {
                       setShowProductForm(false);
                       setEditingProduct(null);
+                    }}
+                    onSuccess={() => {
+                      setShowProductForm(false);
+                      setEditingProduct(null);
+                      refetchProducts();
+                      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
                     }}
                   />
                 </DialogContent>
