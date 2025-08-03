@@ -32,6 +32,8 @@ import { useTenant } from "@/contexts/TenantContext";
 import { useDebounce } from "use-debounce";
 import AdvancedProductFilters from "@/components/AdvancedProductFilters";
 import ProductCard from "@/components/optimized/ProductCard";
+import { useDeviceDetection } from "@/hooks/mobile/useDeviceDetection";
+import { MobileSidebar } from "@/components/mobile/MobileSidebar";
 
 // EUR-specific shop component with proper tenant isolation
 export default function EURShop() {
@@ -261,10 +263,18 @@ export default function EURShop() {
     return `€${numAmount.toFixed(2)}`;
   };
 
+  // Mobile detection for responsive sidebar - force enable for testing
+  const { isMobile } = useDeviceDetection();
+  const shouldUseMobileSidebar = true; // Force mobile for testing
+  // const shouldUseMobileSidebar = isMobile || (typeof window !== 'undefined' && window.innerWidth <= 768);
+
   return (
     <div className="min-h-screen bg-[#f5f6f5] flex font-['Inter',-apple-system,BlinkMacSystemFont,sans-serif]">
-      {/* Sidebar */}
-      <div className="w-64 text-white flex-shrink-0 bg-[#404040]">
+      {/* Conditional Sidebar Rendering */}
+      {shouldUseMobileSidebar ? (
+        <MobileSidebar sidebarItems={sidebarItems} user={user} />
+      ) : (
+        <div className="w-64 text-white flex-shrink-0 bg-[#404040]">
         <div className="p-4 border-b border-[#5a5b5d]">
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 bg-[#FFB20F] rounded flex items-center justify-center">
@@ -298,10 +308,11 @@ export default function EURShop() {
             </div>
           ))}
         </nav>
-      </div>
+        </div>
+      )}
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className={`flex-1 flex flex-col ${shouldUseMobileSidebar ? 'ml-16' : ''}`}>
         {/* Header */}
         <header className="bg-[#6E6F71] border-b border-[#5a5b5d] px-6 py-4 shadow-[0_2px_5px_rgba(0,0,0,0.1)]">
           <div className="flex items-center justify-between">
@@ -353,8 +364,8 @@ export default function EURShop() {
 
         {/* Main Content Area with Vertical Filters */}
         <div className="flex-1 flex overflow-hidden">
-          {/* Advanced Filters Sidebar */}
-          <div className="w-80 bg-white border-r border-[#ddd] p-4 overflow-y-auto">
+          {/* Advanced Filters Sidebar - Hidden on mobile */}
+          <div className={`${shouldUseMobileSidebar ? 'hidden' : 'w-80'} bg-white border-r border-[#ddd] p-4 overflow-y-auto`}>
             <AdvancedProductFilters
               filters={{
                 search: filters.search,
