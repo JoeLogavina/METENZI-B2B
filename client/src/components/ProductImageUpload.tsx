@@ -51,7 +51,7 @@ export function ProductImageUpload({
     try {
       // Create a FormData object
       const formData = new FormData();
-      formData.append('image', file);
+      formData.append('productImage', file);
       formData.append('productId', productId);
       formData.append('altText', `Product image for ${productId}`);
       formData.append('category', 'product-images');
