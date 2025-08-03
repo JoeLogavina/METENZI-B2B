@@ -30,10 +30,14 @@ export class ProductImageService {
         // Return the URL for serving the image through our image system
         // Ensure proper URL format with /uploads prefix if not already present
         const filePath = productImage.filePath;
-        if (filePath.startsWith('uploads/')) {
-          return `/${filePath}`;
-        } else if (filePath.startsWith('/uploads/')) {
+        if (filePath.startsWith('/uploads/')) {
           return filePath;
+        } else if (filePath.startsWith('uploads/')) {
+          return `/${filePath}`;
+        } else if (filePath.startsWith('/products/')) {
+          return `/uploads${filePath}`;
+        } else if (filePath.startsWith('products/')) {
+          return `/uploads/${filePath}`;
         } else {
           // Fallback for legacy paths
           return `/uploads/${filePath}`;
@@ -67,10 +71,14 @@ export class ProductImageService {
 
       return images.map(img => {
         const filePath = img.filePath;
-        if (filePath.startsWith('uploads/')) {
-          return `/${filePath}`;
-        } else if (filePath.startsWith('/uploads/')) {
+        if (filePath.startsWith('/uploads/')) {
           return filePath;
+        } else if (filePath.startsWith('uploads/')) {
+          return `/${filePath}`;
+        } else if (filePath.startsWith('/products/')) {
+          return `/uploads${filePath}`;
+        } else if (filePath.startsWith('products/')) {
+          return `/uploads/${filePath}`;
         } else {
           // Fallback for legacy paths
           return `/uploads/${filePath}`;
