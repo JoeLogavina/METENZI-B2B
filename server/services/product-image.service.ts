@@ -28,7 +28,16 @@ export class ProductImageService {
 
       if (productImage) {
         // Return the URL for serving the image through our image system
-        return `/${productImage.filePath}`;
+        // Ensure proper URL format with /uploads prefix if not already present
+        const filePath = productImage.filePath;
+        if (filePath.startsWith('uploads/')) {
+          return `/${filePath}`;
+        } else if (filePath.startsWith('/uploads/')) {
+          return filePath;
+        } else {
+          // Fallback for legacy paths
+          return `/uploads/${filePath}`;
+        }
       }
 
       return null;
@@ -56,7 +65,17 @@ export class ProductImageService {
         )
         .orderBy(desc(productImages.isMain), desc(productImages.createdAt));
 
-      return images.map(img => `/${img.filePath}`);
+      return images.map(img => {
+        const filePath = img.filePath;
+        if (filePath.startsWith('uploads/')) {
+          return `/${filePath}`;
+        } else if (filePath.startsWith('/uploads/')) {
+          return filePath;
+        } else {
+          // Fallback for legacy paths
+          return `/uploads/${filePath}`;
+        }
+      });
     } catch (error) {
       console.error('Error fetching product images:', error);
       return [];
