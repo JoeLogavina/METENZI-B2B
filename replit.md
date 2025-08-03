@@ -33,6 +33,7 @@ Advanced security framework features:
 Other technical implementations:
 - **Enterprise Image Management System**: Hybrid database and file system for image storage with metadata tracking, organized file structure, and automatic thumbnail generation.
 - **Multi-Tenant Support**: URL-based tenant resolution supporting EUR and KM shops with currency-specific pricing.
+- **Component Unification**: Consistent product image display across all routes using unified ProductCard components and compact horizontal table layouts with proper image rendering.
 - **Performance Optimizations**: Critical performance indexes, single-query JSON aggregation, multi-layer caching with Redis, and optimized API endpoints.
 - **Code Splitting & Lazy Loading**: Route-based lazy loading for private routes and heavy components.
 - **Production Readiness**: Enterprise-grade structured logging with Winston, and comprehensive performance monitoring.

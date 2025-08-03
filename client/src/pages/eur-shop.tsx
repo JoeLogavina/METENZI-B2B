@@ -392,38 +392,228 @@ export default function EURShop() {
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-sm font-semibold text-gray-700">Found {products.length} EUR products</h3>
               <div className="text-sm text-gray-500 flex items-center">
-                <Grid className="w-4 h-4 mr-1" />
-                Grid View
+                <Package className="w-4 h-4 mr-1" />
+                List View
               </div>
             </div>
 
-            {/* Product Grid using ProductCard */}
-            {productsLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-[#FFB20F]" />
-                <span className="ml-2 text-gray-500">Loading EUR products...</span>
+            {/* Compact Horizontal Product Table */}
+            <div className="bg-white rounded-[8px] shadow-[0_2px_5px_rgba(0,0,0,0.1)] overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead className="bg-[#6E6F71] text-white">
+                    <tr>
+                      <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">SKU</th>
+                      <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">IMAGE</th>
+                      <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.5px]">PRODUCT</th>
+                      <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">PRICE</th>
+                      <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">REGION</th>
+                      <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">PLATFORM</th>
+                      <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">STOCK</th>
+                      <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">QUANTITY</th>
+                      <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">ACTION</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-[#e5e5e5]">
+                    {productsLoading ? (
+                      <tr>
+                        <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
+                          <div className="flex items-center justify-center">
+                            <Loader2 className="h-6 w-6 animate-spin text-[#FFB20F] mr-2" />
+                            Loading EUR products...
+                          </div>
+                        </td>
+                      </tr>
+                    ) : products.length === 0 ? (
+                      <tr>
+                        <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
+                          <div className="flex flex-col items-center">
+                            <Package className="h-12 w-12 text-gray-300 mb-2" />
+                            <span className="font-semibold">No EUR products found</span>
+                            <span className="text-sm">Try adjusting your filters</span>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      products.map((product: ProductWithStock) => (
+                        <CompactProductRow
+                          key={product.id}
+                          product={product}
+                          onAddToCart={handleAddToCart}
+                          isLoading={addingProductId === product.id}
+                          isInCart={cartItems.some((item: any) => item.productId === product.id)}
+                        />
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
-            ) : products.length === 0 ? (
-              <div className="text-center py-12">
-                <Package className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-600 mb-2">No EUR products found</h3>
-                <p className="text-gray-500">Try adjusting your filters to see more products.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {products.map((product: ProductWithStock) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    isInCart={cartItems.some((item: any) => item.productId === product.id)}
-                    onAddToCart={(productId) => handleAddToCart(product)}
-                  />
-                ))}
-              </div>
-            )}
+            </div>
           </div>
         </div>
       </div>
     </div>
+  );
+}
+
+function CompactProductRow({ 
+  product, 
+  onAddToCart, 
+  isLoading,
+  isInCart 
+}: { 
+  product: ProductWithStock; 
+  onAddToCart: (product: ProductWithStock) => void;
+  isLoading: boolean;
+  isInCart: boolean;
+}) {
+  const [quantity, setQuantity] = useState(1);
+
+  const formatEURPrice = (amount: number | string): string => {
+    const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+    return `€${numAmount.toFixed(2)}`;
+  };
+
+  return (
+    <tr className="hover:bg-[#f8f8f8] transition-colors duration-200">
+      {/* SKU */}
+      <td className="px-3 py-3 whitespace-nowrap text-center text-sm font-mono font-medium text-gray-900">
+        {product.sku || product.id.slice(0, 8).toUpperCase()}
+      </td>
+      
+      {/* IMAGE */}
+      <td className="px-3 py-3 whitespace-nowrap text-center">
+        <div className="w-12 h-12 bg-gray-50 rounded-[5px] flex items-center justify-center mx-auto overflow-hidden border border-gray-200">
+          {product.imageUrl ? (
+            <img 
+              src={product.imageUrl} 
+              alt={product.name}
+              className="w-full h-full object-cover rounded-[3px]"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+                target.nextElementSibling?.classList.remove('hidden');
+              }}
+              onLoad={() => {
+                console.log(`✅ Table image loaded: ${product.imageUrl} for ${product.name}`);
+              }}
+            />
+          ) : null}
+          <Package className={`w-6 h-6 text-gray-400 ${product.imageUrl ? 'hidden' : ''}`} />
+        </div>
+      </td>
+      
+      {/* PRODUCT */}
+      <td className="px-3 py-4">
+        <div className="flex items-center space-x-3">
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-semibold text-gray-900 truncate">
+              {product.name}
+            </div>
+            <div className="text-sm text-gray-500 truncate">
+              {product.description}
+            </div>
+          </div>
+        </div>
+      </td>
+      
+      {/* PRICE */}
+      <td className="px-3 py-3 whitespace-nowrap text-center">
+        <div className="text-sm font-mono font-semibold text-[#FFB20F]">
+          {formatEURPrice(product.price)}
+        </div>
+        <div className="text-xs text-gray-500">per license</div>
+      </td>
+      
+      {/* REGION */}
+      <td className="px-3 py-3 whitespace-nowrap text-center">
+        <Badge variant="outline" className="text-xs border-[#ddd] text-gray-700">
+          {product.region}
+        </Badge>
+      </td>
+      
+      {/* PLATFORM */}
+      <td className="px-3 py-3 whitespace-nowrap text-center">
+        <div className="flex items-center justify-center">
+          <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-700">
+            {product.platform}
+          </Badge>
+        </div>
+      </td>
+      
+      {/* STOCK */}
+      <td className="px-3 py-3 whitespace-nowrap text-center">
+        <div className="flex items-center justify-center">
+          {product.stockCount > 10 ? (
+            <Badge variant="default" className="bg-[#4CAF50] text-white text-xs px-2 py-1">
+              {product.stockCount}
+            </Badge>
+          ) : product.stockCount > 5 ? (
+            <Badge variant="secondary" className="bg-[#FF9800] text-white text-xs px-2 py-1">
+              {product.stockCount}
+            </Badge>
+          ) : product.stockCount > 0 ? (
+            <Badge variant="destructive" className="bg-[#F44336] text-white text-xs px-2 py-1">
+              {product.stockCount}
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="text-xs px-2 py-1 text-gray-500">
+              Out
+            </Badge>
+          )}
+        </div>
+      </td>
+      
+      {/* QUANTITY */}
+      <td className="px-3 py-3 whitespace-nowrap text-center">
+        <div className="flex items-center justify-center space-x-1">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setQuantity(Math.max(1, quantity - 1))}
+            className="h-6 w-6 p-0 border-[#ddd] hover:bg-[#f0f0f0]"
+          >
+            -
+          </Button>
+          <Input
+            type="number"
+            min="1"
+            max={product.stockCount}
+            value={quantity}
+            onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+            className="w-12 h-6 text-xs text-center border-[#ddd] focus:border-[#FFB20F]"
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setQuantity(Math.min(product.stockCount, quantity + 1))}
+            className="h-6 w-6 p-0 border-[#ddd] hover:bg-[#f0f0f0]"
+          >
+            +
+          </Button>
+        </div>
+      </td>
+      
+      {/* ACTION */}
+      <td className="px-3 py-3 whitespace-nowrap text-center">
+        <Button
+          size="sm"
+          onClick={() => onAddToCart(product)}
+          disabled={product.stockCount === 0 || isLoading || isInCart}
+          className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white border-0 px-4 py-1 rounded-[5px] text-xs font-medium transition-colors duration-200 disabled:bg-gray-300"
+        >
+          {isLoading ? (
+            <div className="flex items-center">
+              <div className="animate-spin rounded-full h-3 w-3 border-b border-white mr-1"></div>
+              ADD
+            </div>
+          ) : isInCart ? (
+            'IN CART'
+          ) : (
+            'ADD'
+          )}
+        </Button>
+      </td>
+    </tr>
   );
 }
