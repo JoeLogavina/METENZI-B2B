@@ -557,18 +557,18 @@ export default function EURShop() {
               /* Desktop Table Layout */
               <div className="bg-white rounded-[8px] shadow-[0_2px_5px_rgba(0,0,0,0.1)] overflow-hidden">
                 <div className="overflow-x-auto">
-                  <table className="min-w-full">
+                  <table className="w-full table-fixed">
                     <thead className="bg-[#6E6F71] text-white">
                       <tr>
-                        <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">SKU</th>
-                        <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">IMAGE</th>
-                        <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.5px]">PRODUCT</th>
-                        <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">PRICE</th>
-                        <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">REGION</th>
-                        <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">PLATFORM</th>
-                        <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">STOCK</th>
-                        <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">QUANTITY</th>
-                        <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">ACTION</th>
+                        <th className="w-[10%] px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">SKU</th>
+                        <th className="w-[8%] px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">IMAGE</th>
+                        <th className="w-[25%] px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.5px]">PRODUCT</th>
+                        <th className="w-[10%] px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">PRICE</th>
+                        <th className="w-[10%] px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">REGION</th>
+                        <th className="w-[12%] px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">PLATFORM</th>
+                        <th className="w-[8%] px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">STOCK</th>
+                        <th className="w-[8%] px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">QUANTITY</th>
+                        <th className="w-[9%] px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">ACTION</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-[#e5e5e5]">
