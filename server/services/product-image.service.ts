@@ -67,7 +67,8 @@ export class ProductImageService {
             eq(productImages.status, 'active')
           )
         )
-        .orderBy(desc(productImages.isMain), desc(productImages.createdAt));
+        .orderBy(desc(productImages.isMain), desc(productImages.createdAt))
+        .limit(1);
 
       return images.map(img => {
         const filePath = img.filePath;
