@@ -427,58 +427,93 @@ export default function OrdersPage() {
 
           </div>
 
-          <div className="space-y-6">
-            {orders.map((order) => (
-              <Card key={order.id} className="w-full">
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-1">
-                      <CardTitle className="text-xl font-semibold">
-                        Order {order.orderNumber}
-                      </CardTitle>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4" />
-                          {formatDateTime(order.createdAt)}
+          {/* Compact Orders Table Header */}
+          <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+            <div className="bg-gray-50 px-6 py-3 border-b">
+              <div className="grid grid-cols-12 gap-4 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <div className="col-span-2">Order Number</div>
+                <div className="col-span-2">Date</div>
+                <div className="col-span-1">Status</div>
+                <div className="col-span-1">Payment</div>
+                <div className="col-span-2">Method</div>
+                <div className="col-span-2">Amount</div>
+                <div className="col-span-2">Actions</div>
+              </div>
+            </div>
+            
+            {/* Compact Orders Rows */}
+            <div className="divide-y divide-gray-200">
+              {orders.map((order) => (
+                <div key={order.id}>
+                  {/* Main Order Row */}
+                  <div className="px-6 py-4 hover:bg-gray-50 transition-colors">
+                    <div className="grid grid-cols-12 gap-4 items-center">
+                      {/* Order Number */}
+                      <div className="col-span-2">
+                        <div className="font-semibold text-gray-900">{order.orderNumber}</div>
+                      </div>
+                      
+                      {/* Date */}
+                      <div className="col-span-2">
+                        <div className="text-sm text-gray-600">
+                          <Calendar className="h-4 w-4 inline mr-1" />
+                          {formatDate(order.createdAt)}
                         </div>
-                        <div className="flex items-center gap-1">
-                          <CreditCard className="h-4 w-4" />
-                          {order.paymentMethod === 'wallet' ? 'Wallet' : 'Credit Card'}
-                        </div>
+                      </div>
+                      
+                      {/* Status */}
+                      <div className="col-span-1">
                         <Badge className={getStatusColor(order.status)}>
                           {order.status === 'pending' && <Clock className="h-3 w-3 mr-1" />}
                           {order.status === 'completed' && <CheckCircle className="h-3 w-3 mr-1" />}
                           {order.status === 'cancelled' && <XCircle className="h-3 w-3 mr-1" />}
                           {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                         </Badge>
+                      </div>
+                      
+                      {/* Payment Status */}
+                      <div className="col-span-1">
                         <Badge className={getPaymentStatusColor(order.paymentStatus)}>
                           {order.paymentStatus.charAt(0).toUpperCase() + order.paymentStatus.slice(1)}
                         </Badge>
                       </div>
-                    </div>
-                    <div className="text-right flex items-center gap-3">
-                      <div className="text-2xl font-bold text-[#FFB20F]">
-                        {formatPrice(parseFloat(order.finalAmount || order.totalAmount))}
+                      
+                      {/* Payment Method */}
+                      <div className="col-span-2">
+                        <div className="text-sm text-gray-600 flex items-center">
+                          <CreditCard className="h-4 w-4 mr-1" />
+                          {order.paymentMethod === 'wallet' ? 'Wallet' : 'Credit Card'}
+                        </div>
                       </div>
-                      <Collapsible open={expandedOrders.has(order.id)} onOpenChange={() => toggleOrderExpansion(order.id)}>
-                        <CollapsibleTrigger asChild>
-                          <Button className="gap-2 bg-[#6699CC] hover:bg-[#5588BB] text-white px-3 py-1.5 text-sm">
-                            <span>View Order Details</span>
-                            {expandedOrders.has(order.id) ? (
-                              <ChevronDown className="h-3 w-3" />
-                            ) : (
-                              <ChevronRight className="h-3 w-3" />
-                            )}
-                          </Button>
-                        </CollapsibleTrigger>
-                      </Collapsible>
+                      
+                      {/* Amount */}
+                      <div className="col-span-2">
+                        <div className="text-lg font-bold text-[#FFB20F]">
+                          {formatPrice(parseFloat(order.finalAmount || order.totalAmount))}
+                        </div>
+                      </div>
+                      
+                      {/* Actions */}
+                      <div className="col-span-2">
+                        <Collapsible open={expandedOrders.has(order.id)} onOpenChange={() => toggleOrderExpansion(order.id)}>
+                          <CollapsibleTrigger asChild>
+                            <Button className="gap-2 bg-[#6699CC] hover:bg-[#5588BB] text-white px-3 py-1.5 text-sm">
+                              <span>Details</span>
+                              {expandedOrders.has(order.id) ? (
+                                <ChevronDown className="h-3 w-3" />
+                              ) : (
+                                <ChevronRight className="h-3 w-3" />
+                              )}
+                            </Button>
+                          </CollapsibleTrigger>
+                        </Collapsible>
+                      </div>
                     </div>
                   </div>
-                </CardHeader>
 
-                <CardContent>
+                  {/* Collapsible Order Details Content */}
                   <Collapsible open={expandedOrders.has(order.id)} onOpenChange={() => toggleOrderExpansion(order.id)}>
-                    <CollapsibleContent className="mt-4">
+                    <CollapsibleContent className="px-6 pb-4 border-t border-gray-200 bg-gray-50">
                   {/* Billing Information */}
                   <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
                     <h4 className="font-semibold mb-2">Billing Information</h4>
@@ -616,11 +651,11 @@ export default function OrdersPage() {
                       </div>
                     </div>
                   </div>
-                  </CollapsibleContent>
+                    </CollapsibleContent>
                   </Collapsible>
-                </CardContent>
-              </Card>
-            ))}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
