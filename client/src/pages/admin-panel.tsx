@@ -28,7 +28,9 @@ import {
   Wallet,
   DollarSign,
   CreditCard,
-  History
+  History,
+  UserCheck,
+  UserX
 } from "lucide-react";
 import WalletManagement from "@/components/wallet-management";
 import UserForm from "@/components/user-form";
@@ -483,6 +485,7 @@ export default function AdminPanel() {
                       <thead className="bg-[#6E6F71]">
                         <tr>
                           <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">User</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Company Name</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Email</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Role</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Wallet Balance</th>
@@ -493,14 +496,14 @@ export default function AdminPanel() {
                       <tbody className="bg-white divide-y divide-gray-200">
                         {usersLoading ? (
                           <tr>
-                            <td colSpan={6} className="px-6 py-12 text-center">
+                            <td colSpan={7} className="px-6 py-12 text-center">
                               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FFB20F] mx-auto"></div>
                               <p className="mt-2 text-[#6E6F71]">Loading users...</p>
                             </td>
                           </tr>
                         ) : (users || []).length === 0 ? (
                           <tr>
-                            <td colSpan={6} className="px-6 py-12 text-center">
+                            <td colSpan={7} className="px-6 py-12 text-center">
                               <Users className="mx-auto h-12 w-12 text-gray-400" />
                               <h3 className="mt-2 text-sm font-medium text-[#6E6F71]">No users found</h3>
                               <p className="mt-1 text-sm text-[#6E6F71]">Get started by creating a new user account.</p>
@@ -539,6 +542,9 @@ export default function AdminPanel() {
                                   </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-[#6E6F71]">
+                                  {userData.companyName || 'No company'}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-[#6E6F71]">
                                   {userData.email || 'No email'}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
@@ -573,40 +579,44 @@ export default function AdminPanel() {
                                     {userData.isActive ? 'Active' : 'Inactive'}
                                   </span>
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => {
-                                      setEditingUser(userData);
-                                      setShowUserForm(true);
-                                    }}
-                                    className="text-[#FFB20F] border-[#FFB20F] hover:bg-[#FFB20F] hover:text-white"
-                                  >
-                                    Edit
-                                  </Button>
-                                  {userData.role === 'b2b_user' && (
+                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                  <div className="flex items-center justify-end space-x-1">
                                     <Button
                                       size="sm"
-                                      variant="outline"
+                                      variant="ghost"
                                       onClick={() => {
-                                        setActiveSection('wallet-management');
-                                        // You could also set selected user here
+                                        setEditingUser(userData);
+                                        setShowUserForm(true);
                                       }}
-                                      className="text-[#6E6F71] border-[#6E6F71] hover:bg-[#6E6F71] hover:text-white"
+                                      className="text-[#FFB20F] hover:bg-[#FFB20F] hover:text-white p-2"
+                                      title="Edit user"
                                     >
-                                      <Wallet className="w-4 h-4 mr-1" />
-                                      Wallet
+                                      <Edit className="w-4 h-4" />
                                     </Button>
-                                  )}
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => toggleUserStatus(userData.id, !userData.isActive)}
-                                    className={userData.isActive ? 'text-red-600 border-red-600 hover:bg-red-600 hover:text-white' : 'text-green-600 border-green-600 hover:bg-green-600 hover:text-white'}
-                                  >
-                                    {userData.isActive ? 'Deactivate' : 'Activate'}
-                                  </Button>
+                                    {userData.role === 'b2b_user' && (
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => {
+                                          setActiveSection('wallet-management');
+                                          // You could also set selected user here
+                                        }}
+                                        className="text-[#6E6F71] hover:bg-[#6E6F71] hover:text-white p-2"
+                                        title="Manage wallet"
+                                      >
+                                        <Wallet className="w-4 h-4" />
+                                      </Button>
+                                    )}
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => toggleUserStatus(userData.id, !userData.isActive)}
+                                      className={userData.isActive ? 'text-red-600 hover:bg-red-600 hover:text-white p-2' : 'text-green-600 hover:bg-green-600 hover:text-white p-2'}
+                                      title={userData.isActive ? 'Deactivate user' : 'Activate user'}
+                                    >
+                                      {userData.isActive ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                                    </Button>
+                                  </div>
                                 </td>
                               </tr>
                             );
