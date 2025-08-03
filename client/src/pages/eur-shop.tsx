@@ -263,10 +263,9 @@ export default function EURShop() {
     return `€${numAmount.toFixed(2)}`;
   };
 
-  // Mobile detection for responsive sidebar - force enable for testing
+  // Mobile detection for responsive sidebar
   const { isMobile } = useDeviceDetection();
-  const shouldUseMobileSidebar = true; // Force mobile for testing
-  // const shouldUseMobileSidebar = isMobile || (typeof window !== 'undefined' && window.innerWidth <= 768);
+  const shouldUseMobileSidebar = isMobile || (typeof window !== 'undefined' && window.innerWidth <= 768);
 
   return (
     <div className="min-h-screen bg-[#f5f6f5] flex font-['Inter',-apple-system,BlinkMacSystemFont,sans-serif]">

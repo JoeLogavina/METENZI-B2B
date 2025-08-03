@@ -347,9 +347,8 @@ export default function B2BShop() {
     userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'SSR'
   });
 
-  // Use mobile sidebar layout for screens ≤768px - force enable for testing
-  const shouldUseMobileSidebar = true; // Force mobile for testing
-  // const shouldUseMobileSidebar = isMobile || (typeof window !== 'undefined' && window.innerWidth <= 768);
+  // Use mobile sidebar layout for screens ≤768px
+  const shouldUseMobileSidebar = isMobile || (typeof window !== 'undefined' && window.innerWidth <= 768);
 
   return (
     <div className="min-h-screen bg-[#f5f6f5] flex font-['Inter',-apple-system,BlinkMacSystemFont,sans-serif]">
