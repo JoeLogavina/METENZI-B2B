@@ -69,11 +69,17 @@ export class ProductImageService {
   async enhanceProductsWithImages(products: ProductWithStock[]): Promise<ProductWithStock[]> {
     const enhancedProducts = await Promise.all(
       products.map(async (product) => {
+        // DEBUG: Log what we're processing
+        console.log(`🔍 Processing product ${product.name} (${product.id}):`);
+        console.log(`  - Original imageUrl: ${product.imageUrl}`);
+        
         // First try to get image from new image management system
         const imageUrl = await this.getProductMainImageUrl(product.id);
+        console.log(`  - New system imageUrl: ${imageUrl}`);
         
         // If new image system has an image, use it; otherwise fall back to existing imageUrl
         const finalImageUrl = imageUrl || product.imageUrl;
+        console.log(`  - Final imageUrl: ${finalImageUrl}`);
 
         return {
           ...product,

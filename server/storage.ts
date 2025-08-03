@@ -231,9 +231,24 @@ export class DatabaseStorage implements IStorage {
         .orderBy(desc(products.createdAt));
 
 
+      // DEBUG: Log products before image enhancement
+      console.log('🔍 BEFORE image enhancement:', result.map(p => ({
+        id: p.id,
+        name: p.name,
+        imageUrl: p.imageUrl
+      })));
+
       // Enhance products with images from new image management system
       const { productImageService } = await import('./services/product-image.service');
       const enhancedProducts = await productImageService.enhanceProductsWithImages(result as ProductWithStock[]);
+      
+      // DEBUG: Log products after image enhancement
+      console.log('🔍 AFTER image enhancement:', enhancedProducts.map(p => ({
+        id: p.id,
+        name: p.name,
+        imageUrl: p.imageUrl
+      })));
+      
       return enhancedProducts;
     } catch (error) {
       console.error('Database error:', error);

@@ -116,6 +116,15 @@ const ProductCard = memo(function ProductCard({
     );
   }, [addToCartMutation.isPending, isInCart]);
 
+  // Enhanced debugging for image display
+  console.log(`🔍 ProductCard Debug for ${product.name}:`, {
+    productId: product.id,
+    imageUrl: product.imageUrl,
+    hasImageUrl: !!product.imageUrl,
+    imageUrlType: typeof product.imageUrl,
+    imageUrlLength: product.imageUrl?.length || 0
+  });
+
   return (
     <Card className="h-full flex flex-col">
       {/* Product Image */}
@@ -132,6 +141,12 @@ const ProductCard = memo(function ProductCard({
               const target = e.target as HTMLImageElement;
               console.error(`❌ Image failed to load: ${product.imageUrl} for product: ${product.name}`);
               console.error('Error details:', e);
+              console.error('Full image URL debug:', {
+                src: target.src,
+                originalUrl: product.imageUrl,
+                naturalWidth: target.naturalWidth,
+                naturalHeight: target.naturalHeight
+              });
               target.style.display = 'none';
               target.parentElement!.innerHTML = `
                 <div class="w-full h-full bg-gray-100 flex items-center justify-center">
