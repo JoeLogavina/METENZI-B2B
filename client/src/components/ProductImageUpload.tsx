@@ -74,14 +74,14 @@ export function ProductImageUpload({
       
       let newImageUrl = '';
       if (result.images && result.images.length > 0) {
-        // Use the file path from the first uploaded image
-        newImageUrl = `/${result.images[0].filePath}`;
+        // Use the URL from the first uploaded image (this includes the full path)
+        newImageUrl = result.images[0].url;
       } else if (result.data && result.data.filePath) {
         // Alternative response format
-        newImageUrl = `/${result.data.filePath}`;
+        newImageUrl = result.data.filePath;
       } else if (result.filePath) {
         // Direct filePath in response
-        newImageUrl = `/${result.filePath}`;
+        newImageUrl = result.filePath;
       } else {
         throw new Error('No file path returned from upload');
       }
@@ -89,10 +89,39 @@ export function ProductImageUpload({
       setPreviewUrl(newImageUrl);
       onImageUploaded(newImageUrl);
       
-      toast({
-        title: "Image Uploaded Successfully",
-        description: "Product image has been updated in the enterprise image system"
-      });
+      // Automatically save the product with the new image URL
+      try {
+        const saveResponse = await fetch(`/api/admin/products/${productId}`, {
+          method: 'PUT',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            imageUrl: newImageUrl
+          })
+        });
+
+        if (saveResponse.ok) {
+          toast({
+            title: "Image Updated Successfully",
+            description: "Product image has been saved and is now visible in the system"
+          });
+        } else {
+          toast({
+            title: "Image Uploaded",
+            description: "Image uploaded but you need to save the product to make it visible",
+            variant: "destructive"
+          });
+        }
+      } catch (saveError) {
+        console.error('Failed to save product:', saveError);
+        toast({
+          title: "Image Uploaded",
+          description: "Image uploaded but you need to save the product to make it visible",
+          variant: "destructive"
+        });
+      }
 
     } catch (error) {
       console.error('Upload error:', error);
