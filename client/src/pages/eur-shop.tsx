@@ -467,9 +467,9 @@ export default function EURShop() {
         </header>
 
         {/* Main Content Area with Vertical Filters */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex overflow-hidden max-w-full">
           {/* Advanced Filters Sidebar - Hidden on mobile */}
-          <div className={`${isMobile ? 'hidden' : 'w-80'} bg-white border-r border-[#ddd] p-4 overflow-y-auto`}>
+          <div className={`${isMobile ? 'hidden' : 'w-80'} bg-white border-r border-[#ddd] p-4 overflow-y-auto flex-shrink-0`}>
             <AdvancedProductFilters
               filters={{
                 search: filters.search,
@@ -503,7 +503,7 @@ export default function EURShop() {
           </div>
 
           {/* Products Section */}
-          <div className="flex-1 p-6 overflow-auto min-w-0">
+          <div className="flex-1 p-6 overflow-auto min-w-0 max-w-full">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-sm font-semibold text-gray-700">Found {products.length} EUR products</h3>
               <div className="text-sm text-gray-500 flex items-center">
@@ -551,9 +551,9 @@ export default function EURShop() {
               </div>
             ) : (
               /* Desktop Table Layout */
-              <div className="bg-white rounded-[8px] shadow-[0_2px_5px_rgba(0,0,0,0.1)] overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full table-fixed">
+              <div className="bg-white rounded-[8px] shadow-[0_2px_5px_rgba(0,0,0,0.1)] overflow-hidden max-w-full">
+                <div className="overflow-x-auto max-w-full">
+                  <table className="w-full table-fixed min-w-[800px]">
                     <thead className="bg-[#6E6F71] text-white">
                       <tr>
                         <th className="w-[10%] px-3 py-3 text-center text-xs font-semibold uppercase tracking-[0.5px]">SKU</th>
