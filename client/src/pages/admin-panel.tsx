@@ -484,13 +484,13 @@ export default function AdminPanel() {
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-[#6E6F71]">
                         <tr>
-                          <th className="px-6 py-3 text-center text-xs font-medium text-white uppercase tracking-wider">User</th>
-                          <th className="px-6 py-3 text-center text-xs font-medium text-white uppercase tracking-wider">Company Name</th>
-                          <th className="px-6 py-3 text-center text-xs font-medium text-white uppercase tracking-wider">Email</th>
-                          <th className="px-6 py-3 text-center text-xs font-medium text-white uppercase tracking-wider">Role</th>
-                          <th className="px-6 py-3 text-center text-xs font-medium text-white uppercase tracking-wider">Wallet Balance</th>
-                          <th className="px-6 py-3 text-center text-xs font-medium text-white uppercase tracking-wider">Status</th>
-                          <th className="px-6 py-3 text-center text-xs font-medium text-white uppercase tracking-wider">Actions</th>
+                          <th className="px-6 py-2 text-center text-xs font-medium text-white uppercase tracking-wider">User</th>
+                          <th className="px-6 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Company Name</th>
+                          <th className="px-6 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">Email</th>
+                          <th className="px-6 py-2 text-center text-xs font-medium text-white uppercase tracking-wider">Role</th>
+                          <th className="px-6 py-2 text-center text-xs font-medium text-white uppercase tracking-wider">Wallet Balance</th>
+                          <th className="px-6 py-2 text-center text-xs font-medium text-white uppercase tracking-wider">Status</th>
+                          <th className="px-6 py-2 text-center text-xs font-medium text-white uppercase tracking-wider">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
@@ -516,16 +516,16 @@ export default function AdminPanel() {
                             
                             return (
                               <tr key={userData.id} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 whitespace-nowrap">
+                                <td className="px-6 py-2 whitespace-nowrap">
                                   <div className="flex items-center">
-                                    <div className="flex-shrink-0 h-10 w-10">
-                                      <div className="h-10 w-10 bg-[#6E6F71] rounded-full flex items-center justify-center">
-                                        <span className="text-white text-sm font-medium">
+                                    <div className="flex-shrink-0 h-8 w-8">
+                                      <div className="h-8 w-8 bg-[#6E6F71] rounded-full flex items-center justify-center">
+                                        <span className="text-white text-xs font-medium">
                                           {userData.firstName?.charAt(0) || userData.username?.charAt(0) || 'U'}
                                         </span>
                                       </div>
                                     </div>
-                                    <div className="ml-4">
+                                    <div className="ml-3">
                                       <div className="text-sm font-medium text-[#6E6F71]">
                                         <button
                                           onClick={() => {
@@ -537,18 +537,18 @@ export default function AdminPanel() {
                                           {userData.firstName} {userData.lastName}
                                         </button>
                                       </div>
-                                      <div className="text-sm text-gray-500">@{userData.username}</div>
+                                      <div className="text-xs text-gray-500">@{userData.username}</div>
                                     </div>
                                   </div>
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-[#6E6F71] text-center">
+                                <td className="px-6 py-2 whitespace-nowrap text-sm text-[#6E6F71] text-left">
                                   {userData.companyName || 'No company'}
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-[#6E6F71] text-center">
+                                <td className="px-6 py-2 whitespace-nowrap text-sm text-[#6E6F71] text-left">
                                   {userData.email || 'No email'}
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-center">
-                                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                <td className="px-6 py-2 whitespace-nowrap text-center">
+                                  <span className={`px-2 inline-flex text-xs leading-4 font-semibold rounded-full ${
                                     userData.role === 'super_admin' ? 'bg-red-100 text-red-800' :
                                     userData.role === 'admin' ? 'bg-yellow-100 text-yellow-800' :
                                     'bg-blue-100 text-blue-800'
@@ -556,7 +556,7 @@ export default function AdminPanel() {
                                     {userData.role?.replace('_', ' ') || 'Unknown'}
                                   </span>
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-center">
+                                <td className="px-6 py-2 whitespace-nowrap text-center">
                                   {userData.role === 'b2b_user' && userWallet ? (
                                     <div className="text-sm">
                                       <div className="text-[#6E6F71] font-medium">
@@ -572,14 +572,14 @@ export default function AdminPanel() {
                                     <div className="text-sm text-gray-400">N/A</div>
                                   )}
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-center">
-                                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                <td className="px-6 py-2 whitespace-nowrap text-center">
+                                  <span className={`px-2 inline-flex text-xs leading-4 font-semibold rounded-full ${
                                     userData.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                                   }`}>
                                     {userData.isActive ? 'Active' : 'Inactive'}
                                   </span>
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                                <td className="px-6 py-2 whitespace-nowrap text-center text-sm font-medium">
                                   <div className="flex items-center justify-center space-x-1">
                                     <Button
                                       size="sm"
@@ -588,7 +588,7 @@ export default function AdminPanel() {
                                         setEditingUser(userData);
                                         setShowUserForm(true);
                                       }}
-                                      className="text-[#FFB20F] hover:bg-[#FFB20F] hover:text-white p-2"
+                                      className="text-[#FFB20F] hover:bg-[#FFB20F] hover:text-white p-1"
                                       title="Edit user"
                                     >
                                       <Edit className="w-4 h-4" />
@@ -601,7 +601,7 @@ export default function AdminPanel() {
                                           setActiveSection('wallet-management');
                                           // You could also set selected user here
                                         }}
-                                        className="text-[#6E6F71] hover:bg-[#6E6F71] hover:text-white p-2"
+                                        className="text-[#6E6F71] hover:bg-[#6E6F71] hover:text-white p-1"
                                         title="Manage wallet"
                                       >
                                         <Wallet className="w-4 h-4" />
@@ -612,7 +612,7 @@ export default function AdminPanel() {
                                         size="sm"
                                         variant="ghost"
                                         onClick={() => toggleUserStatus(userData.id, !userData.isActive)}
-                                        className={userData.isActive ? 'text-red-600 hover:bg-red-600 hover:text-white p-2' : 'text-green-600 hover:bg-green-600 hover:text-white p-2'}
+                                        className={userData.isActive ? 'text-red-600 hover:bg-red-600 hover:text-white p-1' : 'text-green-600 hover:bg-green-600 hover:text-white p-1'}
                                         title={userData.isActive ? 'Deactivate user' : 'Activate user'}
                                       >
                                         {userData.isActive ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
