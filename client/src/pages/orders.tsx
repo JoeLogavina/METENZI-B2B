@@ -429,7 +429,7 @@ export default function OrdersPage() {
 
           {/* Compact Orders Table Header */}
           <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-            <div className="bg-gray-50 px-6 py-3 border-b">
+            <div className="bg-gray-50 px-6 py-2 border-b">
               <div className="grid grid-cols-12 gap-4 text-xs font-medium text-gray-500 uppercase tracking-wider">
                 <div className="col-span-2">Order Number</div>
                 <div className="col-span-2">Date</div>
@@ -446,17 +446,19 @@ export default function OrdersPage() {
               {orders.map((order) => (
                 <div key={order.id}>
                   {/* Main Order Row */}
-                  <div className="px-6 py-4 hover:bg-gray-50 transition-colors">
+                  <div className={`px-6 py-1.5 hover:bg-gray-50 transition-colors ${
+                    expandedOrders.has(order.id) ? 'bg-blue-50 border-l-4 border-blue-400' : ''
+                  }`}>
                     <div className="grid grid-cols-12 gap-4 items-center">
                       {/* Order Number */}
                       <div className="col-span-2">
-                        <div className="font-semibold text-gray-900">{order.orderNumber}</div>
+                        <div className="font-semibold text-gray-900 text-sm">{order.orderNumber}</div>
                       </div>
                       
                       {/* Date */}
                       <div className="col-span-2">
-                        <div className="text-sm text-gray-600">
-                          <Calendar className="h-4 w-4 inline mr-1" />
+                        <div className="text-xs text-gray-600">
+                          <Calendar className="h-3 w-3 inline mr-1" />
                           {formatDate(order.createdAt)}
                         </div>
                       </div>
@@ -480,15 +482,15 @@ export default function OrdersPage() {
                       
                       {/* Payment Method */}
                       <div className="col-span-2">
-                        <div className="text-sm text-gray-600 flex items-center">
-                          <CreditCard className="h-4 w-4 mr-1" />
+                        <div className="text-xs text-gray-600 flex items-center">
+                          <CreditCard className="h-3 w-3 mr-1" />
                           {order.paymentMethod === 'wallet' ? 'Wallet' : 'Credit Card'}
                         </div>
                       </div>
                       
                       {/* Amount */}
                       <div className="col-span-2">
-                        <div className="text-lg font-bold text-[#FFB20F]">
+                        <div className="text-sm font-bold text-[#FFB20F]">
                           {formatPrice(parseFloat(order.finalAmount || order.totalAmount))}
                         </div>
                       </div>
