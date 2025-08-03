@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Image Upload - Enterprise Image Management System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        button {
+            background-color: #0066cc;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0052a3;
+        }
+        .upload-area {
+            border: 2px dashed #ddd;
+            padding: 20px;
+            text-align: center;
+            border-radius: 4px;
+            background-color: #fafafa;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+        .loading {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+        .image-preview {
+            margin-top: 10px;
+        }
+        .image-preview img {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🖼️ Enterprise Image Management System Test</h1>
+        <p>Test the new image upload and management functionality with real product images.</p>
+        
+        <form id="uploadForm" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="productId">Product ID:</label>
+                <select id="productId" name="productId" required>
+                    <option value="">Select a product...</option>
+                    <option value="c8994436-c791-4f53-a445-4ceca8b07118">Adobe Creative Suite Professional</option>
+                    <option value="6f32dddb-daac-41bb-8894-5e3f28a43db1">Visual Studio Professional Fixed</option>
+                    <option value="bfc43087-63b7-469b-8142-c5dea993f776">Microsoft Office 365 Business</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="categoryId">Category:</label>
+                <select id="categoryId" name="categoryId" required>
+                    <option value="">Select category...</option>
+                    <option value="creative-software">Creative Software</option>
+                    <option value="development-tools">Development Tools</option>
+                    <option value="business-apps">Business Applications</option>
+                    <option value="productivity">Productivity</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="productImage">Main Product Image:</label>
+                <div class="upload-area">
+                    <input type="file" id="productImage" name="productImage" accept="image/*" required>
+                    <p>Select the main product image (JPEG, PNG, WebP, GIF)</p>
+                </div>
+                <div id="mainPreview" class="image-preview"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="productImages">Additional Gallery Images:</label>
+                <div class="upload-area">
+                    <input type="file" id="productImages" name="productImages" accept="image/*" multiple>
+                    <p>Select additional gallery images (up to 4 additional images)</p>
+                </div>
+                <div id="galleryPreview" class="image-preview"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="altText">Alt Text:</label>
+                <input type="text" id="altText" name="altText" placeholder="Descriptive text for accessibility" required>
+            </div>
+
+            <div class="form-group">
+                <label for="caption">Caption (optional):</label>
+                <textarea id="caption" name="caption" rows="3" placeholder="Optional image caption or description"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="isMain" name="isMain" value="true" checked>
+                    Set main image as primary product image
+                </label>
+            </div>
+
+            <button type="submit">Upload Images</button>
+        </form>
+
+        <div id="result"></div>
+
+        <div style="margin-top: 40px;">
+            <h3>🔍 Test Image Retrieval</h3>
+            <button type="button" onclick="getProductImages()">Get Adobe Creative Suite Images</button>
+            <button type="button" onclick="getAnalytics()">Get Analytics Summary</button>
+            <div id="retrievalResult" style="margin-top: 20px;"></div>
+        </div>
+    </div>
+
+    <script>
+        // Preview selected images
+        document.getElementById('productImage').addEventListener('change', function(e) {
+            previewImage(e.target, 'mainPreview');
+        });
+
+        document.getElementById('productImages').addEventListener('change', function(e) {
+            previewMultipleImages(e.target, 'galleryPreview');
+        });
+
+        function previewImage(input, containerId) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                const img = document.createElement('img');
+                img.src = URL.createObjectURL(file);
+                img.onload = function() {
+                    URL.revokeObjectURL(this.src);
+                };
+                container.appendChild(img);
+            }
+        }
+
+        function previewMultipleImages(input, containerId) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            if (input.files) {
+                Array.from(input.files).forEach(file => {
+                    const img = document.createElement('img');
+                    img.src = URL.createObjectURL(file);
+                    img.onload = function() {
+                        URL.revokeObjectURL(this.src);
+                    };
+                    img.style.marginRight = '10px';
+                    img.style.marginBottom = '10px';
+                    container.appendChild(img);
+                });
+            }
+        }
+
+        // Handle form submission
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<div class="loading">Uploading images and processing...</div>';
+            
+            const formData = new FormData(this);
+            
+            try {
+                const response = await fetch('/api/images/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h4>✅ Upload Successful!</h4>
+                            <p><strong>Uploaded ${result.images ? result.images.length : 1} image(s)</strong></p>
+                            <pre>${JSON.stringify(result, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h4>❌ Upload Failed</h4>
+                            <p>${result.message || 'Unknown error occurred'}</p>
+                            <pre>${JSON.stringify(result, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h4>❌ Network Error</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        });
+
+        // Test image retrieval
+        async function getProductImages() {
+            const resultDiv = document.getElementById('retrievalResult');
+            resultDiv.innerHTML = '<div class="loading">Fetching product images...</div>';
+            
+            try {
+                const response = await fetch('/api/images/product/c8994436-c791-4f53-a445-4ceca8b07118');
+                const result = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h4>📸 Product Images Retrieved</h4>
+                            <pre>${JSON.stringify(result, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h4>❌ Retrieval Failed</h4>
+                            <p>${result.message || 'Unknown error occurred'}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h4>❌ Network Error</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function getAnalytics() {
+            const resultDiv = document.getElementById('retrievalResult');
+            resultDiv.innerHTML = '<div class="loading">Fetching analytics...</div>';
+            
+            try {
+                const response = await fetch('/api/images/analytics/summary');
+                const result = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h4>📊 Analytics Summary</h4>
+                            <pre>${JSON.stringify(result, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h4>❌ Analytics Failed</h4>
+                            <p>${result.message || 'Unknown error occurred'}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h4>❌ Network Error</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

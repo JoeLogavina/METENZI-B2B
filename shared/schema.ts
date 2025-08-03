@@ -10,9 +10,13 @@ import {
   decimal,
   boolean,
   pgEnum,
+  uuid,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+
+// Import image schemas
+export * from './image-schema';
 
 // Session storage table (mandatory for Replit Auth)
 export const sessions = pgTable(

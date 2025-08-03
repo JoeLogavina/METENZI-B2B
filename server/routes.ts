@@ -10,6 +10,7 @@ import { sql, eq, and } from "drizzle-orm";
 import { adminRouter } from "./routes/admin";
 import { errorHandler } from "./middleware/auth.middleware";
 import { securityTestRoutes } from "./routes/security-test.routes";
+import imageRoutes from "./routes/images.routes";
 import { 
   productsCacheMiddleware, 
   walletCacheMiddleware, 
@@ -1389,6 +1390,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+
+  // Image management routes
+  app.use('/api/images', imageRoutes);
 
   // Error handling middleware (must be last)
   app.use(errorHandler);
