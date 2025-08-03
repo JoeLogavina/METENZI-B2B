@@ -69,8 +69,22 @@ export function ProductImageUpload({
 
       const result = await response.json();
       
-      // The new image URL from our enterprise system
-      const newImageUrl = `/${result.data.filePath}`;
+      // Handle the response format from enterprise image management system
+      console.log('Upload response:', result);
+      
+      let newImageUrl = '';
+      if (result.images && result.images.length > 0) {
+        // Use the file path from the first uploaded image
+        newImageUrl = `/${result.images[0].filePath}`;
+      } else if (result.data && result.data.filePath) {
+        // Alternative response format
+        newImageUrl = `/${result.data.filePath}`;
+      } else if (result.filePath) {
+        // Direct filePath in response
+        newImageUrl = `/${result.filePath}`;
+      } else {
+        throw new Error('No file path returned from upload');
+      }
       
       setPreviewUrl(newImageUrl);
       onImageUploaded(newImageUrl);
