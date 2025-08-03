@@ -5,6 +5,9 @@ import { userEditRouter } from './user-edit.routes';
 import licenseKeysRoutes from './license-keys.routes';
 import walletRoutes from './wallet.routes';
 import { authenticate, requireRole, rateLimit } from '../../middleware/auth.middleware';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 
 const router = Router();
 
@@ -38,12 +41,15 @@ router.get('/dashboard', async (req, res) => {
 });
 
 // General image upload endpoint for new products
-router.post('/upload-image', async (req, res) => {
+
+// Simple upload route that doesn't require a product ID (for new products)
+router.post('/upload-image', (req, res) => {
   try {
+    // Use require() to avoid import issues
     const multer = require('multer');
     const path = require('path');
     const fs = require('fs');
-
+    
     const storage = multer.diskStorage({
       destination: function (req: any, file: any, cb: any) {
         const uploadPath = path.join(process.cwd(), 'uploads/products/2025/08/general');
@@ -55,7 +61,7 @@ router.post('/upload-image', async (req, res) => {
       filename: function (req: any, file: any, cb: any) {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
         const ext = path.extname(file.originalname);
-        cb(null, 'product-' + req.body.productId || 'new' + '-' + uniqueSuffix + ext);
+        cb(null, 'product-new-' + uniqueSuffix + ext);
       }
     });
 
@@ -77,6 +83,7 @@ router.post('/upload-image', async (req, res) => {
 
     upload.single('image')(req, res, function (err: any) {
       if (err) {
+        console.error('Multer error:', err);
         return res.status(400).json({
           error: 'UPLOAD_ERROR',
           message: err.message
@@ -101,7 +108,7 @@ router.post('/upload-image', async (req, res) => {
       });
     });
   } catch (error) {
-    console.error('Upload error:', error);
+    console.error('Upload route error:', error);
     res.status(500).json({
       error: 'INTERNAL_SERVER_ERROR',
       message: 'Failed to upload image'
