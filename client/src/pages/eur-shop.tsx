@@ -422,27 +422,23 @@ export default function EURShop() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <header className={`bg-[#6E6F71] border-b border-[#5a5b5d] px-6 py-4 shadow-[0_2px_5px_rgba(0,0,0,0.1)] ${isMobile ? 'pl-16' : ''}`}>
+        <header className={`bg-[#6E6F71] border-b border-[#5a5b5d] px-4 py-3 shadow-[0_2px_5px_rgba(0,0,0,0.1)] ${isMobile ? 'pl-16' : ''}`}>
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Package className="w-6 h-6 text-white" />
+            <div className="flex items-center space-x-3">
+              <Package className="w-5 h-5 text-white" />
               <div>
-                <h1 className="text-2xl font-semibold text-white uppercase tracking-[0.5px]">
-                  B2B SOFTWARE SHOP (EUR)
+                <h1 className="text-xl font-semibold text-white uppercase tracking-[0.5px]">
+                  B2B SHOP
                 </h1>
-                <p className="text-sm text-gray-300">EUR Currency Enterprise Solutions</p>
+                <p className="text-xs text-gray-300">EUR Currency Enterprise Solutions</p>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
-              <div className="text-sm text-white flex items-center">
-                <Package className="w-4 h-4 mr-1" />
-                <span className="font-mono font-medium">{products.length}</span> available
-              </div>
+            <div className="flex items-center space-x-3">
               <Button
                 size="sm"
                 onClick={logout}
                 disabled={isLoggingOut}
-                className="relative bg-[#E15554] hover:bg-[#c74443] text-white border-0 px-4 py-2 rounded-[5px] font-medium transition-colors duration-200"
+                className="relative bg-[#E15554] hover:bg-[#c74443] text-white border-0 px-3 py-2 rounded-[5px] font-medium transition-colors duration-200"
               >
                 {isLoggingOut ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
@@ -456,7 +452,7 @@ export default function EURShop() {
                   onMouseEnter={() => setIsCartHovered(true)}
                   onMouseLeave={() => setIsCartHovered(false)}
                   onClick={() => setLocation('/eur/cart')}
-                  className="relative bg-[#FFB20F] hover:bg-[#e6a00e] text-white border-0 px-5 py-2 rounded-[5px] font-medium transition-colors duration-200"
+                  className="relative bg-[#FFB20F] hover:bg-[#e6a00e] text-white border-0 px-4 py-2 rounded-[5px] font-medium transition-colors duration-200"
                 >
                   <ShoppingCart className="h-4 w-4" />
                   {cartItemCount > 0 && (
