@@ -341,8 +341,86 @@ export default function EURShop() {
         </div>
       )}
 
+      {/* Mobile Menu Overlay */}
+      {isMobile && isMobileMenuOpen && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+          
+          {/* Menu */}
+          <div className="fixed left-0 top-0 h-full w-64 bg-[var(--sidebar-bg)] shadow-xl flex flex-col">
+            {/* Header with Close Button */}
+            <div className="p-4 border-b border-[rgba(255,255,255,0.1)] flex items-center justify-between">
+              <div className="text-white">
+                <h1 className="text-lg font-semibold tracking-tight">
+                  B2B SOFTWARE SHOP (EUR)
+                </h1>
+                <p className="text-xs text-[#c1c7cd]">EUR Currency</p>
+              </div>
+              <button
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="text-white p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Navigation */}
+            <nav className="flex-1 p-3">
+              <ul className="space-y-1">
+                {sidebarItems.map((item, index) => (
+                  <li key={index}>
+                    <button
+                      onClick={() => {
+                        window.location.href = item.href;
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className={`w-full flex items-center px-3 py-2.5 text-sm rounded-md transition-colors duration-200 ${
+                        item.active
+                          ? 'bg-[#FFB20F] text-black font-semibold'
+                          : 'text-white hover:bg-[var(--sidebar-hover)] hover:text-white'
+                      } ${item.admin ? 'border-t border-[rgba(255,255,255,0.1)] mt-3 pt-3' : ''}`}
+                    >
+                      <item.icon className="w-5 h-5 mr-3" />
+                      <span className="font-medium text-sm">{item.label}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+
+            {/* User section at bottom */}
+            <div className="p-3 border-t border-[rgba(255,255,255,0.1)]">
+              <div className="flex items-center mb-3">
+                <div className="w-8 h-8 bg-[#FFB20F] rounded-full flex items-center justify-center">
+                  <User className="w-4 h-4 text-black" />
+                </div>
+                <div className="ml-3 text-white">
+                  <p className="text-sm font-medium">{user?.firstName} {user?.lastName}</p>
+                  <p className="text-xs text-[#c1c7cd]">{user?.email}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  logout();
+                  setIsMobileMenuOpen(false);
+                }}
+                disabled={isLoggingOut}
+                className="w-full flex items-center px-3 py-2 text-sm text-white hover:bg-[var(--sidebar-hover)] rounded-md transition-colors duration-200"
+              >
+                <LogOut className="w-4 h-4 mr-3" />
+                <span className="text-sm">{isLoggingOut ? 'Logging out...' : 'Logout'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
         <header className={`bg-[#6E6F71] border-b border-[#5a5b5d] px-6 py-4 shadow-[0_2px_5px_rgba(0,0,0,0.1)] ${isMobile ? 'pl-16' : ''}`}>
           <div className="flex items-center justify-between">
@@ -393,7 +471,7 @@ export default function EURShop() {
         </header>
 
         {/* Main Content Area with Vertical Filters */}
-        <div className={`flex-1 flex overflow-hidden ${isMobile ? 'pl-4' : ''}`}>
+        <div className="flex-1 flex overflow-hidden">
           {/* Advanced Filters Sidebar - Hidden on mobile */}
           <div className={`${isMobile ? 'hidden' : 'w-80'} bg-white border-r border-[#ddd] p-4 overflow-y-auto`}>
             <AdvancedProductFilters
@@ -429,7 +507,7 @@ export default function EURShop() {
           </div>
 
           {/* Products Section */}
-          <div className="flex-1 p-6 overflow-auto">
+          <div className="flex-1 p-6 overflow-auto min-w-0">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-sm font-semibold text-gray-700">Found {products.length} EUR products</h3>
               <div className="text-sm text-gray-500 flex items-center">
