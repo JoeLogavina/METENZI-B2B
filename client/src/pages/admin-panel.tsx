@@ -693,8 +693,23 @@ export default function AdminPanel() {
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="flex items-center">
                                   <div className="flex-shrink-0 h-10 w-10">
-                                    <div className="h-10 w-10 rounded-lg bg-[#4D9DE0] flex items-center justify-center">
-                                      <Package className="h-5 w-5 text-white" />
+                                    <div className="h-10 w-10 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center overflow-hidden">
+                                      {product.imageUrl ? (
+                                        <img 
+                                          src={product.imageUrl} 
+                                          alt={product.name}
+                                          className="w-full h-full object-cover rounded-lg"
+                                          onError={(e) => {
+                                            const target = e.target as HTMLImageElement;
+                                            target.style.display = 'none';
+                                            target.nextElementSibling?.classList.remove('hidden');
+                                          }}
+                                          onLoad={() => {
+                                            console.log(`✅ Admin table image loaded: ${product.imageUrl} for ${product.name}`);
+                                          }}
+                                        />
+                                      ) : null}
+                                      <Package className={`h-5 w-5 text-gray-400 ${product.imageUrl ? 'hidden' : ''}`} />
                                     </div>
                                   </div>
                                   <div className="ml-4">
