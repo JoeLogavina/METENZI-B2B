@@ -25,6 +25,7 @@ import AdvancedProductFilters from "@/components/AdvancedProductFilters";
 // Mobile Components
 import { useDeviceDetection } from "@/hooks/mobile/useDeviceDetection";
 import { MobileB2BShop } from "@/components/mobile/MobileB2BShop";
+import { MobileSidebar } from "@/components/mobile/MobileSidebar";
 import { testDeviceDetection } from "@/utils/deviceTest";
 import { MobileDebugPanel } from "@/components/debug/MobileDebugPanel";
 
@@ -336,7 +337,7 @@ export default function B2BShop() {
     { icon: HelpCircle, label: "SUPPORT", active: false, href: "/support", allowed: true },
   ].filter(item => item.allowed);
 
-  // Mobile-first conditional rendering with enhanced debugging
+  // Mobile-responsive layout with collapsible sidebar
   const deviceTest = typeof window !== 'undefined' ? testDeviceDetection() : null;
   
   console.log('🔍 B2B Shop render check:', { 
@@ -346,33 +347,16 @@ export default function B2BShop() {
     userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'SSR'
   });
 
-  // Force mobile mode if screen width is small enough
-  const shouldShowMobile = isMobile || (typeof window !== 'undefined' && window.innerWidth <= 768);
-
-  if (shouldShowMobile) {
-    console.log('📱 Rendering mobile B2B shop interface');
-    return (
-      <MobileB2BShop
-        filters={filters}
-        setFilters={setFilters}
-        viewMode={viewMode}
-        setViewMode={setViewMode}
-        products={products}
-        productsLoading={productsLoading}
-        selectedProduct={selectedProduct}
-        setSelectedProduct={setSelectedProduct}
-        isModalOpen={isModalOpen}
-        setIsModalOpen={setIsModalOpen}
-      />
-    );
-  }
-
-  console.log('🖥️ Rendering desktop B2B shop interface');
+  // Use mobile sidebar layout for screens ≤768px
+  const shouldUseMobileSidebar = isMobile || (typeof window !== 'undefined' && window.innerWidth <= 768);
 
   return (
     <div className="min-h-screen bg-[#f5f6f5] flex font-['Inter',-apple-system,BlinkMacSystemFont,sans-serif]">
-      {/* Sidebar */}
-      <div className="w-64 text-white flex-shrink-0 bg-[#404040]">
+      {/* Conditional Sidebar Rendering */}
+      {shouldUseMobileSidebar ? (
+        <MobileSidebar sidebarItems={sidebarItems} user={user} />
+      ) : (
+        <div className="w-64 text-white flex-shrink-0 bg-[#404040]">
         <div className="p-4 border-b border-[#5a5b5d]">
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 bg-[#FFB20F] rounded flex items-center justify-center">
@@ -404,9 +388,11 @@ export default function B2BShop() {
             </div>
           ))}
         </nav>
-      </div>
+        </div>
+      )}
+      
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className={`flex-1 flex flex-col ${shouldUseMobileSidebar ? 'ml-16' : ''}`}>
         {/* Header */}
         <header className="bg-[#6E6F71] border-b border-[#5a5b5d] px-6 py-4 shadow-[0_2px_5px_rgba(0,0,0,0.1)]">
           <div className="flex items-center justify-between">
