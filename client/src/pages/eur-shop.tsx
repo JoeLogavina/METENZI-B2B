@@ -466,6 +466,24 @@ export default function EURShop() {
           </div>
         </header>
 
+        {/* Mobile Search Bar - Only visible on mobile */}
+        {isMobile && (
+          <div className="bg-[#6E6F71] px-4 pb-3 border-b border-[#5a5b5d]">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Keywords, Model #, Item #"
+                value={filters.search}
+                onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                className="w-full px-4 py-2.5 pr-10 bg-white border border-gray-300 rounded-lg text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FFB20F] focus:border-[#FFB20F] transition-colors duration-200"
+              />
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                <Search className="w-4 h-4 text-gray-400" />
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Main Content Area with Vertical Filters */}
         <div className="flex-1 flex overflow-hidden max-w-full">
           {/* Advanced Filters Sidebar - Hidden on mobile */}
