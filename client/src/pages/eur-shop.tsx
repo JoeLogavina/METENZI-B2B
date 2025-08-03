@@ -271,6 +271,64 @@ export default function EURShop() {
 
   return (
     <div className="min-h-screen bg-[#f5f6f5] flex font-['Inter',-apple-system,BlinkMacSystemFont,sans-serif]">
+      {/* Desktop Sidebar - Show on Desktop */}
+      {!isMobile && (
+        <div className="w-64 bg-[var(--sidebar-bg)] shadow-sm border-r border-[#ddd] flex flex-col">
+          {/* Header */}
+          <div className="p-4 border-b border-[rgba(255,255,255,0.1)]">
+            <div className="text-white">
+              <h1 className="text-xl font-semibold text-center tracking-tight">
+                B2B SOFTWARE SHOP (EUR)
+              </h1>
+              <p className="text-sm text-[#c1c7cd] mt-1 text-center">EUR Currency</p>
+              <p className="text-xs text-[#c1c7cd] text-center">Enterprise Solutions</p>
+            </div>
+          </div>
+
+          {/* Navigation */}
+          <nav className="flex-1 p-3">
+            <ul className="space-y-1">
+              {sidebarItems.map((item, index) => (
+                <li key={index}>
+                  <button
+                    onClick={() => window.location.href = item.href}
+                    className={`w-full flex items-center px-3 py-2.5 text-sm rounded-md transition-colors duration-200 ${
+                      item.active
+                        ? 'bg-[#FFB20F] text-black font-semibold'
+                        : 'text-white hover:bg-[var(--sidebar-hover)] hover:text-white'
+                    } ${item.admin ? 'border-t border-[rgba(255,255,255,0.1)] mt-3 pt-3' : ''}`}
+                  >
+                    <item.icon className="w-5 h-5 mr-3" />
+                    <span className="font-medium text-sm">{item.label}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </nav>
+
+          {/* User section at bottom */}
+          <div className="p-3 border-t border-[rgba(255,255,255,0.1)]">
+            <div className="flex items-center mb-3">
+              <div className="w-8 h-8 bg-[#FFB20F] rounded-full flex items-center justify-center">
+                <User className="w-4 h-4 text-black" />
+              </div>
+              <div className="ml-3 text-white">
+                <p className="text-sm font-medium">{user?.firstName} {user?.lastName}</p>
+                <p className="text-xs text-[#c1c7cd]">{user?.email}</p>
+              </div>
+            </div>
+            <button
+              onClick={logout}
+              disabled={isLoggingOut}
+              className="w-full flex items-center px-3 py-2 text-sm text-white hover:bg-[var(--sidebar-hover)] rounded-md transition-colors duration-200"
+            >
+              <LogOut className="w-4 h-4 mr-3" />
+              <span className="text-sm">{isLoggingOut ? 'Logging out...' : 'Logout'}</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Mobile Hamburger Button */}
       {isMobile && (
         <div className="fixed top-4 left-4 z-40 md:hidden">
