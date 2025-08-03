@@ -90,15 +90,15 @@ export default function CheckoutPage() {
   const form = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
     defaultValues: {
-      companyName: "",
-      firstName: "",
-      lastName: "",
+      companyName: user?.companyName || "",
+      firstName: user?.firstName || "",
+      lastName: user?.lastName || "",
       email: user?.email || "",
-      phone: "",
-      address: "",
-      city: "",
+      phone: user?.phone || "",
+      address: user?.address || "",
+      city: user?.city || "",
       postalCode: "",
-      country: "",
+      country: user?.country || "",
       paymentMethod: "credit_card",
       cardNumber: "",
       expiryDate: "",
@@ -122,6 +122,29 @@ export default function CheckoutPage() {
       return;
     }
   }, [isAuthenticated, isLoading, toast]);
+
+  // Update form values when user data loads
+  useEffect(() => {
+    if (user && !isLoading) {
+      form.reset({
+        companyName: user.companyName || "",
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        address: user.address || "",
+        city: user.city || "",
+        postalCode: "",
+        country: user.country || "",
+        paymentMethod: "credit_card",
+        cardNumber: "",
+        expiryDate: "",
+        cvv: "",
+        cardHolderName: "",
+        poNumber: "",
+      });
+    }
+  }, [user, isLoading, form]);
 
   // Fetch cart items
   const { data: cartItems = [], isLoading: cartLoading } = useQuery<CartItem[]>({
