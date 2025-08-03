@@ -62,12 +62,12 @@ export function MobileSidebar({ sidebarItems, user }: MobileSidebarProps) {
         <>
           {/* Backdrop */}
           <div 
-            className="fixed inset-0 bg-black bg-opacity-50 z-45"
+            className="fixed inset-0 bg-black bg-opacity-50 z-[45]"
             onClick={() => setIsExpanded(false)}
           />
           
           {/* Expanded Sidebar */}
-          <div className="fixed left-0 top-0 h-full w-64 bg-[#404040] z-50 flex flex-col transform transition-transform duration-300">
+          <div className="fixed left-0 top-0 h-full w-64 bg-[#404040] z-[50] flex flex-col transform transition-transform duration-300">
             {/* Header */}
             <div className="p-4 border-b border-[#5a5b5d]">
               <div className="flex items-center justify-between">
