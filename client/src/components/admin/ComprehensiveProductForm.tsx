@@ -64,7 +64,7 @@ export function ComprehensiveProductForm({ onCancel, onSuccess }: ComprehensiveP
 
   // Fetch categories for hierarchical selection
   const { data: categories = [] } = useQuery<Category[]>({
-    queryKey: ["/api/admin/categories"],
+    queryKey: ["/api/categories"],
   });
 
   // Get license counts for stock calculation reference

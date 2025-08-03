@@ -46,6 +46,7 @@ export const HierarchicalCategorySelector: React.FC<HierarchicalCategorySelector
       
       if (cat.parentId && categoryMap.has(cat.parentId)) {
         const parent = categoryMap.get(cat.parentId)!;
+        if (!parent.children) parent.children = [];
         parent.children.push(categoryWithChildren);
       } else {
         rootCategories.push(categoryWithChildren);
@@ -149,7 +150,7 @@ export const HierarchicalCategorySelector: React.FC<HierarchicalCategorySelector
 
         {isExpanded && hasChildren && (
           <div>
-            {category.children.map(child => renderCategoryOption(child, depth + 1))}
+            {category.children?.map(child => renderCategoryOption(child, depth + 1))}
           </div>
         )}
       </div>
