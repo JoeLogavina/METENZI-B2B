@@ -446,8 +446,23 @@ function KMProductRow({ product, onAddToCart, isLoading }: {
         {product.sku || product.id.slice(0, 8).toUpperCase()}
       </td>
       <td className="px-3 py-3 whitespace-nowrap text-center">
-        <div className="w-10 h-10 bg-gray-200 rounded-[5px] flex items-center justify-center mx-auto overflow-hidden">
-          <Package className="w-6 h-6 text-gray-400" />
+        <div className="w-12 h-12 bg-gray-50 rounded-[5px] flex items-center justify-center mx-auto overflow-hidden border border-gray-200">
+          {product.imageUrl ? (
+            <img 
+              src={product.imageUrl} 
+              alt={product.name}
+              className="w-full h-full object-cover rounded-[3px]"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+                target.nextElementSibling?.classList.remove('hidden');
+              }}
+              onLoad={() => {
+                console.log(`✅ KM table image loaded: ${product.imageUrl} for ${product.name}`);
+              }}
+            />
+          ) : null}
+          <Package className={`w-6 h-6 text-gray-400 ${product.imageUrl ? 'hidden' : ''}`} />
         </div>
       </td>
       <td className="px-3 py-3">
