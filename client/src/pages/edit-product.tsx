@@ -10,6 +10,7 @@ import { ArrowLeft, Save, Plus, Trash2, Copy, Key } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { isUnauthorizedError } from '@/lib/authUtils';
+import { ProductImageUpload } from '@/components/ProductImageUpload';
 
 export default function EditProduct() {
   const [location, navigate] = useLocation();
@@ -461,16 +462,11 @@ export default function EditProduct() {
                 </div>
 
                 <div className="md:col-span-2">
-                  <Label htmlFor="imageUrl" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
-                    IMAGE URL
-                  </Label>
-                  <Input
-                    id="imageUrl"
-                    type="url"
-                    value={formData.imageUrl}
-                    onChange={(e) => handleFormChange('details', 'imageUrl', e.target.value)}
+                  <ProductImageUpload
+                    productId={productId || ''}
+                    currentImageUrl={formData.imageUrl}
+                    onImageUploaded={(imageUrl) => handleFormChange('details', 'imageUrl', imageUrl)}
                     className="mt-1"
-                    placeholder="https://example.com/image.jpg"
                   />
                 </div>
 
