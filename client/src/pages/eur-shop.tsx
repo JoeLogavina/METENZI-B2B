@@ -410,7 +410,7 @@ export default function EURShop() {
             {/* Responsive Product Layout */}
             {shouldUseMobileSidebar ? (
               /* Mobile Grid Layout - 2 products per row */
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2 px-2">
                 {productsLoading ? (
                   <div className="col-span-2 py-8 text-center text-gray-500">
                     <div className="flex items-center justify-center">
@@ -519,9 +519,9 @@ function MobileProductCard({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 flex flex-col">
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2 flex flex-col h-full">
       {/* Product Image */}
-      <div className="w-full h-24 bg-gray-50 rounded-md flex items-center justify-center mb-3 overflow-hidden">
+      <div className="w-full h-16 bg-gray-50 rounded-md flex items-center justify-center mb-2 overflow-hidden">
         {product.imageUrl ? (
           <img 
             src={product.imageUrl} 
@@ -534,50 +534,47 @@ function MobileProductCard({
             }}
           />
         ) : null}
-        <Package className={`w-8 h-8 text-gray-400 ${product.imageUrl ? 'hidden' : ''}`} />
+        <Package className={`w-6 h-6 text-gray-400 ${product.imageUrl ? 'hidden' : ''}`} />
       </div>
 
       {/* Product Info */}
-      <div className="flex-1 mb-3">
-        <h3 className="text-sm font-semibold text-gray-900 mb-1 line-clamp-2 leading-tight">
+      <div className="flex-1 mb-2">
+        <h3 className="text-xs font-semibold text-gray-900 mb-1 line-clamp-2 leading-tight">
           {product.name}
         </h3>
-        <p className="text-xs text-gray-500 mb-2 line-clamp-2">
-          {product.description}
-        </p>
         
         {/* Price */}
-        <div className="text-lg font-bold text-[#FFB20F] mb-2">
+        <div className="text-sm font-bold text-[#FFB20F] mb-2">
           {formatEURPrice(product.price)}
         </div>
 
         {/* Meta Info */}
         <div className="flex flex-wrap gap-1 mb-2">
-          <Badge variant="outline" className="text-xs px-1 py-0.5 border-gray-300">
+          <Badge variant="outline" className="text-xs px-1 py-0.5 border-gray-300 text-xs">
             {product.region}
           </Badge>
-          <Badge variant="secondary" className="text-xs px-1 py-0.5 bg-gray-100">
+          <Badge variant="secondary" className="text-xs px-1 py-0.5 bg-gray-100 text-xs">
             {product.platform}
           </Badge>
         </div>
 
         {/* Stock Status */}
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-2">
           <span className="text-xs text-gray-500">Stock:</span>
           {product.stockCount > 10 ? (
-            <Badge variant="default" className="bg-[#4CAF50] text-white text-xs px-2 py-0.5">
+            <Badge variant="default" className="bg-[#4CAF50] text-white text-xs px-1 py-0.5">
               {product.stockCount}
             </Badge>
           ) : product.stockCount > 5 ? (
-            <Badge variant="secondary" className="bg-[#FF9800] text-white text-xs px-2 py-0.5">
+            <Badge variant="secondary" className="bg-[#FF9800] text-white text-xs px-1 py-0.5">
               {product.stockCount}
             </Badge>
           ) : product.stockCount > 0 ? (
-            <Badge variant="destructive" className="bg-[#F44336] text-white text-xs px-2 py-0.5">
+            <Badge variant="destructive" className="bg-[#F44336] text-white text-xs px-1 py-0.5">
               {product.stockCount}
             </Badge>
           ) : (
-            <Badge variant="outline" className="text-xs px-2 py-0.5 text-gray-500">
+            <Badge variant="outline" className="text-xs px-1 py-0.5 text-gray-500">
               Out
             </Badge>
           )}
@@ -589,10 +586,10 @@ function MobileProductCard({
         size="sm"
         onClick={() => onAddToCart(product)}
         disabled={isLoading || product.stockCount === 0 || isInCart}
-        className="w-full bg-[#FFB20F] hover:bg-[#e6a00e] text-black font-semibold text-xs py-2"
+        className="w-full bg-[#FFB20F] hover:bg-[#e6a00e] text-black font-semibold text-xs py-1.5"
       >
         {isLoading ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <Loader2 className="h-3 w-3 animate-spin" />
         ) : isInCart ? (
           "Added"
         ) : (
