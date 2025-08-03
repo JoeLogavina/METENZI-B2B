@@ -25,6 +25,8 @@ import {
   ChevronDown,
   ChevronUp,
   Loader2,
+  Menu,
+  X,
 } from "lucide-react";
 import type { ProductWithStock } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
@@ -33,7 +35,7 @@ import { useDebounce } from "use-debounce";
 import AdvancedProductFilters from "@/components/AdvancedProductFilters";
 import ProductCard from "@/components/optimized/ProductCard";
 import { useDeviceDetection } from "@/hooks/mobile/useDeviceDetection";
-import { MobileSidebar } from "@/components/mobile/MobileSidebar";
+
 
 // EUR-specific shop component with proper tenant isolation
 export default function EURShop() {
@@ -263,57 +265,28 @@ export default function EURShop() {
     return `€${numAmount.toFixed(2)}`;
   };
 
-  // Mobile detection for responsive sidebar
+  // Mobile detection for hamburger menu
   const { isMobile } = useDeviceDetection();
-  const shouldUseMobileSidebar = isMobile || (typeof window !== 'undefined' && window.innerWidth <= 768);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-[#f5f6f5] flex font-['Inter',-apple-system,BlinkMacSystemFont,sans-serif]">
-      {/* Conditional Sidebar Rendering */}
-      {shouldUseMobileSidebar ? (
-        <MobileSidebar sidebarItems={sidebarItems} user={user} />
-      ) : (
-        <div className="w-64 text-white flex-shrink-0 bg-[#404040]">
-        <div className="p-4 border-b border-[#5a5b5d]">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-[#FFB20F] rounded flex items-center justify-center">
-              <Package className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="font-semibold text-sm uppercase tracking-[0.5px]">EUR PORTAL</h2>
-              <p className="text-xs text-gray-300 uppercase tracking-[0.5px]">ENTERPRISE</p>
-            </div>
-          </div>
-        </div>
-
-        <nav className="mt-4">
-          {sidebarItems.map((item, index) => (
-            <div
-              key={index}
-              className={`flex items-center px-4 py-3 text-lg transition-colors duration-200 cursor-pointer ${
-                item.active 
-                  ? 'bg-[#FFB20F] text-white border-r-2 border-[#e6a00e]' 
-                  : (item as any).admin
-                  ? 'text-white hover:bg-[#5a5b5d] border-l-2 border-yellow-400'
-                  : 'text-white hover:bg-[#7a7b7d]'
-              }`}
-              onClick={() => setLocation(item.href)}
-            >
-              <item.icon className="w-6 h-6 mr-3" />
-              <span className="uppercase tracking-[0.5px] font-medium text-sm">{item.label}</span>
-              {(item as any).admin && (
-                <span className="ml-auto text-xs bg-yellow-400 text-black px-2 py-1 rounded">ADMIN</span>
-              )}
-            </div>
-          ))}
-        </nav>
+      {/* Mobile Hamburger Button */}
+      {isMobile && (
+        <div className="fixed top-4 left-4 z-40 md:hidden">
+          <button
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="bg-[var(--sidebar-bg)] text-white p-2 rounded-md shadow-lg"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
         </div>
       )}
 
       {/* Main Content */}
-      <div className={`flex-1 flex flex-col ${shouldUseMobileSidebar ? 'ml-16' : ''}`}>
+      <div className="flex-1 flex flex-col">
         {/* Header */}
-        <header className="bg-[#6E6F71] border-b border-[#5a5b5d] px-6 py-4 shadow-[0_2px_5px_rgba(0,0,0,0.1)]">
+        <header className={`bg-[#6E6F71] border-b border-[#5a5b5d] px-6 py-4 shadow-[0_2px_5px_rgba(0,0,0,0.1)] ${isMobile ? 'pl-16' : ''}`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <Package className="w-6 h-6 text-white" />
@@ -362,9 +335,9 @@ export default function EURShop() {
         </header>
 
         {/* Main Content Area with Vertical Filters */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className={`flex-1 flex overflow-hidden ${isMobile ? 'pl-4' : ''}`}>
           {/* Advanced Filters Sidebar - Hidden on mobile */}
-          <div className={`${shouldUseMobileSidebar ? 'hidden' : 'w-80'} bg-white border-r border-[#ddd] p-4 overflow-y-auto`}>
+          <div className={`${isMobile ? 'hidden' : 'w-80'} bg-white border-r border-[#ddd] p-4 overflow-y-auto`}>
             <AdvancedProductFilters
               filters={{
                 search: filters.search,
@@ -410,11 +383,11 @@ export default function EURShop() {
             {/* Debug Info */}
             <div className="mb-2 p-2 bg-blue-50 text-xs text-blue-700 rounded">
               DEBUG: Screen width: {typeof window !== 'undefined' ? window.innerWidth : 'SSR'}, 
-              shouldUseMobileSidebar: {shouldUseMobileSidebar ? 'TRUE' : 'FALSE'}
+              isMobile: {isMobile ? 'TRUE' : 'FALSE'}
             </div>
 
             {/* Responsive Product Layout */}
-            {shouldUseMobileSidebar ? (
+            {isMobile ? (
               /* Mobile Grid Layout - 2 products per row */
               <div className="mobile-grid-2 md:hidden">
                 {productsLoading ? (
