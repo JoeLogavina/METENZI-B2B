@@ -144,4 +144,43 @@ router.patch('/:id',
   adminUsersController.updateUser.bind(adminUsersController)
 );
 
+// Branch Management Routes
+
+// GET /api/admin/users/:id/branches - Get all branches for a company
+router.get('/:id/branches',
+  authorize(Permissions.USER_READ),
+  validateRequest({ params: userParamsSchema }),
+  auditLog('admin:users:list-branches'),
+  adminUsersController.getUserBranches.bind(adminUsersController)
+);
+
+// POST /api/admin/users/:id/branches - Create new branch for a company
+const createBranchSchema = z.object({
+  username: z.string().min(3, 'Username must be at least 3 characters'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+  email: z.string().email().optional(),
+  branchName: z.string().min(1, 'Branch name is required'),
+  branchCode: z.string().optional(),
+  companyName: z.string().optional(),
+  tenantId: z.string().default('eur'),
+});
+
+router.post('/:id/branches',
+  authorize(Permissions.USER_CREATE),
+  validateRequest({ 
+    params: userParamsSchema,
+    body: createBranchSchema
+  }),
+  auditLog('admin:users:create-branch'),
+  adminUsersController.createBranch.bind(adminUsersController)
+);
+
+// GET /api/admin/users/:id/hierarchy - Get company hierarchy (main company + all branches)
+router.get('/:id/hierarchy',
+  authorize(Permissions.USER_READ),
+  validateRequest({ params: userParamsSchema }),
+  auditLog('admin:users:view-hierarchy'),
+  adminUsersController.getCompanyHierarchy.bind(adminUsersController)
+);
+
 export { router as adminUsersRouter };

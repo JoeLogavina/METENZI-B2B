@@ -37,6 +37,23 @@ export interface IStorage {
   updateUser(id: string, updateData: Partial<User>): Promise<User>;
   updateUserRole(id: string, role: "b2b_user" | "admin" | "super_admin"): Promise<void>;
   getAllUsers(): Promise<User[]>;
+  
+  // Branch management operations
+  createBranchUser(parentCompanyId: string, branchData: {
+    username: string;
+    password: string;
+    email?: string;
+    branchName: string;
+    branchCode?: string;
+    companyName?: string;
+    tenantId: string;
+  }): Promise<User>;
+  getUserBranches(parentCompanyId: string): Promise<User[]>;
+  getMainCompanyFromBranch(branchUserId: string): Promise<User | undefined>;
+  getCompanyHierarchy(userId: string): Promise<{
+    mainCompany: User;
+    branches: User[];
+  } | undefined>;
 
   // Product operations
   getProducts(filters?: {
@@ -127,6 +144,84 @@ export class DatabaseStorage implements IStorage {
       .values(insertUser)
       .returning();
     return user;
+  }
+
+  // Branch management operations
+  async createBranchUser(parentCompanyId: string, branchData: {
+    username: string;
+    password: string;
+    email?: string;
+    branchName: string;
+    branchCode?: string;
+    companyName?: string;
+    tenantId: string;
+  }): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values({
+        ...branchData,
+        parentCompanyId,
+        branchType: "branch",
+        role: "b2b_user",
+        isActive: true,
+      })
+      .returning();
+    return user;
+  }
+
+  async getUserBranches(parentCompanyId: string): Promise<User[]> {
+    return await db
+      .select()
+      .from(users)
+      .where(and(
+        eq(users.parentCompanyId, parentCompanyId),
+        eq(users.branchType, "branch")
+      ));
+  }
+
+  async getMainCompanyFromBranch(branchUserId: string): Promise<User | undefined> {
+    const [branch] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, branchUserId));
+    
+    if (!branch?.parentCompanyId) return undefined;
+    
+    const [mainCompany] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, branch.parentCompanyId));
+    
+    return mainCompany;
+  }
+
+  async getCompanyHierarchy(userId: string): Promise<{
+    mainCompany: User;
+    branches: User[];
+  } | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId));
+    
+    if (!user) return undefined;
+    
+    // If user is a branch, get the main company
+    let mainCompanyId = user.branchType === "branch" ? user.parentCompanyId! : user.id;
+    
+    const [mainCompany] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, mainCompanyId));
+    
+    if (!mainCompany) return undefined;
+    
+    const branches = await this.getUserBranches(mainCompanyId);
+    
+    return {
+      mainCompany,
+      branches
+    };
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {

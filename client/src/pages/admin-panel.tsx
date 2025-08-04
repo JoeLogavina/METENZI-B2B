@@ -42,6 +42,8 @@ import { Badge } from "@/components/ui/badge";
 import { CategoryManagement } from "@/components/admin/CategoryManagement";
 import { EmbeddedKeyManagement } from "@/components/admin/EmbeddedKeyManagement";
 import { ComprehensiveProductForm } from "@/components/admin/ComprehensiveProductForm";
+import { BranchManagement } from "@/components/admin/BranchManagement";
+import { UserDetailView } from "@/components/admin/UserDetailView";
 
 interface DashboardStats {
   totalUsers: number;
@@ -50,11 +52,80 @@ interface DashboardStats {
   totalProducts: number;
 }
 
+// State-based navigation types
+type AdminView = 
+  | 'dashboard'
+  | 'users'
+  | 'user-detail'
+  | 'user-branches'
+  | 'products'
+  | 'product-detail'
+  | 'categories'
+  | 'license-keys'
+  | 'orders'
+  | 'wallet'
+  | 'reports'
+  | 'settings'
+  | 'security';
+
+interface AdminState {
+  currentView: AdminView;
+  selectedUserId?: string;
+  selectedProductId?: string;
+  breadcrumb: Array<{ label: string; view: AdminView; id?: string }>;
+}
+
 export default function AdminPanel() {
   const { user, isLoading, isAuthenticated, logout, isLoggingOut } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
+
+  // State-based navigation
+  const [adminState, setAdminState] = useState<AdminState>({
+    currentView: 'dashboard',
+    breadcrumb: [{ label: 'Dashboard', view: 'dashboard' }]
+  });
+
+  // Navigation functions
+  const navigateTo = (view: AdminView, id?: string, label?: string) => {
+    const newBreadcrumb = [...adminState.breadcrumb];
+    
+    // Find if this view already exists in breadcrumb
+    const existingIndex = newBreadcrumb.findIndex(item => item.view === view && item.id === id);
+    
+    if (existingIndex !== -1) {
+      // Truncate breadcrumb to the existing item
+      newBreadcrumb.splice(existingIndex + 1);
+    } else {
+      // Add new breadcrumb item
+      if (label) {
+        newBreadcrumb.push({ label, view, id });
+      }
+    }
+
+    setAdminState({
+      currentView: view,
+      selectedUserId: view === 'user-detail' || view === 'user-branches' ? id : undefined,
+      selectedProductId: view === 'product-detail' ? id : undefined,
+      breadcrumb: newBreadcrumb
+    });
+  };
+
+  const navigateBack = () => {
+    if (adminState.breadcrumb.length > 1) {
+      const newBreadcrumb = [...adminState.breadcrumb];
+      newBreadcrumb.pop();
+      const previousItem = newBreadcrumb[newBreadcrumb.length - 1];
+      
+      setAdminState({
+        currentView: previousItem.view,
+        selectedUserId: previousItem.view === 'user-detail' || previousItem.view === 'user-branches' ? previousItem.id : undefined,
+        selectedProductId: previousItem.view === 'product-detail' ? previousItem.id : undefined,
+        breadcrumb: newBreadcrumb
+      });
+    }
+  };
 
   // Helper function to format currency based on user's tenant
   const formatCurrency = (amount: string | number, userTenantId?: string) => {
@@ -66,15 +137,7 @@ export default function AdminPanel() {
     }
   };
   
-  // Check if we're on the edit product page
-  const urlParams = new URLSearchParams(window.location.search);
-  const urlEditProductId = urlParams.get('id');
-  const isEditProductPage = window.location.pathname === '/admin/products/edit' && urlEditProductId;
-  
-  // Edit product ID state
-  const [editProductId, setEditProductId] = useState(urlEditProductId);
-  
-  const [activeSection, setActiveSection] = useState(isEditProductPage ? "edit-product" : "dashboard");
+  const [activeSection, setActiveSection] = useState("dashboard");
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [showUserForm, setShowUserForm] = useState(false);

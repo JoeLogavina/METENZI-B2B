@@ -327,6 +327,109 @@ export class AdminUsersController {
       });
     }
   }
+
+  // Branch Management Methods
+
+  async getUserBranches(req: Request, res: Response) {
+    try {
+      const { id } = userParamsSchema.parse(req.params);
+      
+      const storage = await import('../../storage');
+      const branches = await storage.storage.getUserBranches(id);
+      
+      // Remove passwords from response
+      const branchesWithoutPasswords = branches.map(({ password, ...branch }) => branch);
+      
+      res.json({
+        data: branchesWithoutPasswords,
+        message: 'Branches retrieved successfully'
+      });
+    } catch (error) {
+      if (isServiceError(error)) {
+        return res.status(error.statusCode).json(formatErrorResponse(error));
+      }
+      res.status(500).json({
+        error: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to get user branches'
+      });
+    }
+  }
+
+  async createBranch(req: Request, res: Response) {
+    try {
+      const { id: parentCompanyId } = userParamsSchema.parse(req.params);
+      const branchSchema = z.object({
+        username: z.string().min(3, 'Username must be at least 3 characters'),
+        password: z.string().min(6, 'Password must be at least 6 characters'),
+        email: z.string().email().optional(),
+        branchName: z.string().min(1, 'Branch name is required'),
+        branchCode: z.string().optional(),
+        companyName: z.string().optional(),
+        tenantId: z.string().default('eur'),
+      });
+      const branchData = branchSchema.parse(req.body);
+
+      // Hash password
+      const bcrypt = await import('bcrypt');
+      const hashedPassword = await bcrypt.hash(branchData.password, 10);
+      
+      const storage = await import('../../storage');
+      const branch = await storage.storage.createBranchUser(parentCompanyId, {
+        ...branchData,
+        password: hashedPassword
+      });
+      
+      const { password, ...branchWithoutPassword } = branch;
+      res.status(201).json({
+        data: branchWithoutPassword,
+        message: 'Branch created successfully'
+      });
+    } catch (error) {
+      if (isServiceError(error)) {
+        return res.status(error.statusCode).json(formatErrorResponse(error));
+      }
+      res.status(500).json({
+        error: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to create branch'
+      });
+    }
+  }
+
+  async getCompanyHierarchy(req: Request, res: Response) {
+    try {
+      const { id } = userParamsSchema.parse(req.params);
+      
+      const storage = await import('../../storage');
+      const hierarchy = await storage.storage.getCompanyHierarchy(id);
+      
+      if (!hierarchy) {
+        return res.status(404).json({
+          error: 'NOT_FOUND',
+          message: 'Company hierarchy not found'
+        });
+      }
+      
+      // Remove passwords from response
+      const { password: mainPassword, ...mainCompanyWithoutPassword } = hierarchy.mainCompany;
+      const branchesWithoutPasswords = hierarchy.branches.map(({ password, ...branch }) => branch);
+      
+      res.json({
+        data: {
+          mainCompany: mainCompanyWithoutPassword,
+          branches: branchesWithoutPasswords
+        },
+        message: 'Company hierarchy retrieved successfully'
+      });
+    } catch (error) {
+      if (isServiceError(error)) {
+        return res.status(error.statusCode).json(formatErrorResponse(error));
+      }
+      res.status(500).json({
+        error: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to get company hierarchy'
+      });
+    }
+  }
 }
 
 export const adminUsersController = new AdminUsersController();

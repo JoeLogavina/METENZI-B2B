@@ -1,0 +1,208 @@
+import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Building, Users, Mail, Phone, MapPin, Calendar, ArrowLeft } from "lucide-react";
+import { Label } from "@/components/ui/label";
+
+interface User {
+  id: string;
+  username: string;
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  role: string;
+  isActive: boolean;
+  companyName?: string;
+  contactPerson?: string;
+  phone?: string;
+  country?: string;
+  city?: string;
+  address?: string;
+  vatOrRegistrationNo?: string;
+  branchType: 'main' | 'branch';
+  branchName?: string;
+  branchCode?: string;
+  parentCompanyId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface UserDetailViewProps {
+  userId: string;
+  onBack: () => void;
+  onViewBranches: () => void;
+}
+
+export function UserDetailView({ userId, onBack, onViewBranches }: UserDetailViewProps) {
+  const { data: user, isLoading } = useQuery<{ data: User }>({
+    queryKey: ['admin', 'users', userId],
+    queryFn: () => apiRequest(`/api/admin/users/${userId}`)
+  });
+
+  if (isLoading) {
+    return <div className="p-6">Loading user details...</div>;
+  }
+
+  if (!user?.data) {
+    return <div className="p-6">User not found</div>;
+  }
+
+  const userData = user.data;
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="sm" onClick={onBack}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">User Details</h2>
+            <p className="text-gray-600">{userData.username}</p>
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          {userData.branchType === 'main' && (
+            <Button
+              onClick={onViewBranches}
+              className="bg-spanish-yellow hover:bg-spanish-yellow/90 text-black"
+            >
+              <Users className="h-4 w-4 mr-2" />
+              View Branches
+            </Button>
+          )}
+          <Badge variant={userData.isActive ? "default" : "secondary"}>
+            {userData.isActive ? 'Active' : 'Inactive'}
+          </Badge>
+        </div>
+      </div>
+
+      {/* Basic Information */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Mail className="h-5 w-5" />
+            Basic Information
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div>
+            <Label className="text-sm font-medium text-gray-600">Username</Label>
+            <p className="font-semibold">{userData.username}</p>
+          </div>
+          <div>
+            <Label className="text-sm font-medium text-gray-600">Email</Label>
+            <p className="font-semibold">{userData.email || 'N/A'}</p>
+          </div>
+          <div>
+            <Label className="text-sm font-medium text-gray-600">Role</Label>
+            <Badge variant="outline">{userData.role}</Badge>
+          </div>
+          <div>
+            <Label className="text-sm font-medium text-gray-600">First Name</Label>
+            <p className="font-semibold">{userData.firstName || 'N/A'}</p>
+          </div>
+          <div>
+            <Label className="text-sm font-medium text-gray-600">Last Name</Label>
+            <p className="font-semibold">{userData.lastName || 'N/A'}</p>
+          </div>
+          <div>
+            <Label className="text-sm font-medium text-gray-600">Account Type</Label>
+            <Badge variant={userData.branchType === 'main' ? "default" : "secondary"}>
+              {userData.branchType === 'main' ? 'Main Company' : 'Branch'}
+            </Badge>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Company Information */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Building className="h-5 w-5" />
+            Company Information
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div>
+            <Label className="text-sm font-medium text-gray-600">Company Name</Label>
+            <p className="font-semibold">{userData.companyName || 'N/A'}</p>
+          </div>
+          <div>
+            <Label className="text-sm font-medium text-gray-600">Contact Person</Label>
+            <p className="font-semibold">{userData.contactPerson || 'N/A'}</p>
+          </div>
+          <div>
+            <Label className="text-sm font-medium text-gray-600">VAT/Registration No</Label>
+            <p className="font-semibold">{userData.vatOrRegistrationNo || 'N/A'}</p>
+          </div>
+          {userData.branchType === 'branch' && (
+            <>
+              <div>
+                <Label className="text-sm font-medium text-gray-600">Branch Name</Label>
+                <p className="font-semibold">{userData.branchName || 'N/A'}</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-gray-600">Branch Code</Label>
+                <p className="font-semibold">{userData.branchCode || 'N/A'}</p>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Contact Information */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Phone className="h-5 w-5" />
+            Contact Information
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div>
+            <Label className="text-sm font-medium text-gray-600">Phone</Label>
+            <p className="font-semibold">{userData.phone || 'N/A'}</p>
+          </div>
+          <div>
+            <Label className="text-sm font-medium text-gray-600">Country</Label>
+            <p className="font-semibold">{userData.country || 'N/A'}</p>
+          </div>
+          <div>
+            <Label className="text-sm font-medium text-gray-600">City</Label>
+            <p className="font-semibold">{userData.city || 'N/A'}</p>
+          </div>
+          <div className="md:col-span-2 lg:col-span-3">
+            <Label className="text-sm font-medium text-gray-600">Address</Label>
+            <p className="font-semibold">{userData.address || 'N/A'}</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Account Information */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            Account Information
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <Label className="text-sm font-medium text-gray-600">Created At</Label>
+            <p className="font-semibold">{new Date(userData.createdAt).toLocaleDateString()}</p>
+          </div>
+          <div>
+            <Label className="text-sm font-medium text-gray-600">Last Updated</Label>
+            <p className="font-semibold">{new Date(userData.updatedAt).toLocaleDateString()}</p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

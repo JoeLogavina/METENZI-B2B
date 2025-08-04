@@ -32,6 +32,9 @@ export const sessions = pgTable(
 // User roles enum
 export const userRoleEnum = pgEnum("user_role", ["b2b_user", "admin", "super_admin"]);
 
+// Branch type enum
+export const branchTypeEnum = pgEnum("branch_type", ["main_company", "branch"]);
+
 // Order counter table for sequential order numbers
 export const orderCounters = pgTable("order_counters", {
   id: varchar("id").primaryKey().default("main"),
@@ -61,9 +64,18 @@ export const users = pgTable("users", {
   // Optional B2B Client Fields
   contactPerson: varchar("contact_person"),
   companyDescription: text("company_description"),
+  // Branch/Hierarchy Fields
+  parentCompanyId: varchar("parent_company_id"), // References parent company user ID
+  branchType: branchTypeEnum("branch_type").default("main_company").notNull(),
+  branchName: varchar("branch_name"), // Name of the branch (e.g., "Poslovnica Centar")
+  branchCode: varchar("branch_code"), // Unique code for branch identification
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => [
+  index("users_parent_company_idx").on(table.parentCompanyId),
+  index("users_branch_type_idx").on(table.branchType),
+  index("users_tenant_idx").on(table.tenantId),
+]);
 
 // Product categories with hierarchy support
 export const categories = pgTable("categories", {
@@ -255,6 +267,12 @@ export const usersRelations = relations(users, ({ many, one }) => ({
     references: [adminPermissions.userId],
   }),
   customPricing: many(userProductPricing),
+  // Hierarchical relations
+  parentCompany: one(users, {
+    fields: [users.parentCompanyId],
+    references: [users.id],
+  }),
+  branches: many(users),
 }));
 
 export const productsRelations = relations(products, ({ one, many }) => ({
