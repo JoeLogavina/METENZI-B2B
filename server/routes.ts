@@ -961,8 +961,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('User visible products count:', userPricing.length);
         console.log('Sample product for debugging:', userPricing[0]);
         
-        // Filter by search and other criteria if provided
-        products = userPricing.filter((product: any) => {
+        // If user has no custom pricing configured, fallback to all products with B2B pricing
+        if (userPricing.length === 0) {
+          console.log('No custom pricing found for user, falling back to all products with B2B pricing');
+          const allProducts = await storage.getProducts(filters);
+          
+          // Transform to use B2B pricing for B2B users
+          const b2bProducts = allProducts.map(product => ({
+            ...product,
+            price: product.b2bPrice || product.price,
+            originalPrice: product.price,
+            isCustomPricing: false
+          }));
+          
+          products = b2bProducts;
+        } else {
+          // Filter by search and other criteria if provided
+          products = userPricing.filter((product: any) => {
           // Search filter
           if (filters.search) {
             const searchLower = filters.search.toLowerCase();
@@ -1041,8 +1056,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
           
-          return true;
-        });
+            return true;
+          });
+        }
         
         console.log('Filtered products count:', products.length);
       } else {
