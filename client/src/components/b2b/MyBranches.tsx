@@ -14,7 +14,7 @@ import {
   Plus, 
   MapPin, 
   Mail, 
-  User,
+  User as UserIcon,
   Shield,
   Briefcase
 } from "lucide-react";
@@ -289,7 +289,7 @@ export function MyBranches({}: MyBranchesProps) {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-gray-500" />
+                      <UserIcon className="h-4 w-4 text-gray-500" />
                       <div>
                         <Label className="text-sm font-medium text-gray-600">Username</Label>
                         <p className="font-semibold">{branch.username}</p>

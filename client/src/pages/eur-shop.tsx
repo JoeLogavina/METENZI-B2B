@@ -27,6 +27,7 @@ import {
   Loader2,
   Menu,
   X,
+  Building2,
 } from "lucide-react";
 import type { ProductWithStock } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
@@ -51,15 +52,7 @@ export default function EURShop() {
       const isAdmin = user.role === 'admin' || user.role === 'super_admin';
       const isB2BUser = user.role === 'b2b_user';
       
-      // Redirect B2B users to B2B shop
-      if (isB2BUser) {
-        toast({
-          title: "Redirecting",
-          description: "B2B users should use the B2B shop. Redirecting...",
-        });
-        setLocation('/b2b-shop');
-        return;
-      }
+      // B2B users can access EUR shop - no redirect needed
       
       // Allow admin users to access any tenant shop, otherwise enforce tenant restriction
       if (!isAdmin && user.tenantId !== 'eur') {
@@ -262,6 +255,7 @@ export default function EURShop() {
   const sidebarItems = [
     { icon: Package, label: "EUR SHOP", active: true, href: "/eur", allowed: true },
     { icon: Grid, label: "CATALOG", active: false, href: "/eur", allowed: true },
+    { icon: Building2, label: "MY BRANCHES", active: false, href: "/my-branches", allowed: user?.role === 'b2b_user' },
     { icon: ShoppingCart, label: "MY CART", active: false, href: "/eur/cart", allowed: true },
     { icon: FileText, label: "ORDERS", active: false, href: "/orders", allowed: true },
     { icon: CreditCard, label: "MY WALLET", active: false, href: "/wallet", allowed: true },

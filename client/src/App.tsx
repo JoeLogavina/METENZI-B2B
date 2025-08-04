@@ -29,7 +29,6 @@ import AdminLogin from "@/pages/admin-login";
 import NotFound from "@/pages/not-found";
 
 // Private pages (lazy-loaded to reduce initial bundle size)
-const B2BShop = lazy(() => import("@/pages/b2b-shop"));
 import EURShop from "@/pages/eur-shop";
 const KMShop = lazy(() => import("@/pages/km-shop"));
 const CartPage = lazy(() => import("@/pages/cart"));
@@ -78,9 +77,9 @@ function Router() {
               if (user?.role === 'admin' || user?.role === 'super_admin') {
                 setLocation('/admin-panel');
               } 
-              // Redirect B2B users to B2B shop (regardless of tenant)
+              // Redirect B2B users to EUR shop (regardless of tenant)
               else if (user?.role === 'b2b_user') {
-                setLocation('/b2b-shop');
+                setLocation('/eur');
               }
               // Redirect regular users to their tenant shop
               else if (user?.tenantId === 'km') {
@@ -124,11 +123,7 @@ function Router() {
               <KMShop />
             </Suspense>
           )} />
-          <Route path="/b2b-shop" component={() => (
-            <Suspense fallback={<ShopLoadingFallback />}>
-              <B2BShop />
-            </Suspense>
-          )} />
+
           <Route path="/cart" component={() => (
             <Suspense fallback={<CartLoadingFallback />}>
               <CartPage />
