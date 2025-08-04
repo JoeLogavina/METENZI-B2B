@@ -267,6 +267,94 @@ router.get('/api/monitoring/test-sentry', async (req, res) => {
         testContext
       });
     }
+
+    if (req.query.trigger === 'performance') {
+      // Use modern Sentry API for performance tracking
+      const startTime = performance.now();
+      
+      const result = await Sentry.startSpan({
+        name: 'performance_test_b2b_platform',
+        op: 'admin_monitoring_test',
+        attributes: {
+          'operation': 'performance_monitoring_test',
+          'tenant': 'eur',
+          'user_id': 'admin-performance-test',
+          'source': 'admin_monitoring_panel'
+        }
+      }, async (span) => {
+        // Simulate some B2B operations for performance testing
+        let databaseDuration = 0;
+        let walletDuration = 0;
+        let licenseDuration = 0;
+
+        await Sentry.startSpan({
+          name: 'db_query',
+          op: 'db_query',
+          attributes: {
+            'db.operation': 'product_lookup'
+          }
+        }, async () => {
+          const dbStart = performance.now();
+          // Simulate database query time
+          await new Promise(resolve => setTimeout(resolve, Math.random() * 100 + 50));
+          databaseDuration = performance.now() - dbStart;
+        });
+
+        await Sentry.startSpan({
+          name: 'wallet_operation',
+          op: 'wallet_operation',
+          attributes: {
+            'wallet.operation': 'balance_check'
+          }
+        }, async () => {
+          const walletStart = performance.now();
+          // Simulate wallet operation time
+          await new Promise(resolve => setTimeout(resolve, Math.random() * 80 + 30));
+          walletDuration = performance.now() - walletStart;
+        });
+
+        await Sentry.startSpan({
+          name: 'license_generation',
+          op: 'license_generation',
+          attributes: {
+            'license.operation': 'key_generation'
+          }
+        }, async () => {
+          const licenseStart = performance.now();
+          // Simulate license generation time
+          await new Promise(resolve => setTimeout(resolve, Math.random() * 60 + 20));
+          licenseDuration = performance.now() - licenseStart;
+        });
+
+        const endTime = performance.now();
+        const totalDuration = endTime - startTime;
+        
+        // Set span attributes with timing data
+        span.setAttributes({
+          'test.duration_ms': totalDuration,
+          'test.operations_completed': 3,
+          'test.timestamp': new Date().toISOString(),
+          'test.database_duration_ms': databaseDuration,
+          'test.wallet_duration_ms': walletDuration,
+          'test.license_duration_ms': licenseDuration
+        });
+        
+        return { totalDuration, databaseDuration, walletDuration, licenseDuration, operationsCompleted: 3 };
+      });
+
+      return res.json({
+        success: true,
+        message: 'Performance test completed! Check your Sentry Performance dashboard.',
+        timestamp: new Date().toISOString(),
+        sentryActive: true,
+        transactionName: 'performance_test_b2b_platform',
+        operationsCompleted: result.operationsCompleted,
+        total_duration: Math.round(result.totalDuration * 100) / 100,
+        database_duration: Math.round(result.databaseDuration * 100) / 100,
+        wallet_duration: Math.round(result.walletDuration * 100) / 100,
+        license_duration: Math.round(result.licenseDuration * 100) / 100
+      });
+    }
     
     res.json({
       message: 'Sentry test endpoint ready. Add ?trigger=error to send a test error',
