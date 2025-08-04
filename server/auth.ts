@@ -4,6 +4,7 @@ import { Express } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
+import bcrypt from "bcrypt";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import connectPg from "connect-pg-simple";
@@ -25,9 +26,9 @@ async function hashPassword(password: string) {
 }
 
 async function comparePasswords(supplied: string, stored: string) {
-  // For demo purposes, check if it's our test password
-  if (stored === '$2b$10$8K1p/a0dqbVXYyqfX5V3oOGrHDgKDl2jJ5E6Tq8uGqZvOXqJxr3nO' && supplied === 'Kalendar1') {
-    return true;
+  // Handle bcrypt format (starts with $2b$)
+  if (stored.startsWith('$2b$')) {
+    return await bcrypt.compare(supplied, stored);
   }
 
   // Handle scrypt format (hashed.salt)
