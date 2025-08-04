@@ -12,6 +12,7 @@ import { usersRouter } from "./routes/users.routes";
 import { errorHandler } from "./middleware/auth.middleware";
 import { securityTestRoutes } from "./routes/security-test.routes";
 import imageRoutes from "./routes/images.routes";
+import monitoringRoutes from "./routes/monitoring.routes";
 import { 
   productsCacheMiddleware, 
   walletCacheMiddleware, 
@@ -1395,6 +1396,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Image management routes
   app.use('/api/images', imageRoutes);
+  
+  // Monitoring and alerting routes
+  app.use('/', monitoringRoutes);
 
   // Error handling middleware (must be last)
   app.use(errorHandler);

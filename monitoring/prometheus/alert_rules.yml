@@ -1,0 +1,107 @@
+groups:
+- name: b2b_platform_alerts
+  rules:
+  
+  # Critical System Alerts
+  - alert: ApplicationDown
+    expr: up{job="b2b-platform"} == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "B2B Platform Application is Down"
+      description: "The B2B license management platform has been down for more than 1 minute."
+
+  - alert: HighErrorRate
+    expr: rate(api_errors_total[5m]) > 0.1
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High API Error Rate Detected"
+      description: "API error rate is {{ $value }} errors per second for the last 5 minutes."
+
+  - alert: HighResponseTime
+    expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+    for: 3m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High Response Time Detected"
+      description: "95th percentile response time is {{ $value }}s for the last 5 minutes."
+
+  # B2B Business Logic Alerts
+  - alert: WalletTransactionFailures
+    expr: rate(wallet_transactions_total{status="failure"}[5m]) > 0.05
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High Wallet Transaction Failure Rate"
+      description: "Wallet transaction failure rate is {{ $value }} failures per second."
+
+  - alert: LicenseKeyGenerationDown
+    expr: rate(license_keys_generated_total[10m]) == 0 and rate(http_requests_total{route=~".*license.*"}[10m]) > 0
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "License Key Generation Stopped"
+      description: "No license keys have been generated in the last 10 minutes despite license requests."
+
+  # Security Alerts
+  - alert: HighAuthenticationFailures
+    expr: rate(authentication_attempts_total{status="failure"}[5m]) > 0.1
+    for: 3m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High Authentication Failure Rate"
+      description: "Authentication failure rate is {{ $value }} failures per second for tenant {{ $labels.tenant }}."
+
+  - alert: SuspiciousActivityDetected
+    expr: rate(fraud_detection_events_total{severity="high"}[5m]) > 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Suspicious Activity Detected"
+      description: "High severity fraud detection events detected: {{ $value }} events per second."
+
+  # Database Alerts
+  - alert: DatabaseConnectionIssues
+    expr: database_connections_active < 1
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Database Connection Issues"
+      description: "Active database connections dropped to {{ $value }}."
+
+  - alert: SlowDatabaseQueries
+    expr: histogram_quantile(0.95, rate(database_query_duration_seconds_bucket[5m])) > 1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Slow Database Queries Detected"
+      description: "95th percentile database query time is {{ $value }}s."
+
+  # Resource Alerts
+  - alert: HighMemoryUsage
+    expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 80
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High Memory Usage"
+      description: "Memory usage is above 80%: {{ $value }}%."
+
+  - alert: HighCPUUsage
+    expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High CPU Usage"
+      description: "CPU usage is above 80%: {{ $value }}%."
