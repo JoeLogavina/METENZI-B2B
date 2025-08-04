@@ -431,70 +431,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Use the admin router with additional security
-  // B2B User Branch Management Routes
-  app.get('/api/my-branches', isAuthenticated, async (req: any, res) => {
-    try {
-      if (req.user.role !== 'b2b_user') {
-        return res.status(403).json({ error: 'FORBIDDEN', message: 'Only B2B users can access branch data' });
-      }
-
-      const parentUserId = req.user.id;
-      const branches = await storage.getUserBranches(parentUserId);
-      res.json({ data: branches });
-    } catch (error) {
-      console.error('Error fetching user branches:', error);
-      res.status(500).json({ error: 'INTERNAL_SERVER_ERROR', message: 'Failed to fetch branches' });
-    }
-  });
-
-  app.post('/api/my-branches', isAuthenticated, async (req: any, res) => {
-    try {
-      if (req.user.role !== 'b2b_user') {
-        return res.status(403).json({ error: 'FORBIDDEN', message: 'Only B2B users can create branches' });
-      }
-
-      const parentUserId = req.user.id;
-      const branchData = {
-        ...req.body,
-        parentCompanyId: parentUserId,
-        role: 'branch_user',
-        tenantId: req.user.tenantId || 'eur',
-        branchType: 'branch',
-        isActive: true,
-        password: 'password' // Default password - should be changed on first login
-      };
-
-      const newBranch = await storage.createUser(branchData);
-      res.json({ data: newBranch });
-    } catch (error) {
-      console.error('Error creating branch:', error);
-      res.status(500).json({ error: 'INTERNAL_SERVER_ERROR', message: 'Failed to create branch' });
-    }
-  });
-
-  app.put('/api/my-branches/:branchId', isAuthenticated, async (req: any, res) => {
-    try {
-      if (req.user.role !== 'b2b_user') {
-        return res.status(403).json({ error: 'FORBIDDEN', message: 'Only B2B users can update branches' });
-      }
-
-      const { branchId } = req.params;
-      const parentUserId = req.user.id;
-      
-      // Verify the branch belongs to this user
-      const branch = await storage.getUser(branchId);
-      if (!branch || branch.parentCompanyId !== parentUserId) {
-        return res.status(404).json({ error: 'NOT_FOUND', message: 'Branch not found' });
-      }
-
-      const updatedBranch = await storage.updateUser(branchId, req.body);
-      res.json({ data: updatedBranch });
-    } catch (error) {
-      console.error('Error updating branch:', error);
-      res.status(500).json({ error: 'INTERNAL_SERVER_ERROR', message: 'Failed to update branch' });
-    }
-  });
-
   app.use('/api/admin', adminRouter);
   
   // Register admin security routes
@@ -961,23 +897,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('User visible products count:', userPricing.length);
         console.log('Sample product for debugging:', userPricing[0]);
         
-        // If user has no custom pricing configured, fallback to all products with B2B pricing
-        if (userPricing.length === 0) {
-          console.log('No custom pricing found for user, falling back to all products with B2B pricing');
-          const allProducts = await storage.getProducts(filters);
-          
-          // Transform to use B2B pricing for B2B users
-          const b2bProducts = allProducts.map(product => ({
-            ...product,
-            price: product.b2bPrice || product.price,
-            originalPrice: product.price,
-            isCustomPricing: false
-          }));
-          
-          products = b2bProducts;
-        } else {
-          // Filter by search and other criteria if provided
-          products = userPricing.filter((product: any) => {
+        // Filter by search and other criteria if provided
+        products = userPricing.filter((product: any) => {
           // Search filter
           if (filters.search) {
             const searchLower = filters.search.toLowerCase();
@@ -1056,9 +977,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
           
-            return true;
-          });
-        }
+          return true;
+        });
         
         console.log('Filtered products count:', products.length);
       } else {

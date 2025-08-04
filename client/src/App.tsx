@@ -29,6 +29,7 @@ import AdminLogin from "@/pages/admin-login";
 import NotFound from "@/pages/not-found";
 
 // Private pages (lazy-loaded to reduce initial bundle size)
+const B2BShop = lazy(() => import("@/pages/b2b-shop"));
 import EURShop from "@/pages/eur-shop";
 const KMShop = lazy(() => import("@/pages/km-shop"));
 const CartPage = lazy(() => import("@/pages/cart"));
@@ -39,7 +40,6 @@ const UserEditPage = lazy(() => import("@/pages/admin/user-edit"));
 const CategoryHierarchyDemoPage = lazy(() => import("@/pages/admin/category-hierarchy-demo"));
 const WalletPage = lazy(() => import("@/pages/wallet-page"));
 const OrdersPage = lazy(() => import("@/pages/orders"));
-
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -100,11 +100,28 @@ function Router() {
             );
           }} />
           
-          {/* Tenant-specific routes - primary entry points */}
+          {/* Tenant-specific B2B Shop Routes */}
+          <Route path="/shop/eur" component={() => (
+            <Suspense fallback={<ShopLoadingFallback />}>
+              <EURShop />
+            </Suspense>
+          )} />
+          <Route path="/shop/km" component={() => (
+            <Suspense fallback={<ShopLoadingFallback />}>
+              <KMShop />
+            </Suspense>
+          )} />
+          
+          {/* Dedicated tenant routes */}
           <Route path="/eur" component={EURShop} />
           <Route path="/km" component={() => (
             <Suspense fallback={<ShopLoadingFallback />}>
               <KMShop />
+            </Suspense>
+          )} />
+          <Route path="/b2b-shop" component={() => (
+            <Suspense fallback={<ShopLoadingFallback />}>
+              <B2BShop />
             </Suspense>
           )} />
           <Route path="/cart" component={() => (
@@ -167,15 +184,6 @@ function Router() {
               <OrdersPage />
             </Suspense>
           )} />
-          <Route path="/eur/branches" component={() => {
-            const MyBranchesPage = lazy(() => import("@/pages/my-branches"));
-            return (
-              <Suspense fallback={<ShopLoadingFallback />}>
-                <MyBranchesPage />
-              </Suspense>
-            );
-          }} />
-
           <Route path="/admin-panel" component={() => (
             <Suspense fallback={<AdminLoadingFallback />}>
               <AdminPanel />
@@ -195,9 +203,9 @@ function Router() {
             );
           }} />
 
-          <Route path="/admin/users/edit/:userId" component={(props: any) => (
+          <Route path="/admin/users/edit/:userId" component={({ userId }: { userId: string }) => (
             <Suspense fallback={<AdminLoadingFallback />}>
-              <UserEditPage userId={props.params.userId} onBack={() => window.history.back()} />
+              <UserEditPage userId={userId} onBack={() => window.history.back()} />
             </Suspense>
           )} />
           <Route path="/admin/category-hierarchy-demo" component={() => (

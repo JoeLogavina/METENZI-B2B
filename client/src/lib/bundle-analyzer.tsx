@@ -49,7 +49,7 @@ export function createLazyComponent<T extends ComponentType<any>>(
 // Preload critical routes for better UX
 export function preloadRoute(routeName: string) {
   const routes: Record<string, () => Promise<any>> = {
-    'eur-shop': () => import("@/pages/eur-shop"),
+    'b2b-shop': () => import("@/pages/b2b-shop"),
     'cart': () => import("@/pages/cart"),
     'checkout': () => import("@/pages/checkout"),
     'wallet': () => import("@/pages/wallet-page"),

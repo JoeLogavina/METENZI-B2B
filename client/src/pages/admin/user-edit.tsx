@@ -11,8 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, User, CreditCard, Package, History, Plus, Minus, Save, Eye, EyeOff, Search, X, Building } from "lucide-react";
-import { BranchManager } from "@/components/admin/BranchManager";
+import { ArrowLeft, User, CreditCard, Package, History, Plus, Minus, Save, Eye, EyeOff, Search, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { formatAdminPrice } from "@/lib/currency-utils";
@@ -476,14 +475,10 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="profile" className="flex items-center space-x-2">
             <User className="w-4 h-4" />
             <span>Profile & Credit</span>
-          </TabsTrigger>
-          <TabsTrigger value="branches" className="flex items-center space-x-2">
-            <Building className="w-4 h-4" />
-            <span>Branches</span>
           </TabsTrigger>
           <TabsTrigger value="products" className="flex items-center space-x-2">
             <Package className="w-4 h-4" />
@@ -736,14 +731,6 @@ export default function UserEdit({ userId, onBack }: UserEditProps) {
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
-
-        {/* Branch Management */}
-        <TabsContent value="branches" className="space-y-6">
-          <BranchManager 
-            userId={userId}
-            companyName={userData?.data?.companyName || userData?.companyName || 'Unknown Company'}
-          />
         </TabsContent>
 
         {/* Company Products */}

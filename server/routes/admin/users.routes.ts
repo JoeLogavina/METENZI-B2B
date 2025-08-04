@@ -8,7 +8,6 @@ import {
   Permissions 
 } from '../../middleware/auth.middleware';
 import { z } from 'zod';
-import { insertBranchSchema } from '@shared/schema';
 
 const router = Router();
 
@@ -40,16 +39,6 @@ const createUserSchema = z.object({
   lastName: z.string().optional(),
   role: z.enum(['b2b_user', 'admin', 'super_admin']).default('b2b_user'),
   isActive: z.boolean().default(true),
-});
-
-const createBranchSchema = insertBranchSchema.extend({
-  // Add any additional validation for branch creation
-  username: z.string().min(3, 'Username must be at least 3 characters'),
-});
-
-const branchParamsSchema = z.object({
-  userId: z.string().min(1, 'User ID is required'),
-  branchId: z.string().min(1, 'Branch ID is required'),
 });
 
 // GET /api/admin/users - Get all users (with filters and pagination)
@@ -153,46 +142,6 @@ router.patch('/:id',
   }),
   auditLog('admin:users:update'),
   adminUsersController.updateUser.bind(adminUsersController)
-);
-
-// Branch Management Routes
-
-// GET /api/admin/users/:userId/branches - Get branches for a user
-router.get('/:userId/branches',
-  authorize(Permissions.USER_READ),
-  validateRequest({ params: z.object({ userId: z.string() }) }),
-  auditLog('admin:branches:list'),
-  adminUsersController.getUserBranches.bind(adminUsersController)
-);
-
-// POST /api/admin/users/:userId/branches - Create a new branch
-router.post('/:userId/branches',
-  authorize(Permissions.USER_CREATE),
-  validateRequest({ 
-    params: z.object({ userId: z.string() }),
-    body: createBranchSchema
-  }),
-  auditLog('admin:branches:create'),
-  adminUsersController.createBranch.bind(adminUsersController)
-);
-
-// PUT /api/admin/users/:userId/branches/:branchId - Update branch details
-router.put('/:userId/branches/:branchId',
-  authorize(Permissions.USER_UPDATE),
-  validateRequest({ 
-    params: branchParamsSchema,
-    body: createBranchSchema.partial()
-  }),
-  auditLog('admin:branches:update'),
-  adminUsersController.updateBranch.bind(adminUsersController)
-);
-
-// DELETE /api/admin/users/:userId/branches/:branchId - Delete a branch
-router.delete('/:userId/branches/:branchId',
-  authorize(Permissions.USER_DELETE),
-  validateRequest({ params: branchParamsSchema }),
-  auditLog('admin:branches:delete'),
-  adminUsersController.deleteBranch.bind(adminUsersController)
 );
 
 export { router as adminUsersRouter };
