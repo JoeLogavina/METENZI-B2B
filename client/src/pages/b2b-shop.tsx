@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Search, Filter, Grid, List, Plus, Minus, Package, User, Settings, BarChart3, FileText, Users, CreditCard, HelpCircle, ChevronDown, Calendar, LogOut, Loader2, Eye, Building } from "lucide-react";
+import { ShoppingCart, Search, Filter, Grid, List, Plus, Minus, Package, User, Settings, BarChart3, FileText, Users, CreditCard, HelpCircle, ChevronDown, Calendar, LogOut, Loader2, Eye, Building, X } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { type ProductWithStock } from "@shared/schema";
 import { useTenant } from '@/contexts/TenantContext';
@@ -59,6 +59,9 @@ export default function B2BShop() {
   
   // Navigation state for integrated sections
   const [currentSection, setCurrentSection] = useState<'products' | 'orders' | 'wallet'>('products');
+  
+  // Branch management integration state
+  const [showBranchManager, setShowBranchManager] = useState(false);
 
   // Product modal state
   const [selectedProduct, setSelectedProduct] = useState<ProductWithStock | null>(null);
@@ -550,20 +553,52 @@ export default function B2BShop() {
           <div className="flex-1 p-6 overflow-auto">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-sm font-semibold text-gray-700">Found {products.length} products</h3>
-              <div className="text-sm text-gray-500 flex items-center">
-                {viewMode === 'table' ? (
-                  <>
-                    <List className="w-4 h-4 mr-1" />
-                    List View
-                  </>
-                ) : (
-                  <>
-                    <Grid className="w-4 h-4 mr-1" />
-                    Grid View
-                  </>
+              <div className="flex items-center space-x-3">
+                {/* Branch Management Button for B2B Users */}
+                {user?.role === 'b2b_user' && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowBranchManager(!showBranchManager)}
+                    className="border-[#FFB20F] text-[#FFB20F] hover:bg-[#FFB20F] hover:text-white transition-colors"
+                  >
+                    <Building className="w-4 h-4 mr-2" />
+                    {showBranchManager ? 'Hide Branches' : 'Manage Branches'}
+                  </Button>
                 )}
+                <div className="text-sm text-gray-500 flex items-center">
+                  {viewMode === 'table' ? (
+                    <>
+                      <List className="w-4 h-4 mr-1" />
+                      List View
+                    </>
+                  ) : (
+                    <>
+                      <Grid className="w-4 h-4 mr-1" />
+                      Grid View
+                    </>
+                  )}
+                </div>
               </div>
             </div>
+
+            {/* Branch Management Panel */}
+            {showBranchManager && user?.role === 'b2b_user' && (
+              <div className="mb-6 bg-white rounded-[8px] shadow-[0_2px_5px_rgba(0,0,0,0.1)] p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-[#6E6F71]">Branch Management</h2>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowBranchManager(false)}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+                <MyBranches />
+              </div>
+            )}
 
             {/* Render different views based on viewMode */}
             {viewMode === 'table' ? (
@@ -660,14 +695,8 @@ export default function B2BShop() {
           </>
         )}
 
-        {/* Branches Section */}
-        {currentSection === 'branches' && (
-          <div className="flex-1 overflow-auto">
-            <div className="p-6">
-              <MyBranches />
-            </div>
-          </div>
-        )}
+
+
 
         {/* Orders Section */}
         {currentSection === 'orders' && (
