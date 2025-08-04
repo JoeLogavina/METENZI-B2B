@@ -357,6 +357,9 @@ export class AdminUsersController {
 
   async createBranch(req: Request, res: Response) {
     try {
+      console.log('🔍 createBranch - Request params:', req.params);
+      console.log('🔍 createBranch - Request body:', req.body);
+      
       const { id: parentCompanyId } = userParamsSchema.parse(req.params);
       const branchSchema = z.object({
         username: z.string().min(3, 'Username must be at least 3 characters'),
@@ -367,24 +370,38 @@ export class AdminUsersController {
         companyName: z.string().optional(),
         tenantId: z.string().default('eur'),
       });
+      
+      console.log('🔍 createBranch - Parsing branch data...');
       const branchData = branchSchema.parse(req.body);
+      console.log('🔍 createBranch - Branch data validated:', branchData);
 
       // Hash password
       const bcrypt = await import('bcrypt');
       const hashedPassword = await bcrypt.hash(branchData.password, 10);
       
+      console.log('🔍 createBranch - Creating branch user in storage...');
       const storage = await import('../../storage');
       const branch = await storage.storage.createBranchUser(parentCompanyId, {
         ...branchData,
         password: hashedPassword
       });
       
+      console.log('🔍 createBranch - Branch created successfully:', branch.id);
       const { password, ...branchWithoutPassword } = branch;
       res.status(201).json({
         data: branchWithoutPassword,
         message: 'Branch created successfully'
       });
     } catch (error) {
+      console.error('❌ createBranch - Error:', error);
+      if (error instanceof z.ZodError) {
+        console.error('❌ createBranch - Validation error details:', error.errors);
+        return res.status(400).json({
+          error: 'VALIDATION_ERROR',
+          message: 'Invalid input data',
+          details: error.errors
+        });
+      }
       if (isServiceError(error)) {
         return res.status(error.statusCode).json(formatErrorResponse(error));
       }

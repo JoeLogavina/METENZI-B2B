@@ -46,8 +46,8 @@ export function BranchManagement({ parentUserId, parentUserData }: BranchManagem
     tenantId: 'eur'
   });
 
-  // Fetch company hierarchy
-  const { data: hierarchy, isLoading } = useQuery<{ data: BranchData }>({
+  // Fetch branches for the parent user
+  const { data: hierarchy, isLoading } = useQuery<{ data: User[] }>({
     queryKey: ['admin', 'users', parentUserId, 'branches'],
     queryFn: () => apiRequest(`/api/admin/users/${parentUserId}/branches`)
   });
@@ -110,7 +110,7 @@ export function BranchManagement({ parentUserId, parentUserData }: BranchManagem
     return <div className="p-6">Loading company hierarchy...</div>;
   }
 
-  // For now, we'll show a simple interface since the backend returns branches directly
+  // Extract branches data and use parent user data as main company
   const branches = hierarchy?.data || [];
   const mainCompany = parentUserData;
 
