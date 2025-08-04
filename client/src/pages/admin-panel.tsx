@@ -31,7 +31,9 @@ import {
   History,
   UserCheck,
   UserX,
-  TreePine
+  TreePine,
+  Activity,
+  AlertTriangle
 } from "lucide-react";
 import WalletManagement from "@/components/wallet-management";
 import UserForm from "@/components/user-form";
@@ -338,6 +340,8 @@ export default function AdminPanel() {
     { id: 'keys', icon: Key, label: 'Keys Management', allowed: true },
     { id: 'wallets', icon: Wallet, label: 'Wallet Management', allowed: true },
     { id: 'permissions', icon: Shield, label: 'Permissions', allowed: (user as any)?.role === 'super_admin' },
+    { id: 'monitoring', icon: Activity, label: 'Monitoring', allowed: true },
+    { id: 'alerts', icon: AlertTriangle, label: 'Alerts', allowed: true },
     { id: 'reports', icon: FileText, label: 'Reports', allowed: true },
   ].filter(item => item.allowed && !item.hidden);
 
@@ -405,7 +409,15 @@ export default function AdminPanel() {
             {sidebarItems.map((item) => (
               <div
                 key={item.id}
-                onClick={() => setActiveSection(item.id)}
+                onClick={() => {
+                  if (item.id === 'monitoring') {
+                    window.location.href = '/monitoring';
+                  } else if (item.id === 'alerts') {
+                    window.location.href = '/alerts';
+                  } else {
+                    setActiveSection(item.id);
+                  }
+                }}
                 className={`flex items-center px-4 py-3 text-lg transition-colors duration-200 cursor-pointer ${
                   activeSection === item.id
                     ? 'bg-[#FFB20F] text-white border-r-2 border-[#e6a00e]' 
