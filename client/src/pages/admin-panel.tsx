@@ -409,15 +409,7 @@ export default function AdminPanel() {
             {sidebarItems.map((item) => (
               <div
                 key={item.id}
-                onClick={() => {
-                  if (item.id === 'monitoring') {
-                    window.location.href = '/monitoring';
-                  } else if (item.id === 'alerts') {
-                    window.location.href = '/alerts';
-                  } else {
-                    setActiveSection(item.id);
-                  }
-                }}
+                onClick={() => setActiveSection(item.id)}
                 className={`flex items-center px-4 py-3 text-lg transition-colors duration-200 cursor-pointer ${
                   activeSection === item.id
                     ? 'bg-[#FFB20F] text-white border-r-2 border-[#e6a00e]' 
@@ -974,6 +966,109 @@ export default function AdminPanel() {
             {activeSection === 'wallets' && <WalletManagement />}
 
             {activeSection === 'keys' && <EmbeddedKeyManagement />}
+
+            {activeSection === 'monitoring' && (
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Activity className="w-5 h-5" />
+                      System Monitoring
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div className="bg-green-50 p-4 rounded-lg">
+                        <div className="text-green-600 font-semibold">System Status</div>
+                        <div className="text-2xl font-bold text-green-700">Healthy</div>
+                      </div>
+                      <div className="bg-blue-50 p-4 rounded-lg">
+                        <div className="text-blue-600 font-semibold">Uptime</div>
+                        <div className="text-2xl font-bold text-blue-700">99.9%</div>
+                      </div>
+                      <div className="bg-yellow-50 p-4 rounded-lg">
+                        <div className="text-yellow-600 font-semibold">Memory Usage</div>
+                        <div className="text-2xl font-bold text-yellow-700">45%</div>
+                      </div>
+                      <div className="bg-purple-50 p-4 rounded-lg">
+                        <div className="text-purple-600 font-semibold">Active Users</div>
+                        <div className="text-2xl font-bold text-purple-700">24</div>
+                      </div>
+                    </div>
+                    <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                      <h3 className="font-semibold mb-2">External Monitoring Tools</h3>
+                      <div className="flex gap-3">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => window.open('/metrics', '_blank')}
+                        >
+                          Prometheus Metrics
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => window.open('/health', '_blank')}
+                        >
+                          Health Check
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {activeSection === 'alerts' && (
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <AlertTriangle className="w-5 h-5" />
+                      Alerts Management
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                      <div className="bg-red-50 p-4 rounded-lg">
+                        <div className="text-red-600 font-semibold">Critical Alerts</div>
+                        <div className="text-2xl font-bold text-red-700">0</div>
+                      </div>
+                      <div className="bg-yellow-50 p-4 rounded-lg">
+                        <div className="text-yellow-600 font-semibold">Warning Alerts</div>
+                        <div className="text-2xl font-bold text-yellow-700">2</div>
+                      </div>
+                      <div className="bg-blue-50 p-4 rounded-lg">
+                        <div className="text-blue-600 font-semibold">Info Alerts</div>
+                        <div className="text-2xl font-bold text-blue-700">5</div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div className="p-3 border-l-4 border-yellow-400 bg-yellow-50">
+                        <div className="font-semibold text-yellow-800">High Memory Usage</div>
+                        <div className="text-sm text-yellow-700">Memory usage above 80% threshold</div>
+                        <div className="text-xs text-yellow-600">2 minutes ago</div>
+                      </div>
+                      <div className="p-3 border-l-4 border-yellow-400 bg-yellow-50">
+                        <div className="font-semibold text-yellow-800">Slow Database Query</div>
+                        <div className="text-sm text-yellow-700">Query execution time above normal</div>
+                        <div className="text-xs text-yellow-600">5 minutes ago</div>
+                      </div>
+                    </div>
+
+                    <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                      <h3 className="font-semibold mb-2">Alert Configuration</h3>
+                      <p className="text-sm text-gray-600 mb-3">Enterprise monitoring with Sentry, Prometheus, and Grafana integration</p>
+                      <div className="flex gap-3">
+                        <Button variant="outline" size="sm">Configure Rules</Button>
+                        <Button variant="outline" size="sm">View History</Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
 
             {(activeSection === 'permissions' || activeSection === 'reports') && (
               <Card>

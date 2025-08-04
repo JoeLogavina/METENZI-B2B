@@ -40,8 +40,6 @@ const CategoryHierarchyDemoPage = lazy(() => import("@/pages/admin/category-hier
 const WalletPage = lazy(() => import("@/pages/wallet-page"));
 const OrdersPage = lazy(() => import("@/pages/orders"));
 const MyBranchesPage = lazy(() => import("@/pages/my-branches"));
-const MonitoringPage = lazy(() => import("@/pages/monitoring"));
-const AlertsPage = lazy(() => import("@/pages/alerts"));
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -220,16 +218,7 @@ function Router() {
               <CategoryHierarchyDemoPage />
             </Suspense>
           )} />
-          <Route path="/monitoring" component={() => (
-            <Suspense fallback={<AdminLoadingFallback />}>
-              <MonitoringPage />
-            </Suspense>
-          )} />
-          <Route path="/alerts" component={() => (
-            <Suspense fallback={<AdminLoadingFallback />}>
-              <AlertsPage />
-            </Suspense>
-          )} />
+
           <Route path="/admin" component={() => <Redirect to="/admin-panel" />} />
           <Route path="/admin-login" component={() => <Redirect to="/admin-panel" />} />
           <Route path="/auth" component={() => <Redirect to="/" />} />
