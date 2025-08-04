@@ -144,6 +144,7 @@ export default function AdminPanel() {
   const [editingUser, setEditingUser] = useState<any>(null);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [editProductId, setEditProductId] = useState<string | null>(null);
   
   // Edit product states
   const [editProductFormData, setEditProductFormData] = useState({
@@ -332,7 +333,7 @@ export default function AdminPanel() {
     { id: 'categories', icon: FileText, label: 'Category Management', allowed: true },
     { id: 'products', icon: Package, label: 'Product Management', allowed: true },
     { id: 'price-management', icon: DollarSign, label: 'Price Management', allowed: true },
-    { id: 'edit-product', icon: Edit, label: 'Edit Product', allowed: true, hidden: !isEditProductPage },
+    { id: 'edit-product', icon: Edit, label: 'Edit Product', allowed: true, hidden: !editProductId },
     { id: 'keys', icon: Key, label: 'Keys Management', allowed: true },
     { id: 'wallets', icon: Wallet, label: 'Wallet Management', allowed: true },
     { id: 'permissions', icon: Shield, label: 'Permissions', allowed: (user as any)?.role === 'super_admin' },
@@ -823,7 +824,7 @@ export default function AdminPanel() {
                                   variant="outline"
                                   onClick={() => {
                                     setEditProductId(product.id);
-                                    window.history.pushState({}, '', `/admin/products/edit?id=${product.id}`);
+                                    setEditingProduct(product);
                                     setActiveSection('edit-product');
                                   }}
                                   className="text-[#FFB20F] border-[#FFB20F] hover:bg-[#FFB20F] hover:text-white"

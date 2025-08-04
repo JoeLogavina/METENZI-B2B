@@ -184,14 +184,11 @@ function Router() {
               <OrdersPage />
             </Suspense>
           )} />
-          <Route path="/admin-panel" component={() => {
-            const AdminPanelNew = lazy(() => import("@/pages/admin-panel-new"));
-            return (
-              <Suspense fallback={<AdminLoadingFallback />}>
-                <AdminPanelNew />
-              </Suspense>
-            );
-          }} />
+          <Route path="/admin-panel" component={() => (
+            <Suspense fallback={<AdminLoadingFallback />}>
+              <AdminPanel />
+            </Suspense>
+          )} />
           <Route path="/admin/keys" component={() => (
             <Suspense fallback={<AdminLoadingFallback />}>
               <AdminKeysManagement />
