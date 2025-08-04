@@ -33,8 +33,8 @@ app.use(compression({
 
 // Sentry request handler must be first middleware (if available)
 if (process.env.SENTRY_DSN) {
-  app.use(Handlers.requestHandler);
-  app.use(Handlers.tracingHandler);
+  app.use(Handlers.requestHandler());
+  app.use(Handlers.tracingHandler());
 }
 
 app.use(express.json({ limit: '50mb' }));
@@ -100,7 +100,7 @@ app.use((req, res, next) => {
   
   // Add Sentry error handler (if available)
   if (process.env.SENTRY_DSN) {
-    app.use(Handlers.errorHandler);
+    app.use(Handlers.errorHandler());
   }
 
   if (process.env.NODE_ENV === "production") {
