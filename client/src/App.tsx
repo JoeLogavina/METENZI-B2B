@@ -78,7 +78,11 @@ function Router() {
               if (user?.role === 'admin' || user?.role === 'super_admin') {
                 setLocation('/admin-panel');
               } 
-              // Redirect B2B users to their tenant shop
+              // Redirect B2B users to B2B shop (regardless of tenant)
+              else if (user?.role === 'b2b_user') {
+                setLocation('/b2b-shop');
+              }
+              // Redirect regular users to their tenant shop
               else if (user?.tenantId === 'km') {
                 setLocation('/km');
               } else if (user?.tenantId === 'eur') {

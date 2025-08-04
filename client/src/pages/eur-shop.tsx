@@ -49,6 +49,17 @@ export default function EURShop() {
   useEffect(() => {
     if (!isLoading && isAuthenticated && user) {
       const isAdmin = user.role === 'admin' || user.role === 'super_admin';
+      const isB2BUser = user.role === 'b2b_user';
+      
+      // Redirect B2B users to B2B shop
+      if (isB2BUser) {
+        toast({
+          title: "Redirecting",
+          description: "B2B users should use the B2B shop. Redirecting...",
+        });
+        setLocation('/b2b-shop');
+        return;
+      }
       
       // Allow admin users to access any tenant shop, otherwise enforce tenant restriction
       if (!isAdmin && user.tenantId !== 'eur') {
