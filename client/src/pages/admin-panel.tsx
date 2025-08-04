@@ -1023,6 +1023,7 @@ export default function AdminPanel() {
 function MonitoringSection() {
   const { toast } = useToast();
   const [testingSentry, setTestingSentry] = useState(false);
+  const [testingPerformance, setTestingPerformance] = useState(false);
 
   const { data: healthData, isLoading: healthLoading } = useQuery({
     queryKey: ['/api/monitoring/health'],
@@ -1052,6 +1053,27 @@ function MonitoringSection() {
       });
     } finally {
       setTestingSentry(false);
+    }
+  };
+
+  const testSentryPerformance = async () => {
+    setTestingPerformance(true);
+    try {
+      const response = await fetch('/api/monitoring/test-performance');
+      const data = await response.json();
+      
+      toast({
+        title: "Performance Test Successful",
+        description: "Test transaction sent to Sentry. Check your Sentry Performance dashboard for detailed metrics.",
+      });
+    } catch (error) {
+      toast({
+        title: "Performance Test Failed",
+        description: "Could not send performance test to Sentry",
+        variant: "destructive",
+      });
+    } finally {
+      setTestingPerformance(false);
     }
   };
 
@@ -1356,6 +1378,15 @@ function AlertsSection() {
                 className="bg-red-50 hover:bg-red-100 text-red-700 border-red-300"
               >
                 {testingSentry ? 'Testing...' : 'Test Sentry Error'}
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={testSentryPerformance}
+                disabled={testingPerformance}
+                className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-300"
+              >
+                {testingPerformance ? 'Testing...' : 'Test Sentry Performance'}
               </Button>
             </div>
           </div>

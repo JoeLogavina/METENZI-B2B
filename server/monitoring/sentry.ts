@@ -18,16 +18,45 @@ export function initializeSentry() {
       dsn: sentryDsn,
       environment: process.env.NODE_ENV || 'development',
       
-      // Performance monitoring
+      // Enhanced Performance monitoring - capture 100% of transactions in development
       tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
       
-      // Profiling integration
+      // Profiling integration for detailed performance insights
       integrations: [
         nodeProfilingIntegration(),
       ],
       
-      // Profile sample rate
+      // Profile sample rate - capture detailed performance data
       profilesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
+      
+      // Enhanced Performance Monitoring Options
+      // Capture 100% of the transactions for performance monitoring
+      // This gives you detailed insights into your B2B platform performance
+      beforeSendTransaction(event) {
+        // Add B2B platform specific context to transactions
+        if (event.request?.url) {
+          const url = new URL(event.request.url);
+          event.tags = {
+            ...event.tags,
+            route: url.pathname,
+            tenant: url.pathname.includes('/eur') ? 'EUR' : url.pathname.includes('/km') ? 'KM' : 'unknown',
+            api_type: url.pathname.includes('/api/') ? 'api' : 'frontend'
+          };
+          
+          // Track B2B specific operations
+          if (url.pathname.includes('/api/orders')) {
+            event.tags.operation_type = 'order_processing';
+          } else if (url.pathname.includes('/api/products')) {
+            event.tags.operation_type = 'product_management';
+          } else if (url.pathname.includes('/api/wallet')) {
+            event.tags.operation_type = 'wallet_operations';
+          } else if (url.pathname.includes('/api/admin')) {
+            event.tags.operation_type = 'admin_operations';
+          }
+        }
+        
+        return event;
+      },
       
       // Release tracking
       release: process.env.npm_package_version,

@@ -2,6 +2,7 @@
 import { Router } from 'express';
 import { logSecurityEvent, AuditEventSeverity } from '../monitoring/audit';
 import { captureB2BError } from '../monitoring/sentry';
+import * as Sentry from '@sentry/node';
 
 const router = Router();
 
@@ -276,6 +277,97 @@ router.get('/api/monitoring/test-sentry', async (req, res) => {
     console.error('Sentry test error:', error);
     res.status(500).json({
       error: 'Sentry test failed',
+      message: (error as Error).message,
+      details: error instanceof Error ? error.stack : 'Unknown error'
+    });
+  }
+});
+
+// Performance monitoring test endpoint
+router.get('/api/monitoring/test-performance', async (req, res) => {
+  try {
+    // Check if Sentry is configured
+    if (!process.env.SENTRY_DSN) {
+      return res.status(400).json({
+        error: 'Sentry not configured',
+        message: 'SENTRY_DSN environment variable not set'
+      });
+    }
+
+    // Use modern Sentry API for performance tracking
+    const startTime = performance.now();
+    
+    const result = await Sentry.startSpan({
+      name: 'performance_test_b2b_platform',
+      op: 'admin_monitoring_test',
+      attributes: {
+        'operation': 'performance_monitoring_test',
+        'tenant': 'eur',
+        'user_id': 'admin-performance-test',
+        'source': 'admin_monitoring_panel'
+      }
+    }, async (span) => {
+      // Simulate some B2B operations for performance testing
+      await Sentry.startSpan({
+        name: 'db_query',
+        op: 'db_query',
+        attributes: {
+          'db.operation': 'product_lookup'
+        }
+      }, async () => {
+        // Simulate database query time
+        await new Promise(resolve => setTimeout(resolve, Math.random() * 100 + 50));
+      });
+
+      await Sentry.startSpan({
+        name: 'wallet_operation',
+        op: 'wallet_operation',
+        attributes: {
+          'wallet.operation': 'balance_check'
+        }
+      }, async () => {
+        // Simulate wallet operation time
+        await new Promise(resolve => setTimeout(resolve, Math.random() * 80 + 30));
+      });
+
+      await Sentry.startSpan({
+        name: 'license_generation',
+        op: 'license_generation',
+        attributes: {
+          'license.operation': 'key_generation'
+        }
+      }, async () => {
+        // Simulate license generation time
+        await new Promise(resolve => setTimeout(resolve, Math.random() * 60 + 20));
+      });
+
+      const endTime = performance.now();
+      const duration = endTime - startTime;
+      
+      // Set span attributes with timing data
+      span.setAttributes({
+        'test.duration_ms': duration,
+        'test.operations_completed': 3,
+        'test.timestamp': new Date().toISOString()
+      });
+      
+      return { duration, operationsCompleted: 3 };
+    });
+
+    res.json({
+      success: true,
+      message: 'Performance test completed! Check your Sentry Performance dashboard.',
+      timestamp: new Date().toISOString(),
+      sentryActive: true,
+      transactionName: 'performance_test_b2b_platform',
+      operationsCompleted: result.operationsCompleted,
+      duration: Math.round(result.duration * 100) / 100 + 'ms'
+    });
+
+  } catch (error) {
+    console.error('Sentry performance test error:', error);
+    res.status(500).json({
+      error: 'Sentry performance test failed',
       message: (error as Error).message,
       details: error instanceof Error ? error.stack : 'Unknown error'
     });
