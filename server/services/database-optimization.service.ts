@@ -94,7 +94,7 @@ export class DatabaseOptimizationService {
       await this.createIndexSafely(
         'idx_cart_items_user',
         sql`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_cart_items_user 
-            ON cart_items (user_id, created_at DESC)`
+            ON cart_items (user_id)`
       );
 
       // License keys indexes
@@ -132,7 +132,7 @@ export class DatabaseOptimizationService {
       await this.createIndexSafely(
         'idx_cart_items_user_product',
         sql`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_cart_items_user_product 
-            ON cart_items (user_id, product_id, updated_at DESC)`
+            ON cart_items (user_id, product_id)`
       );
 
       // Index for wallet balance queries (critical for payment processing)

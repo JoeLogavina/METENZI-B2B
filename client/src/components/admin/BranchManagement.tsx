@@ -28,12 +28,11 @@ interface BranchData {
 }
 
 interface BranchManagementProps {
-  userId: string;
-  onUserClick: (userId: string, username: string) => void;
-  onBack: () => void;
+  parentUserId: string;
+  parentUserData: any;
 }
 
-export function BranchManagement({ userId, onUserClick, onBack }: BranchManagementProps) {
+export function BranchManagement({ parentUserId, parentUserData }: BranchManagementProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -49,18 +48,17 @@ export function BranchManagement({ userId, onUserClick, onBack }: BranchManageme
 
   // Fetch company hierarchy
   const { data: hierarchy, isLoading } = useQuery<{ data: BranchData }>({
-    queryKey: ['admin', 'users', userId, 'hierarchy'],
-    queryFn: () => apiRequest(`/api/admin/users/${userId}/hierarchy`)
+    queryKey: ['admin', 'users', parentUserId, 'branches'],
+    queryFn: () => apiRequest(`/api/admin/users/${parentUserId}/branches`)
   });
 
   // Create branch mutation
   const createBranchMutation = useMutation({
     mutationFn: (branchData: typeof newBranch) => 
-      fetch(`/api/admin/users/${userId}/branches`, {
+      apiRequest(`/api/admin/users/${parentUserId}/branches`, {
         method: 'POST',
-        body: JSON.stringify(branchData),
-        headers: { 'Content-Type': 'application/json' }
-      }).then(res => res.json()),
+        body: JSON.stringify(branchData)
+      }),
     onSuccess: () => {
       toast({
         title: "Success",
@@ -76,7 +74,7 @@ export function BranchManagement({ userId, onUserClick, onBack }: BranchManageme
         companyName: '',
         tenantId: 'eur'
       });
-      queryClient.invalidateQueries({ queryKey: ['admin', 'users', userId, 'hierarchy'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users', parentUserId, 'branches'] });
     },
     onError: (error: any) => {
       toast({
@@ -96,20 +94,15 @@ export function BranchManagement({ userId, onUserClick, onBack }: BranchManageme
     return <div className="p-6">Loading company hierarchy...</div>;
   }
 
-  if (!hierarchy?.data) {
-    return <div className="p-6">No company hierarchy found</div>;
-  }
-
-  const { mainCompany, branches } = hierarchy.data;
+  // For now, we'll show a simple interface since the backend returns branches directly
+  const branches = hierarchy?.data || [];
+  const mainCompany = parentUserData;
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" onClick={onBack}>
-            ← Back
-          </Button>
           <div>
             <h2 className="text-2xl font-bold text-gray-900">Branch Management</h2>
             <p className="text-gray-600">Manage company branches and hierarchy</p>
@@ -220,13 +213,7 @@ export function BranchManagement({ userId, onUserClick, onBack }: BranchManageme
             </div>
           </div>
           <div className="mt-4">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => onUserClick(mainCompany.id, mainCompany.username)}
-            >
-              View Details
-            </Button>
+            <p className="text-sm text-gray-600">Main company account</p>
           </div>
         </CardContent>
       </Card>
@@ -280,13 +267,7 @@ export function BranchManagement({ userId, onUserClick, onBack }: BranchManageme
                       </Badge>
                     </div>
                     <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => onUserClick(branch.id, branch.username)}
-                      >
-                        View Details
-                      </Button>
+                      <Badge variant="outline">Branch User</Badge>
                     </div>
                   </div>
                 </CardContent>
