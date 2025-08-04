@@ -132,7 +132,7 @@ export class DatabaseOptimizationService {
       await this.createIndexSafely(
         'idx_cart_items_user_product',
         sql`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_cart_items_user_product 
-            ON cart_items (user_id, product_id, updated_at DESC)`
+            ON cart_items (user_id, product_id, created_at DESC)`
       );
 
       // Index for wallet balance queries (critical for payment processing)
@@ -160,13 +160,16 @@ export class DatabaseOptimizationService {
 
   private async createIndexSafely(indexName: string, indexSql: any): Promise<void> {
     try {
-
       await db.execute(indexSql);
     } catch (error) {
       if ((error as any).message?.includes('already exists')) {
-
+        // Index already exists, skip
+      } else if ((error as any).message?.includes('does not exist')) {
+        // Column or table doesn't exist, skip creating this index
+        console.warn(`⚠️ Skipping index ${indexName}: Required column/table doesn't exist`);
       } else {
         // Failed to create database index
+        console.error(`❌ Failed to create index ${indexName}:`, error);
         throw error;
       }
     }

@@ -39,6 +39,9 @@ export const orderCounters = pgTable("order_counters", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Branch type enum
+export const branchTypeEnum = pgEnum("branch_type", ["main", "branch"]);
+
 // User storage table
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -61,9 +64,19 @@ export const users = pgTable("users", {
   // Optional B2B Client Fields
   contactPerson: varchar("contact_person"),
   companyDescription: text("company_description"),
+  // Branch Management Fields
+  parentCompanyId: varchar("parent_company_id"), // References parent company user ID
+  branchType: branchTypeEnum("branch_type").default("main").notNull(),
+  branchName: varchar("branch_name"), // Name of the branch (e.g., "Downtown Office", "Sarajevo Poslovnica")
+  branchCode: varchar("branch_code"), // Unique branch identifier (e.g., "SAR001", "ZAG002")
+  branchDescription: text("branch_description"), // Optional branch description
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => [
+  index("users_parent_company_idx").on(table.parentCompanyId),
+  index("users_branch_type_idx").on(table.branchType),
+  index("users_tenant_branch_idx").on(table.tenantId, table.branchType),
+]);
 
 // Product categories with hierarchy support
 export const categories = pgTable("categories", {
@@ -255,6 +268,14 @@ export const usersRelations = relations(users, ({ many, one }) => ({
     references: [adminPermissions.userId],
   }),
   customPricing: many(userProductPricing),
+  // Branch Management Relations
+  parentCompany: one(users, {
+    fields: [users.parentCompanyId],
+    references: [users.id],
+  }),
+  branches: many(users, {
+    relationName: "companyBranches",
+  }),
 }));
 
 export const productsRelations = relations(products, ({ one, many }) => ({
@@ -404,6 +425,19 @@ export const insertUserSchema = createInsertSchema(users).omit({
   updatedAt: true,
 });
 
+// Branch-specific user schema for creating branches
+export const insertBranchSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  password: true, // Branches don't need separate passwords initially
+}).extend({
+  branchType: z.literal("branch"),
+  parentCompanyId: z.string().min(1, "Parent company is required"),
+  branchName: z.string().min(1, "Branch name is required"),
+  branchCode: z.string().min(1, "Branch code is required").max(20),
+});
+
 export const insertProductSchema = createInsertSchema(products).omit({
   id: true,
   createdAt: true,
@@ -487,6 +521,8 @@ export const insertWalletTransactionSchema = createInsertSchema(walletTransactio
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type InsertBranch = z.infer<typeof insertBranchSchema>;
 export type Product = typeof products.$inferSelect;
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type Category = typeof categories.$inferSelect;
