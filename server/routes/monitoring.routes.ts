@@ -1,6 +1,7 @@
 // Monitoring and Alerting Routes
 import { Router } from 'express';
 import { logSecurityEvent, AuditEventSeverity } from '../monitoring/audit';
+import { captureB2BError } from '../monitoring/sentry';
 
 const router = Router();
 
@@ -231,24 +232,38 @@ router.get('/api/monitoring/alerts', (req, res) => {
 });
 
 // Test endpoint to verify Sentry error capturing
-router.get('/api/monitoring/test-sentry', (req, res) => {
+router.get('/api/monitoring/test-sentry', async (req, res) => {
   try {
-    // Simulate a test error for Sentry
+    // Check if Sentry is configured
+    if (!process.env.SENTRY_DSN) {
+      return res.status(400).json({
+        error: 'Sentry not configured',
+        message: 'SENTRY_DSN environment variable not set'
+      });
+    }
+
     if (req.query.trigger === 'error') {
-      const { captureB2BError } = require('../monitoring/sentry');
-      const testError = new Error('Test error for Sentry integration - this is intentional');
+      const testError = new Error('🧪 Test error for Sentry integration - this is intentional for testing');
       
-      captureB2BError(testError, {
-        userId: 'test-user',
+      // Add more context to help identify the test in Sentry
+      const testContext = {
+        userId: 'admin-test-user',
         action: 'sentry_integration_test',
         tenantId: 'eur',
-        transactionId: 'test-' + Date.now()
-      });
+        transactionId: 'test-' + Date.now(),
+        testTimestamp: new Date().toISOString(),
+        source: 'admin_monitoring_panel'
+      };
+
+      // Send the test error to Sentry
+      captureB2BError(testError, testContext);
       
       return res.json({
-        message: 'Test error sent to Sentry successfully',
+        success: true,
+        message: 'Test error sent to Sentry successfully! Check your Sentry dashboard.',
         timestamp: new Date().toISOString(),
-        sentryActive: !!process.env.SENTRY_DSN
+        sentryActive: true,
+        testContext
       });
     }
     
@@ -258,9 +273,11 @@ router.get('/api/monitoring/test-sentry', (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
+    console.error('Sentry test error:', error);
     res.status(500).json({
       error: 'Sentry test failed',
-      message: (error as Error).message
+      message: (error as Error).message,
+      details: error instanceof Error ? error.stack : 'Unknown error'
     });
   }
 });
