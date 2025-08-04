@@ -7,7 +7,9 @@ import {
   Receipt,
   Settings,
   HelpCircle,
-  Building2
+  Building2,
+  Activity,
+  AlertTriangle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useLocation } from "wouter";
@@ -28,6 +30,8 @@ export default function Sidebar({ activeItem, userRole }: SidebarProps) {
     { id: 'reports', icon: BarChart3, label: 'REPORTS', href: '/reports', allowed: userRole === 'admin' || userRole === 'super_admin' },
     { id: 'invoices', icon: Receipt, label: 'INVOICES', href: '/invoices', allowed: userRole === 'admin' || userRole === 'super_admin' },
     { id: 'admin', icon: Settings, label: 'ADMIN PANEL', href: '/admin', allowed: userRole === 'admin' || userRole === 'super_admin' },
+    { id: 'monitoring', icon: Activity, label: 'MONITORING', href: '/monitoring', allowed: userRole === 'admin' || userRole === 'super_admin' },
+    { id: 'alerts', icon: AlertTriangle, label: 'ALERTS', href: '/alerts', allowed: userRole === 'admin' || userRole === 'super_admin' },
     { id: 'settings', icon: Settings, label: 'SETTINGS', href: '/settings', allowed: true },
     { id: 'support', icon: HelpCircle, label: 'SUPPORT', href: '/support', allowed: true },
   ].filter(item => item.allowed);
