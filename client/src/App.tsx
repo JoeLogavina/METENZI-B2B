@@ -40,6 +40,7 @@ const UserEditPage = lazy(() => import("@/pages/admin/user-edit"));
 const CategoryHierarchyDemoPage = lazy(() => import("@/pages/admin/category-hierarchy-demo"));
 const WalletPage = lazy(() => import("@/pages/wallet-page"));
 const OrdersPage = lazy(() => import("@/pages/orders"));
+const MyBranchesPage = lazy(() => import("@/pages/my-branches"));
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -182,6 +183,11 @@ function Router() {
           <Route path="/eur/orders" component={() => (
             <Suspense fallback={<OrdersLoadingFallback />}>
               <OrdersPage />
+            </Suspense>
+          )} />
+          <Route path="/my-branches" component={() => (
+            <Suspense fallback={<OrdersLoadingFallback />}>
+              <MyBranchesPage />
             </Suspense>
           )} />
           <Route path="/admin-panel" component={() => (

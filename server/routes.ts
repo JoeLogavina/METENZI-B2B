@@ -8,6 +8,7 @@ import { z } from "zod";
 import { db } from "./db";
 import { sql, eq, and } from "drizzle-orm";
 import { adminRouter } from "./routes/admin";
+import { usersRouter } from "./routes/users.routes";
 import { errorHandler } from "./middleware/auth.middleware";
 import { securityTestRoutes } from "./routes/security-test.routes";
 import imageRoutes from "./routes/images.routes";
@@ -432,6 +433,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Use the admin router with additional security
   app.use('/api/admin', adminRouter);
+  app.use('/api/users', usersRouter);
   
   // Register admin security routes
   const adminSecurityRoutes = await import('./routes/admin-security');

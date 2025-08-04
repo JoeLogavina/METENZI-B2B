@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Search, Filter, Grid, List, Plus, Minus, Package, User, Settings, BarChart3, FileText, Users, CreditCard, HelpCircle, ChevronDown, Calendar, LogOut, Loader2, Eye } from "lucide-react";
+import { ShoppingCart, Search, Filter, Grid, List, Plus, Minus, Package, User, Settings, BarChart3, FileText, Users, Building2, CreditCard, HelpCircle, ChevronDown, Calendar, LogOut, Loader2, Eye } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { type ProductWithStock } from "@shared/schema";
 import { useTenant } from '@/contexts/TenantContext';
@@ -327,6 +327,7 @@ export default function B2BShop() {
   const sidebarItems = [
     { icon: Package, label: "B2B SHOP", active: true, href: "/", allowed: true },
     { icon: Grid, label: "CATALOG", active: false, href: "/catalog", allowed: true },
+    { icon: Building2, label: "MY BRANCHES", active: false, href: "/my-branches", allowed: user?.role === 'b2b_user' },
     { icon: Users, label: "CLIENTS", active: false, href: "/clients", allowed: user?.role === 'admin' || user?.role === 'super_admin' },
     { icon: FileText, label: "ORDERS", active: false, href: "/orders", allowed: true },
     { icon: CreditCard, label: "MY WALLET", active: false, href: "/wallet", allowed: true },
