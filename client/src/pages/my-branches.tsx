@@ -17,7 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import MyBranches from "@/components/b2b/MyBranches";
 import { useDeviceDetection } from "@/hooks/mobile/useDeviceDetection";
-import MobileSidebar from "@/components/mobile/MobileSidebar";
+import { MobileSidebar } from "@/components/mobile/MobileSidebar";
 
 export default function MyBranchesPage() {
   const { user, isLoading, isAuthenticated, logout, isLoggingOut } = useAuth();

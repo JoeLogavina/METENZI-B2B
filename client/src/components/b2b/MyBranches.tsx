@@ -47,7 +47,7 @@ export function MyBranches({}: MyBranchesProps) {
   // Fetch company hierarchy
   const { data: hierarchy, isLoading } = useQuery<{ data: { mainCompany: User; branches: User[] } }>({
     queryKey: ['my-company-hierarchy', parentCompanyId],
-    queryFn: () => apiRequest(`/api/users/${parentCompanyId}/hierarchy`),
+    queryFn: () => apiRequest('GET', `/api/users/${parentCompanyId}/hierarchy`),
     enabled: !!parentCompanyId
   });
 
