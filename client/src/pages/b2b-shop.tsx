@@ -58,7 +58,7 @@ export default function B2BShop() {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   
   // Navigation state for integrated sections
-  const [currentSection, setCurrentSection] = useState<'products' | 'branches' | 'orders' | 'wallet'>('products');
+  const [currentSection, setCurrentSection] = useState<'products' | 'orders' | 'wallet'>('products');
 
   // Product modal state
   const [selectedProduct, setSelectedProduct] = useState<ProductWithStock | null>(null);
@@ -330,7 +330,6 @@ export default function B2BShop() {
 
   const sidebarItems = [
     { icon: Package, label: "PRODUCTS", active: currentSection === 'products', section: 'products' as const, href: "", allowed: true },
-    { icon: Building, label: "MY BRANCHES", active: currentSection === 'branches', section: 'branches' as const, href: "", allowed: user?.role === 'b2b_user' },
     { icon: FileText, label: "ORDERS", active: currentSection === 'orders', section: 'orders' as const, href: "", allowed: true },
     { icon: CreditCard, label: "MY WALLET", active: currentSection === 'wallet', section: 'wallet' as const, href: "", allowed: true },
     { icon: Users, label: "CLIENTS", active: false, href: "/clients", section: null, allowed: user?.role === 'admin' || user?.role === 'super_admin' },
