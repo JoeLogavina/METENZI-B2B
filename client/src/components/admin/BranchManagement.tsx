@@ -54,11 +54,27 @@ export function BranchManagement({ parentUserId, parentUserData }: BranchManagem
 
   // Create branch mutation
   const createBranchMutation = useMutation({
-    mutationFn: (branchData: typeof newBranch) => 
-      apiRequest(`/api/admin/users/${parentUserId}/branches`, {
+    mutationFn: async (branchData: typeof newBranch) => {
+      // Get CSRF token first
+      const csrfResponse = await fetch('/api/csrf-token');
+      const { csrfToken } = await csrfResponse.json();
+      
+      const response = await fetch(`/api/admin/users/${parentUserId}/branches`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken,
+        },
         body: JSON.stringify(branchData)
-      }),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ message: 'Failed to create branch' }));
+        throw new Error(error.message || 'Failed to create branch');
+      }
+      
+      return response.json();
+    },
     onSuccess: () => {
       toast({
         title: "Success",
