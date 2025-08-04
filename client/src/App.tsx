@@ -167,6 +167,14 @@ function Router() {
               <OrdersPage />
             </Suspense>
           )} />
+          <Route path="/eur/branches" component={() => {
+            const MyBranchesPage = lazy(() => import("@/pages/my-branches"));
+            return (
+              <Suspense fallback={<ShopLoadingFallback />}>
+                <MyBranchesPage />
+              </Suspense>
+            );
+          }} />
 
           <Route path="/admin-panel" component={() => (
             <Suspense fallback={<AdminLoadingFallback />}>

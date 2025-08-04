@@ -254,6 +254,7 @@ export default function EURShop() {
     { icon: ShoppingCart, label: "MY CART", active: false, href: "/eur/cart", allowed: true },
     { icon: FileText, label: "ORDERS", active: false, href: "/orders", allowed: true },
     { icon: CreditCard, label: "MY WALLET", active: false, href: "/wallet", allowed: true },
+    { icon: Users, label: "MY BRANCHES", active: false, href: "/eur/branches", allowed: user?.role === 'b2b_user' },
     { icon: Settings, label: "SETTINGS", active: false, href: "/eur", allowed: true },
     { icon: HelpCircle, label: "SUPPORT", active: false, href: "/eur", allowed: true },
     // Admin-only items  
