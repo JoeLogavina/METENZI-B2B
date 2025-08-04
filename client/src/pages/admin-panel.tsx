@@ -1206,6 +1206,7 @@ function MonitoringSection() {
 function AlertsSection() {
   const { toast } = useToast();
   const [testingSentry, setTestingSentry] = useState(false);
+  const [testingPerformance, setTestingPerformance] = useState(false);
 
   const { data: alertsData, isLoading: alertsLoading } = useQuery({
     queryKey: ['/api/monitoring/alerts'],
@@ -1235,6 +1236,27 @@ function AlertsSection() {
       });
     } finally {
       setTestingSentry(false);
+    }
+  };
+
+  const testSentryPerformance = async () => {
+    setTestingPerformance(true);
+    try {
+      const response = await fetch('/api/monitoring/test-sentry?trigger=performance');
+      const data = await response.json();
+      
+      toast({
+        title: "Performance Test Successful",
+        description: `Performance monitoring test completed. Database: ${data.database_duration}ms, Wallet: ${data.wallet_duration}ms, License: ${data.license_duration}ms`,
+      });
+    } catch (error) {
+      toast({
+        title: "Performance Test Failed",
+        description: "Could not complete performance monitoring test",
+        variant: "destructive",
+      });
+    } finally {
+      setTestingPerformance(false);
     }
   };
 
