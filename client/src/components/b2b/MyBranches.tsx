@@ -64,9 +64,9 @@ export function MyBranches() {
 
   // Fetch branches for the current user
   const { data: branchesData, isLoading } = useQuery({
-    queryKey: ['/api/admin/users', user?.id, 'branches'],
+    queryKey: ['/api/my-branches'],
     queryFn: async () => {
-      const response = await fetch(`/api/admin/users/${user?.id}/branches`, {
+      const response = await fetch('/api/my-branches', {
         credentials: 'include',
       });
       if (!response.ok) throw new Error('Failed to fetch branches');
@@ -78,7 +78,7 @@ export function MyBranches() {
   // Create branch mutation
   const createBranchMutation = useMutation({
     mutationFn: async (data: BranchFormData) => {
-      const response = await fetch(`/api/admin/users/${user?.id}/branches`, {
+      const response = await fetch('/api/my-branches', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -93,7 +93,7 @@ export function MyBranches() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/users', user?.id, 'branches'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/my-branches'] });
       setIsCreateOpen(false);
       resetForm();
       toast({
@@ -113,7 +113,7 @@ export function MyBranches() {
   // Update branch mutation
   const updateBranchMutation = useMutation({
     mutationFn: async (data: { branchId: string; updateData: Partial<BranchFormData> }) => {
-      const response = await fetch(`/api/admin/users/${user?.id}/branches/${data.branchId}`, {
+      const response = await fetch(`/api/my-branches/${data.branchId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -128,7 +128,7 @@ export function MyBranches() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/users', user?.id, 'branches'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/my-branches'] });
       setIsEditOpen(false);
       setSelectedBranch(null);
       resetForm();

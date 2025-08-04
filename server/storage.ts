@@ -37,6 +37,7 @@ export interface IStorage {
   updateUser(id: string, updateData: Partial<User>): Promise<User>;
   updateUserRole(id: string, role: "b2b_user" | "admin" | "super_admin"): Promise<void>;
   getAllUsers(): Promise<User[]>;
+  getUserBranches(parentUserId: string): Promise<User[]>;
 
   // Product operations
   getProducts(filters?: {
@@ -940,6 +941,12 @@ export class DatabaseStorage implements IStorage {
   // Admin operations
   async getAllUsers(): Promise<User[]> {
     return await db.select().from(users).orderBy(desc(users.createdAt));
+  }
+
+  async getUserBranches(parentUserId: string): Promise<User[]> {
+    return await db.select().from(users)
+      .where(eq(users.parentCompanyId, parentUserId))
+      .orderBy(users.createdAt);
   }
 
   async getUserPermissions(userId: string): Promise<AdminPermissions | undefined> {

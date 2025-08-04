@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Search, Filter, Grid, List, Plus, Minus, Package, User, Settings, BarChart3, FileText, Users, CreditCard, HelpCircle, ChevronDown, Calendar, LogOut, Loader2, Eye } from "lucide-react";
+import { ShoppingCart, Search, Filter, Grid, List, Plus, Minus, Package, User, Settings, BarChart3, FileText, Users, CreditCard, HelpCircle, ChevronDown, Calendar, LogOut, Loader2, Eye, Building } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { type ProductWithStock } from "@shared/schema";
 import { useTenant } from '@/contexts/TenantContext';
@@ -28,6 +28,7 @@ import { MobileB2BShop } from "@/components/mobile/MobileB2BShop";
 import { MobileSidebar } from "@/components/mobile/MobileSidebar";
 import { testDeviceDetection } from "@/utils/deviceTest";
 import { MobileDebugPanel } from "@/components/debug/MobileDebugPanel";
+import { MyBranches } from "@/components/b2b/MyBranches";
 
 export default function B2BShop() {
   const { user, isLoading, isAuthenticated, logout, isLoggingOut } = useAuth();
@@ -55,6 +56,9 @@ export default function B2BShop() {
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [isCartHovered, setIsCartHovered] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  
+  // Navigation state for integrated sections
+  const [currentSection, setCurrentSection] = useState<'products' | 'branches' | 'orders' | 'wallet'>('products');
 
   // Product modal state
   const [selectedProduct, setSelectedProduct] = useState<ProductWithStock | null>(null);
@@ -325,16 +329,14 @@ export default function B2BShop() {
   }
 
   const sidebarItems = [
-    { icon: Package, label: "B2B SHOP", active: true, href: "/", allowed: true },
-    { icon: Grid, label: "CATALOG", active: false, href: "/catalog", allowed: true },
-    { icon: Users, label: "CLIENTS", active: false, href: "/clients", allowed: user?.role === 'admin' || user?.role === 'super_admin' },
-    { icon: FileText, label: "ORDERS", active: false, href: "/orders", allowed: true },
-    { icon: CreditCard, label: "MY WALLET", active: false, href: "/wallet", allowed: true },
-    { icon: BarChart3, label: "REPORTS", active: false, href: "/reports", allowed: user?.role === 'admin' || user?.role === 'super_admin' },
-    { icon: CreditCard, label: "INVOICES", active: false, href: "/invoices", allowed: user?.role === 'admin' || user?.role === 'super_admin' },
-
-    { icon: Settings, label: "SETTINGS", active: false, href: "/settings", allowed: true },
-    { icon: HelpCircle, label: "SUPPORT", active: false, href: "/support", allowed: true },
+    { icon: Package, label: "PRODUCTS", active: currentSection === 'products', section: 'products' as const, href: "", allowed: true },
+    { icon: Building, label: "MY BRANCHES", active: currentSection === 'branches', section: 'branches' as const, href: "", allowed: user?.role === 'b2b_user' },
+    { icon: FileText, label: "ORDERS", active: currentSection === 'orders', section: 'orders' as const, href: "", allowed: true },
+    { icon: CreditCard, label: "MY WALLET", active: currentSection === 'wallet', section: 'wallet' as const, href: "", allowed: true },
+    { icon: Users, label: "CLIENTS", active: false, href: "/clients", section: null, allowed: user?.role === 'admin' || user?.role === 'super_admin' },
+    { icon: BarChart3, label: "REPORTS", active: false, href: "/reports", section: null, allowed: user?.role === 'admin' || user?.role === 'super_admin' },
+    { icon: Settings, label: "SETTINGS", active: false, href: "/settings", section: null, allowed: true },
+    { icon: HelpCircle, label: "SUPPORT", active: false, href: "/support", section: null, allowed: true },
   ].filter(item => item.allowed);
 
   // Mobile-responsive layout with collapsible sidebar
@@ -379,8 +381,11 @@ export default function B2BShop() {
                   : 'text-white hover:bg-[#7a7b7d]'
               }`}
               onClick={() => {
-                // Navigation tracking removed for production
-                setLocation(item.href);
+                if (item.section) {
+                  setCurrentSection(item.section);
+                } else if (item.href) {
+                  setLocation(item.href);
+                }
               }}
             >
               <item.icon className="w-6 h-6 mr-3" />
@@ -508,28 +513,31 @@ export default function B2BShop() {
           </div>
         </header>
 
-        {/* View Mode Toggle Bar */}
-        <div className="bg-[#f8f8f8] border-b border-[#ddd] p-4">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-600">
-              Use the filter panel on the left to refine your product search
+        {/* Dynamic Content Based on Current Section */}
+        {currentSection === 'products' && (
+          <>
+            {/* View Mode Toggle Bar */}
+            <div className="bg-[#f8f8f8] border-b border-[#ddd] p-4">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-600">
+                  Use the filter panel on the left to refine your product search
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Select value={viewMode} onValueChange={(value: 'table' | 'grid') => setViewMode(value)}>
+                    <SelectTrigger className="w-32 border-[#ddd] rounded-[5px] focus:border-[#FFB20F]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="table">List View</SelectItem>
+                      <SelectItem value="grid">Grid View</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <Select value={viewMode} onValueChange={(value: 'table' | 'grid') => setViewMode(value)}>
-                <SelectTrigger className="w-32 border-[#ddd] rounded-[5px] focus:border-[#FFB20F]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="table">List View</SelectItem>
-                  <SelectItem value="grid">Grid View</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </div>
 
-        {/* Main Content Area with Advanced Filters */}
-        <div className="flex-1 flex overflow-hidden">
+            {/* Main Content Area with Advanced Filters */}
+            <div className="flex-1 flex overflow-hidden">
           {/* Advanced Filters Sidebar */}
           <div className="w-80 bg-white border-r border-[#ddd] p-4 overflow-y-auto">
             <AdvancedProductFilters
@@ -650,6 +658,41 @@ export default function B2BShop() {
             )}
           </div>
         </div>
+          </>
+        )}
+
+        {/* Branches Section */}
+        {currentSection === 'branches' && (
+          <div className="flex-1 overflow-auto">
+            <div className="p-6">
+              <MyBranches />
+            </div>
+          </div>
+        )}
+
+        {/* Orders Section */}
+        {currentSection === 'orders' && (
+          <div className="flex-1 overflow-auto">
+            <div className="p-6">
+              <div className="bg-white rounded-[8px] shadow-[0_2px_5px_rgba(0,0,0,0.1)] p-6">
+                <h2 className="text-xl font-semibold text-[#6E6F71] mb-4">My Orders</h2>
+                <p className="text-gray-600">Orders section coming soon...</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Wallet Section */}
+        {currentSection === 'wallet' && (
+          <div className="flex-1 overflow-auto">
+            <div className="p-6">
+              <div className="bg-white rounded-[8px] shadow-[0_2px_5px_rgba(0,0,0,0.1)] p-6">
+                <h2 className="text-xl font-semibold text-[#6E6F71] mb-4">My Wallet</h2>
+                <p className="text-gray-600">Wallet section coming soon...</p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Product Detail Modal */}
