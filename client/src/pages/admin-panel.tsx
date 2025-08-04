@@ -30,7 +30,8 @@ import {
   CreditCard,
   History,
   UserCheck,
-  UserX
+  UserX,
+  TreePine
 } from "lucide-react";
 import WalletManagement from "@/components/wallet-management";
 import UserForm from "@/components/user-form";
@@ -658,18 +659,32 @@ export default function AdminPanel() {
                                       <Edit className="w-4 h-4" />
                                     </Button>
                                     {userData.role === 'b2b_user' && (
-                                      <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() => {
-                                          setActiveSection('wallet-management');
-                                          // You could also set selected user here
-                                        }}
-                                        className="text-[#6E6F71] hover:bg-[#6E6F71] hover:text-white p-1"
-                                        title="Manage wallet"
-                                      >
-                                        <Wallet className="w-4 h-4" />
-                                      </Button>
+                                      <>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() => {
+                                            setActiveSection('wallet-management');
+                                            // You could also set selected user here
+                                          }}
+                                          className="text-[#6E6F71] hover:bg-[#6E6F71] hover:text-white p-1"
+                                          title="Manage wallet"
+                                        >
+                                          <Wallet className="w-4 h-4" />
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() => {
+                                            setSelectedUser(userData);
+                                            setActiveSection('branch-management');
+                                          }}
+                                          className="text-green-600 hover:bg-green-600 hover:text-white p-1"
+                                          title="Manage branches"
+                                        >
+                                          <TreePine className="w-4 h-4" />
+                                        </Button>
+                                      </>
                                     )}
                                     {userData.role !== 'super_admin' && (
                                       <Button
@@ -847,6 +862,29 @@ export default function AdminPanel() {
                     </table>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* Branch Management Section */}
+            {activeSection === 'branch-management' && selectedUser && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-2xl font-bold text-[#6E6F71]">Branch Management</h2>
+                    <p className="text-gray-600">Manage branches for {selectedUser.firstName} {selectedUser.lastName} ({selectedUser.companyName})</p>
+                  </div>
+                  <Button
+                    onClick={() => setActiveSection('users')}
+                    variant="outline"
+                    className="border-[#6E6F71] text-[#6E6F71] hover:bg-[#6E6F71] hover:text-white"
+                  >
+                    ← Back to Users
+                  </Button>
+                </div>
+                <BranchManagement 
+                  parentUserId={selectedUser.id}
+                  parentUserData={selectedUser}
+                />
               </div>
             )}
 
