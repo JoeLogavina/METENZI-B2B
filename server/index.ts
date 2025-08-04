@@ -3,12 +3,18 @@ import compression from "compression";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { initializeDatabase } from "./startup/database-init";
+import { initializeSentry, Sentry, Handlers } from "./monitoring/sentry";
+import { register as prometheusRegister, trackHttpRequest } from "./monitoring/prometheus";
+import { errorTrackingMiddleware, authenticationTrackingMiddleware, b2bTrackingMiddleware } from "./middleware/monitoring";
 import path from 'path';
 
 const app = express();
 
 // Initialize database optimizations - moved to async wrapper
 async function startServer() {
+  // Initialize monitoring systems first
+  initializeSentry();
+  
   await initializeDatabase();
 
 // Enterprise Performance Optimization: Response Compression
@@ -25,8 +31,18 @@ app.use(compression({
 
 
 
+// Sentry request handler must be first middleware (if available)
+if (process.env.SENTRY_DSN) {
+  app.use(Handlers.requestHandler);
+  app.use(Handlers.tracingHandler);
+}
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false }));
+
+// Add monitoring middleware
+app.use(authenticationTrackingMiddleware);
+app.use(b2bTrackingMiddleware);
 
 // Serve static files from uploads directory
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
@@ -44,6 +60,11 @@ app.use((req, res, next) => {
 
   res.on("finish", () => {
     const duration = Date.now() - start;
+    
+    // Track metrics for monitoring
+    const tenant = path.includes('/eur') ? 'EUR' : path.includes('/km') ? 'KM' : 'unknown';
+    trackHttpRequest(req.method, path, res.statusCode, duration, tenant);
+    
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
       if (capturedJsonResponse) {
@@ -61,7 +82,26 @@ app.use((req, res, next) => {
   next();
 });
 
+  // Add Prometheus metrics endpoint
+  app.get('/metrics', async (req, res) => {
+    try {
+      res.set('Content-Type', prometheusRegister.contentType);
+      res.end(await prometheusRegister.metrics());
+    } catch (error) {
+      res.status(500).end(error);
+    }
+  });
+
+  // Sentry error handler must be after routes but before other error handlers
   const httpServer = await registerRoutes(app);
+  
+  // Add monitoring error handler before Sentry
+  app.use(errorTrackingMiddleware);
+  
+  // Add Sentry error handler (if available)
+  if (process.env.SENTRY_DSN) {
+    app.use(Handlers.errorHandler);
+  }
 
   if (process.env.NODE_ENV === "production") {
     serveStatic(app);
