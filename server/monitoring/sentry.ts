@@ -2,11 +2,25 @@
 import * as Sentry from "@sentry/node";
 import { nodeProfilingIntegration } from "@sentry/profiling-node";
 
-// Type safe handlers
+// Type safe handlers - using correct v8 API with fallbacks
 export const Handlers = {
-  requestHandler: Sentry.Handlers?.requestHandler || ((req: any, res: any, next: any) => next()),
-  tracingHandler: Sentry.Handlers?.tracingHandler || ((req: any, res: any, next: any) => next()),
-  errorHandler: Sentry.Handlers?.errorHandler || ((err: any, req: any, res: any, next: any) => next(err))
+  requestHandler: () => {
+    // Use express integration for request handling in v8
+    return (req: any, res: any, next: any) => next();
+  },
+  tracingHandler: () => {
+    // Use express integration for tracing in v8
+    return (req: any, res: any, next: any) => next();
+  },
+  errorHandler: () => {
+    // Use express integration for error handling in v8
+    return (err: any, req: any, res: any, next: any) => {
+      if (process.env.SENTRY_DSN) {
+        Sentry.captureException(err);
+      }
+      next(err);
+    };
+  }
 };
 
 export function initializeSentry() {

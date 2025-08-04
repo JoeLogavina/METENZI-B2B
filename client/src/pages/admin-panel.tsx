@@ -1410,6 +1410,19 @@ function AlertsSection() {
               >
                 {testingPerformance ? 'Testing...' : 'Test Sentry Performance'}
               </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  // Test frontend error capture
+                  const frontendError = new Error('🧪 Frontend Development Error Test - Component Scope Issue');
+                  console.error('Frontend test error:', frontendError);
+                  throw frontendError;
+                }}
+                className="bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-300"
+              >
+                Test Frontend Error
+              </Button>
             </div>
           </div>
         </CardContent>
