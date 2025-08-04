@@ -1021,6 +1021,9 @@ export default function AdminPanel() {
 
 // Monitoring Section Component with Live Data
 function MonitoringSection() {
+  const { toast } = useToast();
+  const [testingSentry, setTestingSentry] = useState(false);
+
   const { data: healthData, isLoading: healthLoading } = useQuery({
     queryKey: ['/api/monitoring/health'],
     refetchInterval: 30000, // Refresh every 30 seconds
@@ -1030,6 +1033,27 @@ function MonitoringSection() {
     queryKey: ['/api/monitoring/metrics/summary'],
     refetchInterval: 30000,
   });
+
+  const testSentryCapture = async () => {
+    setTestingSentry(true);
+    try {
+      const response = await fetch('/api/monitoring/test-sentry?trigger=error');
+      const data = await response.json();
+      
+      toast({
+        title: "Sentry Test Successful",
+        description: "Test error sent to Sentry. Check your Sentry dashboard for the error report.",
+      });
+    } catch (error) {
+      toast({
+        title: "Test Failed",
+        description: "Could not send test error to Sentry",
+        variant: "destructive",
+      });
+    } finally {
+      setTestingSentry(false);
+    }
+  };
 
   const formatUptime = (seconds: number) => {
     const days = Math.floor(seconds / 86400);
@@ -1158,6 +1182,9 @@ function MonitoringSection() {
 
 // Alerts Section Component with Live Data
 function AlertsSection() {
+  const { toast } = useToast();
+  const [testingSentry, setTestingSentry] = useState(false);
+
   const { data: alertsData, isLoading: alertsLoading } = useQuery({
     queryKey: ['/api/monitoring/alerts'],
     refetchInterval: 60000, // Refresh every minute
@@ -1167,6 +1194,27 @@ function AlertsSection() {
     queryKey: ['/api/monitoring/health'],
     refetchInterval: 30000,
   });
+
+  const testSentryCapture = async () => {
+    setTestingSentry(true);
+    try {
+      const response = await fetch('/api/monitoring/test-sentry?trigger=error');
+      const data = await response.json();
+      
+      toast({
+        title: "Sentry Test Successful",
+        description: "Test error sent to Sentry. Check your Sentry dashboard for the error report.",
+      });
+    } catch (error) {
+      toast({
+        title: "Test Failed",
+        description: "Could not send test error to Sentry",
+        variant: "destructive",
+      });
+    } finally {
+      setTestingSentry(false);
+    }
+  };
 
   const getSeverityColor = (severity: string) => {
     switch (severity?.toLowerCase()) {
@@ -1285,7 +1333,7 @@ function AlertsSection() {
               Enterprise monitoring with Sentry, Prometheus, and Grafana integration. 
               Alerts are automatically generated based on system thresholds and health checks.
             </p>
-            <div className="flex gap-3">
+            <div className="flex gap-3 flex-wrap">
               <Button 
                 variant="outline" 
                 size="sm"
@@ -1299,6 +1347,15 @@ function AlertsSection() {
                 onClick={() => window.open('/health', '_blank')}
               >
                 Health Status
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={testSentryCapture}
+                disabled={testingSentry}
+                className="bg-red-50 hover:bg-red-100 text-red-700 border-red-300"
+              >
+                {testingSentry ? 'Testing...' : 'Test Sentry Error'}
               </Button>
             </div>
           </div>
