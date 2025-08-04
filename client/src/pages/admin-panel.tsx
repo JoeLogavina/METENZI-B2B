@@ -1112,10 +1112,10 @@ function MonitoringSection() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className={`p-4 rounded-lg ${getStatusColor(healthData?.status)}`}>
+            <div className={`p-4 rounded-lg ${getStatusColor((healthData as any)?.status)}`}>
               <div className="font-semibold">System Status</div>
               <div className="text-2xl font-bold">
-                {healthLoading ? 'Loading...' : healthData?.status || 'Unknown'}
+                {healthLoading ? 'Loading...' : (healthData as any)?.status || 'Unknown'}
               </div>
             </div>
             
@@ -1123,7 +1123,7 @@ function MonitoringSection() {
               <div className="text-blue-600 font-semibold">Uptime</div>
               <div className="text-2xl font-bold text-blue-700">
                 {healthLoading ? 'Loading...' : 
-                 healthData?.uptime ? formatUptime(healthData.uptime) : 'N/A'}
+                 (healthData as any)?.uptime ? formatUptime((healthData as any).uptime) : 'N/A'}
               </div>
             </div>
             
@@ -1131,11 +1131,11 @@ function MonitoringSection() {
               <div className="text-yellow-600 font-semibold">Memory Usage</div>
               <div className="text-2xl font-bold text-yellow-700">
                 {metricsLoading ? 'Loading...' : 
-                 metricsData?.memory ? `${Math.round((metricsData.memory.used / metricsData.memory.total) * 100)}%` : 'N/A'}
+                 (metricsData as any)?.memory ? `${Math.round(((metricsData as any).memory.used / (metricsData as any).memory.total) * 100)}%` : 'N/A'}
               </div>
-              {metricsData?.memory && (
+              {(metricsData as any)?.memory && (
                 <div className="text-xs text-yellow-600">
-                  {formatBytes(metricsData.memory.used)} / {formatBytes(metricsData.memory.total)}
+                  {formatBytes((metricsData as any).memory.used)} / {formatBytes((metricsData as any).memory.total)}
                 </div>
               )}
             </div>
@@ -1144,7 +1144,7 @@ function MonitoringSection() {
               <div className="text-purple-600 font-semibold">Database Status</div>
               <div className="text-2xl font-bold text-purple-700">
                 {healthLoading ? 'Loading...' : 
-                 healthData?.database?.status || 'Unknown'}
+                 (healthData as any)?.database?.status || 'Unknown'}
               </div>
             </div>
           </div>
@@ -1155,16 +1155,16 @@ function MonitoringSection() {
               <div className="p-4 bg-gray-50 rounded-lg">
                 <h4 className="font-semibold mb-2">HTTP Requests</h4>
                 <div className="text-sm space-y-1">
-                  <div>Total: {metricsData.http?.total || 'N/A'}</div>
-                  <div>Success Rate: {metricsData.http?.successRate ? `${(metricsData.http.successRate * 100).toFixed(1)}%` : 'N/A'}</div>
+                  <div>Total: {(metricsData as any).http?.total || 'N/A'}</div>
+                  <div>Success Rate: {(metricsData as any).http?.successRate ? `${((metricsData as any).http.successRate * 100).toFixed(1)}%` : 'N/A'}</div>
                 </div>
               </div>
               
               <div className="p-4 bg-gray-50 rounded-lg">
                 <h4 className="font-semibold mb-2">Performance</h4>
                 <div className="text-sm space-y-1">
-                  <div>Avg Response: {metricsData.performance?.avgResponseTime ? `${metricsData.performance.avgResponseTime}ms` : 'N/A'}</div>
-                  <div>CPU Usage: {metricsData.cpu ? `${Math.round(metricsData.cpu * 100)}%` : 'N/A'}</div>
+                  <div>Avg Response: {(metricsData as any).performance?.avgResponseTime ? `${(metricsData as any).performance.avgResponseTime}ms` : 'N/A'}</div>
+                  <div>CPU Usage: {(metricsData as any).cpu ? `${Math.round((metricsData as any).cpu * 100)}%` : 'N/A'}</div>
                 </div>
               </div>
             </div>
@@ -1292,8 +1292,8 @@ function AlertsSection() {
     return 'Just now';
   };
 
-  const alerts = alertsData?.alerts || [];
-  const alertStats = alertsData?.stats || { critical: 0, warning: 0, info: 0 };
+  const alerts = (alertsData as any)?.alerts || [];
+  const alertStats = (alertsData as any)?.stats || { critical: 0, warning: 0, info: 0 };
 
   return (
     <div className="space-y-6">
@@ -1353,11 +1353,11 @@ function AlertsSection() {
           </div>
 
           {/* Health-based Alerts */}
-          {healthData?.alerts && healthData.alerts.length > 0 && (
+          {(healthData as any)?.alerts && (healthData as any).alerts.length > 0 && (
             <div className="mt-6">
               <h3 className="font-semibold mb-3">System Health Alerts</h3>
               <div className="space-y-2">
-                {healthData.alerts.map((alert: any, index: number) => (
+                {(healthData as any).alerts.map((alert: any, index: number) => (
                   <div key={index} className={`p-3 border-l-4 rounded-lg ${getSeverityColor(alert.severity)}`}>
                     <div className={`font-semibold ${getSeverityTextColor(alert.severity)}`}>
                       {alert.component}: {alert.status}
@@ -1410,19 +1410,7 @@ function AlertsSection() {
               >
                 {testingPerformance ? 'Testing...' : 'Test Sentry Performance'}
               </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => {
-                  // Test frontend error capture
-                  const frontendError = new Error('🧪 Frontend Development Error Test - Component Scope Issue');
-                  console.error('Frontend test error:', frontendError);
-                  throw frontendError;
-                }}
-                className="bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-300"
-              >
-                Test Frontend Error
-              </Button>
+
             </div>
           </div>
         </CardContent>
