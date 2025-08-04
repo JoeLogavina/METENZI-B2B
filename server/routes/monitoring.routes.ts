@@ -230,4 +230,39 @@ router.get('/api/monitoring/alerts', (req, res) => {
   }
 });
 
+// Test endpoint to verify Sentry error capturing
+router.get('/api/monitoring/test-sentry', (req, res) => {
+  try {
+    // Simulate a test error for Sentry
+    if (req.query.trigger === 'error') {
+      const { captureB2BError } = require('../monitoring/sentry');
+      const testError = new Error('Test error for Sentry integration - this is intentional');
+      
+      captureB2BError(testError, {
+        userId: 'test-user',
+        action: 'sentry_integration_test',
+        tenantId: 'eur',
+        transactionId: 'test-' + Date.now()
+      });
+      
+      return res.json({
+        message: 'Test error sent to Sentry successfully',
+        timestamp: new Date().toISOString(),
+        sentryActive: !!process.env.SENTRY_DSN
+      });
+    }
+    
+    res.json({
+      message: 'Sentry test endpoint ready. Add ?trigger=error to send a test error',
+      sentryActive: !!process.env.SENTRY_DSN,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Sentry test failed',
+      message: (error as Error).message
+    });
+  }
+});
+
 export default router;
