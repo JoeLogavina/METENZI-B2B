@@ -967,108 +967,9 @@ export default function AdminPanel() {
 
             {activeSection === 'keys' && <EmbeddedKeyManagement />}
 
-            {activeSection === 'monitoring' && (
-              <div className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Activity className="w-5 h-5" />
-                      System Monitoring
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                      <div className="bg-green-50 p-4 rounded-lg">
-                        <div className="text-green-600 font-semibold">System Status</div>
-                        <div className="text-2xl font-bold text-green-700">Healthy</div>
-                      </div>
-                      <div className="bg-blue-50 p-4 rounded-lg">
-                        <div className="text-blue-600 font-semibold">Uptime</div>
-                        <div className="text-2xl font-bold text-blue-700">99.9%</div>
-                      </div>
-                      <div className="bg-yellow-50 p-4 rounded-lg">
-                        <div className="text-yellow-600 font-semibold">Memory Usage</div>
-                        <div className="text-2xl font-bold text-yellow-700">45%</div>
-                      </div>
-                      <div className="bg-purple-50 p-4 rounded-lg">
-                        <div className="text-purple-600 font-semibold">Active Users</div>
-                        <div className="text-2xl font-bold text-purple-700">24</div>
-                      </div>
-                    </div>
-                    <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                      <h3 className="font-semibold mb-2">External Monitoring Tools</h3>
-                      <div className="flex gap-3">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => window.open('/metrics', '_blank')}
-                        >
-                          Prometheus Metrics
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => window.open('/health', '_blank')}
-                        >
-                          Health Check
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
+            {activeSection === 'monitoring' && <MonitoringSection />}
 
-            {activeSection === 'alerts' && (
-              <div className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <AlertTriangle className="w-5 h-5" />
-                      Alerts Management
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                      <div className="bg-red-50 p-4 rounded-lg">
-                        <div className="text-red-600 font-semibold">Critical Alerts</div>
-                        <div className="text-2xl font-bold text-red-700">0</div>
-                      </div>
-                      <div className="bg-yellow-50 p-4 rounded-lg">
-                        <div className="text-yellow-600 font-semibold">Warning Alerts</div>
-                        <div className="text-2xl font-bold text-yellow-700">2</div>
-                      </div>
-                      <div className="bg-blue-50 p-4 rounded-lg">
-                        <div className="text-blue-600 font-semibold">Info Alerts</div>
-                        <div className="text-2xl font-bold text-blue-700">5</div>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <div className="p-3 border-l-4 border-yellow-400 bg-yellow-50">
-                        <div className="font-semibold text-yellow-800">High Memory Usage</div>
-                        <div className="text-sm text-yellow-700">Memory usage above 80% threshold</div>
-                        <div className="text-xs text-yellow-600">2 minutes ago</div>
-                      </div>
-                      <div className="p-3 border-l-4 border-yellow-400 bg-yellow-50">
-                        <div className="font-semibold text-yellow-800">Slow Database Query</div>
-                        <div className="text-sm text-yellow-700">Query execution time above normal</div>
-                        <div className="text-xs text-yellow-600">5 minutes ago</div>
-                      </div>
-                    </div>
-
-                    <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                      <h3 className="font-semibold mb-2">Alert Configuration</h3>
-                      <p className="text-sm text-gray-600 mb-3">Enterprise monitoring with Sentry, Prometheus, and Grafana integration</p>
-                      <div className="flex gap-3">
-                        <Button variant="outline" size="sm">Configure Rules</Button>
-                        <Button variant="outline" size="sm">View History</Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
+            {activeSection === 'alerts' && <AlertsSection />}
 
             {(activeSection === 'permissions' || activeSection === 'reports') && (
               <Card>
@@ -1116,6 +1017,295 @@ export default function AdminPanel() {
     </div>
   );
 
+}
+
+// Monitoring Section Component with Live Data
+function MonitoringSection() {
+  const { data: healthData, isLoading: healthLoading } = useQuery({
+    queryKey: ['/api/monitoring/health'],
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+
+  const { data: metricsData, isLoading: metricsLoading } = useQuery({
+    queryKey: ['/api/monitoring/metrics/summary'],
+    refetchInterval: 30000,
+  });
+
+  const formatUptime = (seconds: number) => {
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    
+    if (days > 0) return `${days}d ${hours}h`;
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    return `${minutes}m`;
+  };
+
+  const formatBytes = (bytes: number) => {
+    const gb = bytes / (1024 * 1024 * 1024);
+    return `${gb.toFixed(1)} GB`;
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'healthy': case 'ok': return 'text-green-700 bg-green-50';
+      case 'warning': return 'text-yellow-700 bg-yellow-50';
+      case 'error': case 'critical': return 'text-red-700 bg-red-50';
+      default: return 'text-gray-700 bg-gray-50';
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="w-5 h-5" />
+            System Monitoring - Live Data
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className={`p-4 rounded-lg ${getStatusColor(healthData?.status)}`}>
+              <div className="font-semibold">System Status</div>
+              <div className="text-2xl font-bold">
+                {healthLoading ? 'Loading...' : healthData?.status || 'Unknown'}
+              </div>
+            </div>
+            
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <div className="text-blue-600 font-semibold">Uptime</div>
+              <div className="text-2xl font-bold text-blue-700">
+                {healthLoading ? 'Loading...' : 
+                 healthData?.uptime ? formatUptime(healthData.uptime) : 'N/A'}
+              </div>
+            </div>
+            
+            <div className="bg-yellow-50 p-4 rounded-lg">
+              <div className="text-yellow-600 font-semibold">Memory Usage</div>
+              <div className="text-2xl font-bold text-yellow-700">
+                {metricsLoading ? 'Loading...' : 
+                 metricsData?.memory ? `${Math.round((metricsData.memory.used / metricsData.memory.total) * 100)}%` : 'N/A'}
+              </div>
+              {metricsData?.memory && (
+                <div className="text-xs text-yellow-600">
+                  {formatBytes(metricsData.memory.used)} / {formatBytes(metricsData.memory.total)}
+                </div>
+              )}
+            </div>
+            
+            <div className="bg-purple-50 p-4 rounded-lg">
+              <div className="text-purple-600 font-semibold">Database Status</div>
+              <div className="text-2xl font-bold text-purple-700">
+                {healthLoading ? 'Loading...' : 
+                 healthData?.database?.status || 'Unknown'}
+              </div>
+            </div>
+          </div>
+
+          {/* Additional Metrics */}
+          {metricsData && (
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <h4 className="font-semibold mb-2">HTTP Requests</h4>
+                <div className="text-sm space-y-1">
+                  <div>Total: {metricsData.http?.total || 'N/A'}</div>
+                  <div>Success Rate: {metricsData.http?.successRate ? `${(metricsData.http.successRate * 100).toFixed(1)}%` : 'N/A'}</div>
+                </div>
+              </div>
+              
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <h4 className="font-semibold mb-2">Performance</h4>
+                <div className="text-sm space-y-1">
+                  <div>Avg Response: {metricsData.performance?.avgResponseTime ? `${metricsData.performance.avgResponseTime}ms` : 'N/A'}</div>
+                  <div>CPU Usage: {metricsData.cpu ? `${Math.round(metricsData.cpu * 100)}%` : 'N/A'}</div>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+            <h3 className="font-semibold mb-2">External Monitoring Tools</h3>
+            <div className="flex gap-3">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => window.open('/metrics', '_blank')}
+              >
+                Prometheus Metrics
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => window.open('/health', '_blank')}
+              >
+                Health Check
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => window.open('/api/monitoring/metrics/summary', '_blank')}
+              >
+                Metrics Summary
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// Alerts Section Component with Live Data
+function AlertsSection() {
+  const { data: alertsData, isLoading: alertsLoading } = useQuery({
+    queryKey: ['/api/monitoring/alerts'],
+    refetchInterval: 60000, // Refresh every minute
+  });
+
+  const { data: healthData } = useQuery({
+    queryKey: ['/api/monitoring/health'],
+    refetchInterval: 30000,
+  });
+
+  const getSeverityColor = (severity: string) => {
+    switch (severity?.toLowerCase()) {
+      case 'critical': return 'border-red-400 bg-red-50';
+      case 'warning': return 'border-yellow-400 bg-yellow-50';
+      case 'info': return 'border-blue-400 bg-blue-50';
+      default: return 'border-gray-400 bg-gray-50';
+    }
+  };
+
+  const getSeverityTextColor = (severity: string) => {
+    switch (severity?.toLowerCase()) {
+      case 'critical': return 'text-red-800';
+      case 'warning': return 'text-yellow-800';
+      case 'info': return 'text-blue-800';
+      default: return 'text-gray-800';
+    }
+  };
+
+  const formatTimeAgo = (timestamp: string) => {
+    const now = Date.now();
+    const alertTime = new Date(timestamp).getTime();
+    const diffMs = now - alertTime;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffDays > 0) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    if (diffHours > 0) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    if (diffMins > 0) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+    return 'Just now';
+  };
+
+  const alerts = alertsData?.alerts || [];
+  const alertStats = alertsData?.stats || { critical: 0, warning: 0, info: 0 };
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5" />
+            Alerts Management - Live Data
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="bg-red-50 p-4 rounded-lg">
+              <div className="text-red-600 font-semibold">Critical Alerts</div>
+              <div className="text-2xl font-bold text-red-700">
+                {alertsLoading ? 'Loading...' : alertStats.critical}
+              </div>
+            </div>
+            <div className="bg-yellow-50 p-4 rounded-lg">
+              <div className="text-yellow-600 font-semibold">Warning Alerts</div>
+              <div className="text-2xl font-bold text-yellow-700">
+                {alertsLoading ? 'Loading...' : alertStats.warning}
+              </div>
+            </div>
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <div className="text-blue-600 font-semibold">Info Alerts</div>
+              <div className="text-2xl font-bold text-blue-700">
+                {alertsLoading ? 'Loading...' : alertStats.info}
+              </div>
+            </div>
+          </div>
+          
+          {/* Active Alerts */}
+          <div className="space-y-3">
+            <h3 className="font-semibold">Active Alerts</h3>
+            {alertsLoading ? (
+              <div className="p-4 text-center text-gray-500">Loading alerts...</div>
+            ) : alerts.length === 0 ? (
+              <div className="p-4 text-center text-gray-500 bg-gray-50 rounded-lg">
+                No active alerts - System running smoothly
+              </div>
+            ) : (
+              alerts.map((alert: any, index: number) => (
+                <div key={index} className={`p-3 border-l-4 rounded-lg ${getSeverityColor(alert.severity)}`}>
+                  <div className={`font-semibold ${getSeverityTextColor(alert.severity)}`}>
+                    {alert.title || alert.name}
+                  </div>
+                  <div className={`text-sm ${getSeverityTextColor(alert.severity)} opacity-80`}>
+                    {alert.description || alert.message}
+                  </div>
+                  <div className={`text-xs ${getSeverityTextColor(alert.severity)} opacity-60`}>
+                    {alert.timestamp ? formatTimeAgo(alert.timestamp) : 'Unknown time'}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Health-based Alerts */}
+          {healthData?.alerts && healthData.alerts.length > 0 && (
+            <div className="mt-6">
+              <h3 className="font-semibold mb-3">System Health Alerts</h3>
+              <div className="space-y-2">
+                {healthData.alerts.map((alert: any, index: number) => (
+                  <div key={index} className={`p-3 border-l-4 rounded-lg ${getSeverityColor(alert.severity)}`}>
+                    <div className={`font-semibold ${getSeverityTextColor(alert.severity)}`}>
+                      {alert.component}: {alert.status}
+                    </div>
+                    <div className={`text-sm ${getSeverityTextColor(alert.severity)} opacity-80`}>
+                      {alert.message}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+            <h3 className="font-semibold mb-2">Alert Configuration</h3>
+            <p className="text-sm text-gray-600 mb-3">
+              Enterprise monitoring with Sentry, Prometheus, and Grafana integration. 
+              Alerts are automatically generated based on system thresholds and health checks.
+            </p>
+            <div className="flex gap-3">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => window.open('/api/monitoring/alerts', '_blank')}
+              >
+                View Raw Data
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => window.open('/health', '_blank')}
+              >
+                Health Status
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
 
 // Edit Product Integrated Section Component
