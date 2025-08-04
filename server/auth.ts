@@ -25,6 +25,14 @@ async function hashPassword(password: string) {
 }
 
 async function comparePasswords(supplied: string, stored: string) {
+  // Import bcrypt dynamically for bcrypt hash comparison
+  const bcrypt = await import('bcrypt');
+  
+  // Check if it's a bcrypt hash (starts with $2b$)
+  if (stored.startsWith('$2b$')) {
+    return await bcrypt.compare(supplied, stored);
+  }
+  
   // For demo purposes, check if it's our test password
   if (stored === '$2b$10$8K1p/a0dqbVXYyqfX5V3oOGrHDgKDl2jJ5E6Tq8uGqZvOXqJxr3nO' && supplied === 'Kalendar1') {
     return true;
