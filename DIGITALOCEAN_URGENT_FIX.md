@@ -8,18 +8,20 @@ DigitalOcean was ignoring our Dockerfile and running `npm start` which executed 
 ### **Solution 1: Fixed dist/index.js (RECOMMENDED)**
 **Status: ✅ READY FOR DEPLOYMENT**
 
-Created a new `dist/index.js` that redirects to our TypeScript server:
-- Replaces the problematic compiled version
-- Uses `tsx` to run TypeScript directly in production  
-- Includes proper process management and error handling
-- Works with DigitalOcean's existing `npm start` command
+Created a bulletproof `dist/index.js` production launcher:
+- Completely avoids Vite plugin imports
+- Uses `execSync` for direct TypeScript execution with tsx
+- Automatically installs tsx runtime if needed
+- Added missing `@vitejs/plugin-react` dependency to production
+- Includes `dist/package.json` with CommonJS configuration
 
 ### **Solution 2: Production Scripts**
 **Status: ✅ BACKUP OPTION**
 
 Created multiple production startup options:
 - `production-start.js` - Node.js production launcher
-- `start.sh` - Shell script for direct execution
+- `start.sh` - Shell script for direct execution  
+- `simple-server.js` - Standalone Express server with health checks
 - Updated `Dockerfile.digitalocean` to use production-start.js
 
 ### **Solution 3: Server Configuration**
