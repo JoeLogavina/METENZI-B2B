@@ -24,15 +24,15 @@ siteground-deployment/
 
 ### 1. Upload Files
 Upload all files in this directory to your SiteGround hosting account via:
-- cPanel File Manager
+- Site Tools File Manager
 - FTP/SFTP
 - Git repository (if using SiteGround Git integration)
 
-### 2. SiteGround cPanel Configuration
+### 2. SiteGround Site Tools Configuration
 
 #### Node.js Application Setup:
-1. Login to SiteGround cPanel
-2. Navigate to "Node.js"
+1. Login to SiteGround Site Tools dashboard
+2. Navigate to "Dev" → "Node.js"
 3. Create new application:
    - **Node.js Version**: 18.x or 20.x
    - **Application Mode**: Production
@@ -41,7 +41,7 @@ Upload all files in this directory to your SiteGround hosting account via:
    - **Startup File**: `app.js`
 
 #### Environment Variables:
-Copy from `.env.production` and set in cPanel:
+Copy from `.env.production` and set in Site Tools:
 ```
 NODE_ENV=production
 PORT=3000
@@ -51,13 +51,13 @@ SENTRY_DSN=your_sentry_dsn
 ```
 
 ### 3. Database Setup
-1. Create PostgreSQL database in cPanel
+1. Create PostgreSQL database in Site Tools
 2. Update DATABASE_URL with your credentials
 3. Import database schema if needed
 
 ### 4. Install & Start
-1. Click "Run NPM Install" in cPanel Node.js
-2. Click "Start Application"
+1. Click "Install NPM Packages" in Site Tools Node.js
+2. Click "Start App"
 3. Monitor logs for any issues
 
 ## Production Features Ready:
@@ -70,4 +70,4 @@ SENTRY_DSN=your_sentry_dsn
 
 ## Support:
 - Check SITEGROUND_DEPLOYMENT_GUIDE.md for detailed instructions
-- Monitor application logs in cPanel for troubleshooting
+- Monitor application logs in Site Tools for troubleshooting
