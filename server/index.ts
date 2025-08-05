@@ -109,7 +109,7 @@ app.use((req, res, next) => {
     await setupVite(app, httpServer);
   }
 
-  const port = process.env.PORT || 8080;
+  const port = parseInt(process.env.PORT || '8080', 10);
   httpServer.listen(port, "0.0.0.0", () => {
     log(`serving on port ${port}`);
   });

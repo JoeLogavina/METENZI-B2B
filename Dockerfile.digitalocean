@@ -22,5 +22,5 @@ EXPOSE 8080
 # Set environment to production
 ENV NODE_ENV=production
 
-# Start the application directly with tsx (TypeScript runtime)
-CMD ["npx", "tsx", "server/index.ts"]
+# Start the application using our production script
+CMD ["node", "production-start.js"]
