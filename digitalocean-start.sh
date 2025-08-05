@@ -7,7 +7,7 @@ export NODE_ENV=production
 export PORT=${PORT:-8080}
 
 # Create ultra-minimal server with ZERO dependencies
-cat > server.js << 'EOF'
+cat > server.cjs << 'EOF'
 const http = require('http');
 const url = require('url');
 
@@ -361,4 +361,4 @@ process.on('SIGINT', () => {
 EOF
 
 echo "🚀 Starting B2B License Platform with ZERO dependencies..."
-exec node server.js
+exec node server.cjs

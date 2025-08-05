@@ -50,9 +50,9 @@ const server = http.createServer((req, res) => {
   res.end('{\"message\":\"B2B License Platform\",\"status\":\"operational\"}');
 });
 
-server.listen(${PORT}, '0.0.0.0', () => {
-  console.log('✅ B2B License Platform operational on port ${PORT}');
-  console.log('🔍 Health check: http://localhost:${PORT}/health');
+server.listen(process.env.PORT || 8080, '0.0.0.0', () => {
+  console.log('✅ B2B License Platform operational on port ' + (process.env.PORT || 8080));
+  console.log('🔍 Health check: http://localhost:' + (process.env.PORT || 8080) + '/health');
 });
 
 process.on('SIGTERM', () => server.close(() => process.exit(0)));
