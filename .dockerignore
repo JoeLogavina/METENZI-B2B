@@ -1,68 +1,28 @@
-# Dependencies
 node_modules
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Development files
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Testing
-coverage
-.nyc_output
-*.lcov
-
-# Build outputs
-dist
-build
-.next
-
-# Runtime data
-logs
-*.log
-pids
-*.pid
-*.seed
-*.pid.lock
-
-# IDE and editor files
-.vscode
-.idea
-*.swp
-*.swo
-*~
-
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# Git
+npm-debug.log
 .git
 .gitignore
-
-# Docker
-Dockerfile
-.dockerignore
-
-# Documentation
 README.md
-*.md
-
-# Test files
+.env
+.env.local
+.env.development
+.env.test
+.nyc_output
+coverage
+.DS_Store
+*.log
+dist
+uploads/*
+!uploads/.gitkeep
+.replit
+replit.nix
+.upm
+attached_assets
+logs
+monitoring/data
 test
-tests
-__tests__
-*.test.*
-*.spec.*
-
-# Temporary files
-tmp
-temp
+vitest.config.ts
+*.test.ts
+*.spec.ts
+siteground-deployment
+siteground-deployment.tar.gz
