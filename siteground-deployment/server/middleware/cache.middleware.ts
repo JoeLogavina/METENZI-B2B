@@ -1,0 +1,153 @@
+import { Request, Response, NextFunction } from 'express';
+import { redisCache } from '../cache/redis';
+
+interface CacheOptions {
+  ttl?: number; // Time to live in seconds
+  keyPrefix?: string;
+  skipCache?: boolean;
+  skipCacheCondition?: (req: Request) => boolean;
+}
+
+export function cacheMiddleware(options: CacheOptions = {}) {
+  const {
+    ttl = 300, // 5 minutes default
+    keyPrefix = 'api',
+    skipCache = false,
+    skipCacheCondition
+  } = options;
+
+  return async (req: Request, res: Response, next: NextFunction) => {
+    // Skip caching for non-GET requests or when explicitly disabled
+    if (req.method !== 'GET' || skipCache || (skipCacheCondition && skipCacheCondition(req))) {
+      return next();
+    }
+
+    // Extract tenant context for cache key generation
+    const user = req.user as any;
+    const tenantId = user?.tenantId || 'eur';
+
+    // Generate tenant-aware cache key with user role for additional context
+    const userRole = user?.role || 'guest';
+    const cacheKey = generateCacheKey(keyPrefix, req.originalUrl, req.query, tenantId, userRole);
+    
+    try {
+      // Try to get cached response
+      const cachedResponse = await redisCache.get(cacheKey);
+      
+      if (cachedResponse) {
+        // Set cache headers with tenant information for monitoring
+        res.set({
+          'X-Cache': 'HIT',
+          'X-Cache-Key': cacheKey.slice(-10), // Show last 10 chars for debugging
+          'X-Tenant-Id': tenantId,
+          'X-User-Role': userRole,
+          'Cache-Control': `public, max-age=${ttl}`
+        });
+        
+
+        return res.json(cachedResponse);
+      }
+
+
+      
+      // Store original json method
+      const originalJson = res.json.bind(res);
+      
+      // Override json method to cache the response
+      res.json = function(data: any) {
+        // Cache the response asynchronously
+        redisCache.set(cacheKey, data, ttl).catch(error => {
+          console.warn('Failed to cache response:', error);
+        });
+        
+        // Set cache headers with tenant monitoring
+        res.set({
+          'X-Cache': 'MISS',
+          'X-Cache-Key': cacheKey.slice(-10),
+          'X-Tenant-Id': tenantId,
+          'X-User-Role': userRole,
+          'Cache-Control': `public, max-age=${ttl}`
+        });
+        
+
+        
+        // Call original json method
+        return originalJson(data);
+      };
+      
+      next();
+    } catch (error) {
+      console.warn('Cache middleware error:', error);
+      next(); // Continue without caching
+    }
+  };
+}
+
+export function invalidateCacheMiddleware(pattern: string) {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    // Store original json method
+    const originalJson = res.json.bind(res);
+    
+    // Override json method to invalidate cache after successful response
+    res.json = function(data: any) {
+      // Invalidate cache pattern asynchronously
+      redisCache.invalidatePattern(pattern).catch(error => {
+        console.warn('Failed to invalidate cache:', error);
+      });
+      
+      return originalJson(data);
+    };
+    
+    next();
+  };
+}
+
+function generateCacheKey(prefix: string, url: string, query: any, tenantId?: string, userRole?: string): string {
+  const queryString = Object.keys(query).length > 0 ? JSON.stringify(query) : '';
+  const tenantPrefix = tenantId ? `${tenantId}:` : 'eur:'; // Default to EUR tenant
+  const rolePrefix = userRole ? `${userRole}:` : '';
+  const keyData = `${tenantPrefix}${rolePrefix}${url}:${queryString}`;
+  return `${prefix}:${Buffer.from(keyData).toString('base64')}`;
+}
+
+// Specialized cache middleware for different endpoints
+export const productsCacheMiddleware = cacheMiddleware({
+  ttl: 300, // 5 minutes
+  keyPrefix: 'products',
+  skipCacheCondition: (req) => {
+    // Cache is now tenant-aware, safe to enable
+    const user = req.user as any;
+    // Skip cache only for unauthenticated users to ensure security
+    return !user?.id;
+  }
+});
+
+export const walletCacheMiddleware = cacheMiddleware({
+  ttl: 120, // 2 minutes for financial data
+  keyPrefix: 'wallet',
+  skipCacheCondition: (req) => {
+    // CACHE-ASIDE PATTERN: Disable read caching for wallet data to ensure immediate consistency
+    // Write-through invalidation will still clean up any existing cached data
+    return true; // Always skip cache for wallet reads
+  }
+});
+
+export const userCacheMiddleware = cacheMiddleware({
+  ttl: 600, // 10 minutes
+  keyPrefix: 'user'
+});
+
+export const categoriesCacheMiddleware = cacheMiddleware({
+  ttl: 900, // 15 minutes (categories change rarely)
+  keyPrefix: 'categories'
+});
+
+export const ordersCacheMiddleware = cacheMiddleware({
+  ttl: 300, // 5 minutes for orders (frequently updated)
+  keyPrefix: 'orders',
+  skipCacheCondition: (req) => {
+    // CACHE-ASIDE PATTERN: Disable read caching for orders to ensure immediate consistency  
+    // This eliminates the race condition where new orders aren't visible immediately
+    return true; // Always skip cache for order reads
+  }
+});
