@@ -77,6 +77,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/health', async (req, res) => {
+    try {
+      // Check database connection
+      await storage.getProducts({ search: 'health-check' });
+
+      res.status(200).json({
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        version: process.env.npm_package_version || '1.0.0',
+        environment: process.env.NODE_ENV || 'development'
+      });
+    } catch (error) {
+      console.error('Health check failed:', error);
+      res.status(503).json({
+        status: 'unhealthy',
+        timestamp: new Date().toISOString(),
+        error: (error as Error).message
+      });
+    }
+  });
+
   // Enhanced Key Management System Test - Phase 1 Implementation  
   app.get('/api/security-test', async (req, res) => {
     try {
