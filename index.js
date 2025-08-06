@@ -4,6 +4,8 @@ const path = require('path');
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '8080', 10);
+console.log(`🔧 Environment PORT variable: ${process.env.PORT}`);
+console.log(`🔧 Using PORT: ${PORT}`);
 const HOST = '0.0.0.0';
 
 console.log('=== B2B License Platform Starting ===');
@@ -16,6 +18,12 @@ console.log();
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Request logging middleware for debugging
+app.use((req, res, next) => {
+  console.log(`🌐 ${new Date().toISOString()} - ${req.method} ${req.path} from ${req.ip}`);
+  next();
+});
 
 // CORS and security headers
 app.use((req, res, next) => {
@@ -494,8 +502,20 @@ app.use('*', (req, res) => {
   `);
 });
 
+// Catch-all route for debugging 404s
+app.use('*', (req, res) => {
+  console.log(`❌ 404 - Route not found: ${req.method} ${req.originalUrl}`);
+  res.status(404).json({
+    error: 'Route not found',
+    method: req.method,
+    path: req.originalUrl,
+    timestamp: new Date().toISOString(),
+    availableRoutes: ['/', '/health', '/healthz', '/ready', '/eur', '/km']
+  });
+});
+
 // Start server
-app.listen(PORT, HOST, () => {
+const server = app.listen(PORT, HOST, () => {
   console.log('🚀 ===================================');
   console.log('🚀 B2B License Platform OPERATIONAL');
   console.log('🚀 ===================================');
@@ -508,6 +528,11 @@ app.listen(PORT, HOST, () => {
   console.log('✅ Ready to accept connections');
   console.log('✅ All endpoints configured and operational');
   console.log('✅ DigitalOcean deployment successful');
+});
+
+// Server error handling
+server.on('error', (error) => {
+  console.error('❌ Server error:', error);
 });
 
 process.on('SIGTERM', () => {
