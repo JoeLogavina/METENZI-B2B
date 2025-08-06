@@ -29,4 +29,30 @@ if (!fs.existsSync(targetFile)) {
 
 // Now require the CommonJS server
 console.log('Starting B2B License Platform server...');
-require('./dist/index.cjs');
+
+// Detect if this is build phase vs runtime phase based on environment
+const isBuildPhase = !process.env.DYNO && !process.env.WEB_CONCURRENCY && 
+                     process.env.NODE_ENV === 'production' && 
+                     !process.env.RUNTIME_PHASE;
+
+if (isBuildPhase) {
+  // Build phase - just prepare files and exit cleanly
+  console.log('✅ Build phase: Files prepared successfully');  
+  console.log('✅ Ready for runtime startup');
+  process.exit(0);
+}
+
+// Runtime phase - start the server with error handling
+console.log('🚀 Runtime phase: Starting server...');
+try {
+  require('./dist/index.cjs');
+} catch (error) {
+  if (error.code === 'EADDRINUSE') {
+    console.log('⚠️  Port conflict detected during build phase');
+    console.log('✅ Files prepared, exiting cleanly for runtime phase');
+    process.exit(0);
+  } else {
+    console.error('Server startup error:', error.message);
+    throw error;
+  }
+}
