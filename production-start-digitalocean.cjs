@@ -41,7 +41,29 @@ if (isBuildOnly) {
   process.exit(0);
 }
 
-// Determine if this is runtime phase (DigitalOcean sets PORT during runtime)
+// Enhanced build phase detection for DigitalOcean
+// During build: PORT is set but process is running as build command
+// During runtime: PORT is set and process is running as Procfile command
+const isBuildContext = process.env.NODE_ENV === 'production' && 
+                       process.env.PORT &&
+                       process.argv[1] && process.argv[1].includes('production-start-digitalocean.cjs') &&
+                       !process.env.DYNO &&  // Heroku/DO runtime indicator
+                       !process.env.WEB_CONCURRENCY; // Runtime indicator
+
+console.log('🔍 Advanced phase detection:');
+console.log(`  - isBuildContext: ${isBuildContext}`);
+console.log(`  - argv[1]: ${process.argv[1] || 'undefined'}`);
+console.log(`  - DYNO: ${process.env.DYNO || 'undefined'}`);
+console.log(`  - WEB_CONCURRENCY: ${process.env.WEB_CONCURRENCY || 'undefined'}`);
+
+if (isBuildContext) {
+  console.log('📦 BUILD CONTEXT DETECTED: Exiting cleanly to avoid port conflicts');
+  console.log('✅ Files prepared successfully for runtime phase');  
+  console.log('📋 Runtime server will start via Procfile');
+  process.exit(0);
+}
+
+// Determine if this is runtime phase
 const isRuntimePhase = process.env.PORT && process.env.NODE_ENV === 'production';
 
 if (isRuntimePhase) {
