@@ -158,6 +158,27 @@ passport.deserializeUser(async (id, done) => {
   }
 });
 
+// Authentication endpoints
+app.get('/api/user', (req, res) => {
+  if (req.isAuthenticated()) {
+    res.json(req.user);
+  } else {
+    res.status(401).json({ error: 'Unauthorized' });
+  }
+});
+
+app.post('/api/login', passport.authenticate('local', {
+  successRedirect: '/',
+  failureRedirect: '/auth'
+}));
+
+app.post('/api/logout', (req, res) => {
+  req.logout((err) => {
+    if (err) return res.status(500).json({ error: 'Logout failed' });
+    res.redirect('/');
+  });
+});
+
 // Health check endpoints
 app.get('/health', (req, res) => {
   res.json({ status: 'healthy', timestamp: new Date().toISOString() });
