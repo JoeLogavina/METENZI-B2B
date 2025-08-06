@@ -29,6 +29,13 @@ console.log(`✅ ES Module server exists: ${esExists}`);
 // Add startup delay for DigitalOcean health checks
 console.log('⏳ Initializing server startup...');
 
+// Set production environment explicitly
+process.env.NODE_ENV = process.env.NODE_ENV || 'production';
+process.env.PORT = process.env.PORT || '8080';
+
+console.log(`🔧 PORT configured: ${process.env.PORT}`);
+console.log(`🔧 NODE_ENV configured: ${process.env.NODE_ENV}`);
+
 if (cjsExists) {
   console.log('🎯 Starting CommonJS server (preferred)...');
   // Use dynamic import to load CommonJS module
@@ -44,5 +51,7 @@ if (cjsExists) {
   process.exit(1);
 }
 
-// Ensure server has time to bind to port before health checks
+// Add delay to ensure server binds completely before health checks start
+console.log('⏳ Waiting for server to bind completely...');
+await new Promise(resolve => setTimeout(resolve, 2000));
 console.log('✅ Server startup sequence completed');

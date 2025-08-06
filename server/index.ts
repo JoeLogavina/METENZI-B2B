@@ -123,6 +123,12 @@ app.use((req, res, next) => {
     console.log(`🌐 Application ready for health checks`);
     log(`serving on port ${port}`);
   });
+
+  // Add explicit ready signal for DigitalOcean
+  httpServer.on('listening', () => {
+    console.log(`🚀 PRODUCTION SERVER READY - PORT ${port} BOUND SUCCESSFULLY`);
+    console.log(`📡 Health check endpoints: /health, /status, /ready`);
+  });
 }
 
 // Start the server
