@@ -74,13 +74,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.status(200).json(healthData);
   });
 
-  // Backup health endpoint for additional reliability
-  app.get('/', (req, res) => {
-    if (req.get('User-Agent')?.includes('DigitalOcean')) {
-      console.log('🏥 DigitalOcean root health check');
-      return res.status(200).json({ status: 'healthy', app: 'B2B Platform' });
-    }
-    // Normal root handling continues below
+  // Backup health endpoint for DigitalOcean only - don't interfere with normal app routing
+  app.get('/status', (req, res) => {
+    console.log('🏥 Status endpoint check requested');
+    res.status(200).json({ status: 'healthy', app: 'B2B Platform' });
   });
 
   // Additional diagnostic endpoint
