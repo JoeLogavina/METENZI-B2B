@@ -5,8 +5,7 @@ services:
   github:
     repo: your-repo
     branch: main
-  run_command: node production-start-digitalocean.cjs
-  build_command: ./build.sh
+  build_command: chmod +x digitalocean-build.sh && ./digitalocean-build.sh
   http_port: 8080
   instance_count: 1
   instance_size_slug: basic-xxs

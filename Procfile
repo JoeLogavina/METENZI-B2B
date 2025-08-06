@@ -1,1 +1,1 @@
-web: bash build.sh && npm start
+web: node production-start-digitalocean.cjs
