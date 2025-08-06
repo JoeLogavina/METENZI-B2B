@@ -12,10 +12,15 @@ const app = express();
 
 // Initialize database optimizations - moved to async wrapper
 async function startServer() {
+  console.log('🔧 Starting server initialization...');
+  
   // Initialize monitoring systems first
+  console.log('🔧 Initializing Sentry...');
   initializeSentry();
   
+  console.log('🔧 Initializing database...');
   await initializeDatabase();
+  console.log('✅ Database initialization completed');
 
 // Enterprise Performance Optimization: Response Compression
 // Provides 30-50% bandwidth reduction for API responses
@@ -92,8 +97,10 @@ app.use((req, res, next) => {
     }
   });
 
+  console.log('🔧 Registering routes...');
   // Sentry error handler must be after routes but before other error handlers
   const httpServer = await registerRoutes(app);
+  console.log('✅ Routes registered successfully');
   
   // Add monitoring error handler before Sentry
   app.use(errorTrackingMiddleware);
@@ -102,11 +109,17 @@ app.use((req, res, next) => {
   if (process.env.SENTRY_DSN) {
     app.use(Handlers.errorHandler());
   }
+  
+  console.log('🔧 Setting up static file serving...');
 
   if (process.env.NODE_ENV === "production") {
+    console.log('🔧 Setting up production static file serving...');
     serveStatic(app);
+    console.log('✅ Production static files configured');
   } else {
+    console.log('🔧 Setting up development Vite server...');
     await setupVite(app, httpServer);
+    console.log('✅ Development Vite server configured');
   }
 
   const port = parseInt(process.env.PORT || '8080', 10);
