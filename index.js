@@ -54,6 +54,18 @@ app.get('/health', (req, res) => {
   });
 });
 
+// DigitalOcean sub-path routing support
+app.get('/metenzi-b2b2/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'production',
+    message: 'B2B License Platform healthy and operational (sub-path)',
+    path: req.path
+  });
+});
+
 // Additional health endpoints for robustness
 app.get('/healthz', (req, res) => {
   res.status(200).json({ status: 'healthy' });
@@ -63,7 +75,7 @@ app.get('/ready', (req, res) => {
   res.status(200).json({ status: 'ready' });
 });
 
-// Homepage route
+// Homepage routes - both root and sub-path
 app.get('/', (req, res) => {
   res.send(`
 <!DOCTYPE html>
