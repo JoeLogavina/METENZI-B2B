@@ -566,6 +566,11 @@ app.get('/health', (req, res) => {
   res.json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
+// Favicon handler to prevent 404 errors
+app.get('/favicon.ico', (req, res) => {
+  res.status(204).end();
+});
+
 // Error handling for API routes
 app.use('/api/*', (err, req, res, next) => {
   console.error('API Error:', err);
@@ -580,22 +585,43 @@ app.get('*', (req, res) => {
     return res.status(404).json({ error: 'API endpoint not found' });
   }
   
-  // Find index.html in various possible locations
-  const possiblePaths = [
-    path.join(__dirname, '..', 'dist', 'public', 'index.html'),
-    path.join(__dirname, 'dist', 'public', 'index.html'),
-    path.join(process.cwd(), 'dist', 'public', 'index.html')
-  ];
-  
-  for (const indexPath of possiblePaths) {
-    if (fs.existsSync(indexPath)) {
-      console.log(`✅ Serving index.html from: ${indexPath}`);
-      return res.sendFile(indexPath);
+  try {
+    // Find index.html in various possible locations
+    const possiblePaths = [
+      path.join(__dirname, '..', 'dist', 'public', 'index.html'),
+      path.join(__dirname, 'dist', 'public', 'index.html'),
+      path.join(process.cwd(), 'dist', 'public', 'index.html')
+    ];
+    
+    for (const indexPath of possiblePaths) {
+      if (fs.existsSync(indexPath)) {
+        console.log(`✅ Serving index.html from: ${indexPath}`);
+        return res.sendFile(indexPath, (err) => {
+          if (err) {
+            console.error('Error sending file:', err);
+            res.status(500).send('Error serving application');
+          }
+        });
+      }
     }
+    
+    console.error('❌ index.html not found in any location');
+    console.error('Searched paths:', possiblePaths);
+    res.status(404).send(`
+      <!DOCTYPE html>
+      <html>
+      <head><title>B2B Platform</title></head>
+      <body>
+        <h1>B2B License Platform</h1>
+        <p>Application files not found</p>
+        <p>Health: <a href="/health">/health</a></p>
+      </body>
+      </html>
+    `);
+  } catch (error) {
+    console.error('Catch-all route error:', error);
+    res.status(500).send('Server error');
   }
-  
-  console.error('❌ index.html not found in any location');
-  res.status(404).json({ error: 'Application not built properly - index.html missing' });
 });
 
 console.log('⏳ Waiting for server to bind completely...');
