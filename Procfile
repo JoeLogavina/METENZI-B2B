@@ -1,1 +1,1 @@
-web: node start-production.js
+web: node server.js
