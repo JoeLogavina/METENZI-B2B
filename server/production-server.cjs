@@ -3,6 +3,7 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const session = require('express-session');
+const connectPg = require('connect-pg-simple');
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
 const bcrypt = require('bcrypt');
@@ -45,15 +46,32 @@ app.use(compression({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false }));
 
-// Session configuration for production
+// Session configuration for production with PostgreSQL store
+const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
+let sessionStore;
+
+if (process.env.DATABASE_URL) {
+  const pgStore = connectPg(session);
+  sessionStore = new pgStore({
+    conString: process.env.DATABASE_URL,
+    createTableIfMissing: true,
+    ttl: sessionTtl,
+    tableName: 'sessions',
+  });
+  console.log('✅ PostgreSQL session store configured');
+} else {
+  console.log('⚠️ Using memory store (not recommended for production)');
+}
+
 app.use(session({
   secret: process.env.SESSION_SECRET || 'b2b-production-secret-key-2025',
+  store: sessionStore,
   resave: false,
   saveUninitialized: false,
   cookie: {
     secure: false, // Set to true in production with HTTPS
     httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    maxAge: sessionTtl
   }
 }));
 
@@ -414,8 +432,19 @@ app.get('/api/categories', async (req, res) => {
   }
 });
 
+// Error handling for API routes
+app.use('/api/*', (err, req, res, next) => {
+  console.error('API Error:', err);
+  res.status(500).json({ error: 'Internal server error' });
+});
+
 // Catch all route - serve index.html for client-side routing
 app.get('*', (req, res) => {
+  // Skip API routes
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ error: 'API endpoint not found' });
+  }
+  
   const indexPath = path.join(publicDir, 'index.html');
   if (fs.existsSync(indexPath)) {
     res.sendFile(indexPath);
@@ -426,8 +455,33 @@ app.get('*', (req, res) => {
 
 console.log('⏳ Waiting for server to bind completely...');
 
+// Initialize database schema if needed
+async function initializeDatabase() {
+  if (!db) return;
+  
+  try {
+    // Create sessions table if it doesn't exist
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS sessions (
+        sid VARCHAR(32) PRIMARY KEY,
+        sess JSONB NOT NULL,
+        expire TIMESTAMP(6) NOT NULL
+      );
+    `);
+    
+    // Create index on expire for cleanup
+    await db.query(`
+      CREATE INDEX IF NOT EXISTS IDX_session_expire ON sessions(expire);
+    `);
+    
+    console.log('✅ Database schema initialized');
+  } catch (error) {
+    console.log('⚠️ Database schema initialization failed:', error.message);
+  }
+}
+
 // Start server with comprehensive error handling
-const server = app.listen(PORT, HOST, (error) => {
+const server = app.listen(PORT, HOST, async (error) => {
   if (error) {
     console.error('❌ Server failed to start:', error);
     process.exit(1);
@@ -442,6 +496,10 @@ const server = app.listen(PORT, HOST, (error) => {
   console.log(`🏪 KM Shop: http://${HOST}:${PORT}/km`);
   console.log('🚀 ===================================');
   console.log('');
+  
+  // Initialize database
+  await initializeDatabase();
+  
   console.log('✅ Ready to accept connections');
   console.log('✅ All endpoints configured and operational');
   console.log('✅ DigitalOcean deployment successful');
