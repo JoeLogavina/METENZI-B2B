@@ -1,12 +1,6 @@
-// CRITICAL: This file should NOT be used for production
-// DigitalOcean should use: npm start (which runs dist/index.js)
+// DigitalOcean Production Server - Direct CommonJS Import
+console.log('🚀 Starting B2B License Management Platform...');
+console.log('📦 Loading production server from dist/index.cjs');
 
-console.log('❌ ERROR: Using wrong server file');
-console.log('✅ Proper command: npm start');
-console.log('✅ Proper server: dist/index.js');
-console.log('⚠️  Check app.yaml configuration');
-
-setTimeout(() => {
-  console.log('🚨 EXITING - Use proper build process');
-  process.exit(1);
-}, 2000);
+// Directly require the CommonJS production server
+require('./dist/index.cjs');
