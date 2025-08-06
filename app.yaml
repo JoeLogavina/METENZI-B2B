@@ -1,0 +1,19 @@
+name: b2b-license-platform
+services:
+- name: web
+  environment_slug: node-js
+  github:
+    repo: your-repo
+    branch: main
+  run_command: ./digitalocean-final.sh
+  build_command: npm install
+  http_port: 8080
+  instance_count: 1
+  instance_size_slug: basic-xxs
+  health_check:
+    http_path: /health
+  envs:
+  - key: NODE_ENV
+    value: production
+  - key: PORT
+    value: "8080"

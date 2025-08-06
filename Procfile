@@ -1,0 +1,1 @@
+web: ./digitalocean-final.sh
