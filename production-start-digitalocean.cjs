@@ -1,18 +1,22 @@
 #!/usr/bin/env node
-// Unified DigitalOcean production script - handles both build and runtime
+// DigitalOcean Production Script - Cache Refreshed Version
 const fs = require('fs');
 const path = require('path');
+
+// Enhanced logging to identify which script is running
+console.log('=== B2B PLATFORM FINAL DEPLOYMENT (CACHE REFRESH) ===');
+console.log(`🕐 Timestamp: ${new Date().toISOString()}`);
+console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
+console.log(`🔌 Port: ${process.env.PORT || 'not set'}`);
+console.log(`⚙️  Node version: ${process.version}`);
 
 // File paths
 const distDir = path.join(__dirname, 'dist');
 const targetFile = path.join(distDir, 'index.cjs');
 const sourceFile = path.join(__dirname, 'index.js');
 
-console.log('=== B2B PLATFORM DIGITALOCEAN UNIFIED ===');
-console.log(`Environment: ${process.env.NODE_ENV}`);
-console.log(`Port: ${process.env.PORT || 'not set'}`);
 const isBuildOnly = process.argv.includes('--build-only');
-console.log(`Build Command Context: ${isBuildOnly ? 'BUILD' : 'RUNTIME'}`);
+console.log(`🔧 Mode: ${isBuildOnly ? 'BUILD-ONLY' : 'AUTO-DETECT'}`);
 
 // Always ensure dist directory and file exist
 if (!fs.existsSync(distDir)) {
@@ -26,45 +30,44 @@ if (!fs.existsSync(targetFile)) {
     fs.copyFileSync(sourceFile, targetFile);
     console.log('✅ dist/index.cjs created successfully');
   } else {
-    console.error('❌ index.js source file not found');
+    console.error('❌ Error: index.js source file not found');
     process.exit(1);
   }
 } else {
   console.log('✅ dist/index.cjs already exists');
 }
 
-// If build-only flag is set, exit immediately after file prep
-if (isBuildOnly) {
-  console.log('📦 BUILD PHASE: Files prepared successfully');
-  console.log('✅ Ready for runtime startup');
-  console.log('📋 Next: DigitalOcean will start server with PORT environment set');
-  process.exit(0);
-}
-
-// Enhanced build phase detection for DigitalOcean
-// During build: PORT is set but process is running as build command
-// During runtime: PORT is set and process is running as Procfile command
+// Enhanced build/runtime detection with multiple methods
+const hasRuntimeEnvs = process.env.WEB_CONCURRENCY || process.env.DYNO || process.env.PM2_HOME;
 const isBuildContext = process.env.NODE_ENV === 'production' && 
                        process.env.PORT &&
-                       process.argv[1] && process.argv[1].includes('production-start-digitalocean.cjs') &&
-                       !process.env.DYNO &&  // Heroku/DO runtime indicator
-                       !process.env.WEB_CONCURRENCY; // Runtime indicator
+                       !hasRuntimeEnvs &&
+                       !isBuildOnly;
 
-console.log('🔍 Advanced phase detection:');
-console.log(`  - isBuildContext: ${isBuildContext}`);
-console.log(`  - argv[1]: ${process.argv[1] || 'undefined'}`);
-console.log(`  - DYNO: ${process.env.DYNO || 'undefined'}`);
-console.log(`  - WEB_CONCURRENCY: ${process.env.WEB_CONCURRENCY || 'undefined'}`);
+console.log('🔍 Phase Detection Analysis:');
+console.log(`  - Build-only flag: ${isBuildOnly}`);
+console.log(`  - Runtime environments: ${hasRuntimeEnvs || 'none'}`);
+console.log(`  - Build context detected: ${isBuildContext}`);
+console.log(`  - Current process: ${process.argv[1] || 'undefined'}`);
 
-if (isBuildContext) {
-  console.log('📦 BUILD CONTEXT DETECTED: Exiting cleanly to avoid port conflicts');
-  console.log('✅ Files prepared successfully for runtime phase');  
-  console.log('📋 Runtime server will start via Procfile');
+// Handle explicit build-only flag
+if (isBuildOnly) {
+  console.log('🔧 BUILD-ONLY MODE: Files prepared, exiting cleanly');
+  console.log('✅ Ready for runtime deployment');
   process.exit(0);
 }
 
-// Determine if this is runtime phase
-const isRuntimePhase = process.env.PORT && process.env.NODE_ENV === 'production';
+// Handle detected build context (DigitalOcean build command without runtime env vars)
+if (isBuildContext) {
+  console.log('🔧 BUILD CONTEXT DETECTED: DigitalOcean build phase identified');
+  console.log('✅ Files prepared successfully');
+  console.log('📋 Exiting cleanly to prevent port conflicts');
+  console.log('🚀 Runtime server will start via Procfile command');
+  process.exit(0);
+}
+
+// This is runtime phase - start the server
+const isRuntimePhase = true;
 
 if (isRuntimePhase) {
   console.log('🚀 RUNTIME PHASE: Starting server...');

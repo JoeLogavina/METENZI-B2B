@@ -5,7 +5,7 @@ services:
   github:
     repo: your-repo
     branch: main
-  build_command: node digitalocean-production-final.cjs --build-only
+  build_command: node production-start-digitalocean.cjs --build-only
   http_port: 8080
   instance_count: 1
   instance_size_slug: basic-xxs
