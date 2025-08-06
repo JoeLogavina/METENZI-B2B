@@ -167,10 +167,31 @@ app.get('/api/user', (req, res) => {
   }
 });
 
-app.post('/api/login', passport.authenticate('local', {
-  successRedirect: '/',
-  failureRedirect: '/auth'
-}));
+app.post('/api/login', (req, res, next) => {
+  passport.authenticate('local', (err, user, info) => {
+    if (err) {
+      console.error('Login error:', err);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    req.logIn(user, (err) => {
+      if (err) {
+        console.error('Session error:', err);
+        return res.status(500).json({ error: 'Session creation failed' });
+      }
+      res.json({ 
+        user: {
+          id: user.id,
+          username: user.username,
+          role: user.role,
+          tenantId: user.tenantId
+        }
+      });
+    });
+  })(req, res, next);
+});
 
 app.post('/api/logout', (req, res) => {
   req.logout((err) => {
