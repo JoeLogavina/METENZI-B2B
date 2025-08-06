@@ -29,14 +29,24 @@ app.use((req, res, next) => {
   next();
 });
 
-// Health check endpoint
+// Health check endpoint - DigitalOcean compatible
 app.get('/health', (req, res) => {
-  res.json({ 
+  res.status(200).json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    environment: process.env.NODE_ENV || 'production'
+    environment: process.env.NODE_ENV || 'production',
+    message: 'B2B License Platform healthy and operational'
   });
+});
+
+// Additional health endpoints for robustness
+app.get('/healthz', (req, res) => {
+  res.status(200).json({ status: 'healthy' });
+});
+
+app.get('/ready', (req, res) => {
+  res.status(200).json({ status: 'ready' });
 });
 
 // Homepage route

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "=== DIGITALOCEAN BUILD SCRIPT ==="
+echo "=== DIGITALOCEAN BUILD FINAL SUCCESS ==="
 echo "Creating dist directory and copying production server..."
 
 # Create dist directory
