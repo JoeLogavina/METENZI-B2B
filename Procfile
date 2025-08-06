@@ -1,1 +1,1 @@
-web: node digitalocean-server-final.cjs
+web: NODE_ENV=production node dist/index.cjs
