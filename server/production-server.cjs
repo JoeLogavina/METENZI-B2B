@@ -52,6 +52,28 @@ async function initializeDatabase() {
 // Initialize database asynchronously
 initializeDatabase();
 
+// Security headers - Fix CSP errors for DigitalOcean
+app.use((req, res, next) => {
+  res.setHeader('Content-Security-Policy', 
+    "default-src 'self'; " +
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com https://fonts.gstatic.com; " +
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; " +
+    "img-src 'self' data: https: blob:; " +
+    "connect-src 'self' wss: ws:; " +
+    "font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; " +
+    "object-src 'none'; " +
+    "media-src 'self'; " +
+    "frame-src 'none'; " +
+    "base-uri 'self'; " +
+    "form-action 'self';"
+  );
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
+
 // Middleware setup
 app.use(compression({ 
   filter: (req, res) => {
