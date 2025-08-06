@@ -110,7 +110,17 @@ app.use((req, res, next) => {
   }
 
   const port = parseInt(process.env.PORT || '8080', 10);
+  
+  // Add error handling for server startup
+  httpServer.on('error', (err: any) => {
+    console.error('Server error:', err);
+    process.exit(1);
+  });
+
   httpServer.listen(port, "0.0.0.0", () => {
+    console.log(`🎯 Server successfully bound to 0.0.0.0:${port}`);
+    console.log(`✅ Health endpoint available at: http://0.0.0.0:${port}/health`);
+    console.log(`🌐 Application ready for health checks`);
     log(`serving on port ${port}`);
   });
 }

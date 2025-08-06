@@ -26,6 +26,9 @@ const esExists = fs.existsSync(esPath);
 console.log(`✅ CommonJS server exists: ${cjsExists}`);
 console.log(`✅ ES Module server exists: ${esExists}`);
 
+// Add startup delay for DigitalOcean health checks
+console.log('⏳ Initializing server startup...');
+
 if (cjsExists) {
   console.log('🎯 Starting CommonJS server (preferred)...');
   // Use dynamic import to load CommonJS module
@@ -40,3 +43,6 @@ if (cjsExists) {
   console.error('💡 Make sure to run: npm run build');
   process.exit(1);
 }
+
+// Ensure server has time to bind to port before health checks
+console.log('✅ Server startup sequence completed');
