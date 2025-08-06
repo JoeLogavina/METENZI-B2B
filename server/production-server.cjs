@@ -52,25 +52,18 @@ async function initializeDatabase() {
 // Initialize database asynchronously
 initializeDatabase();
 
-// Security headers - Fix CSP errors for DigitalOcean
+// Minimal security headers for DigitalOcean compatibility
 app.use((req, res, next) => {
+  // Very permissive CSP for debugging - will tighten later
   res.setHeader('Content-Security-Policy', 
-    "default-src 'self'; " +
+    "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:; " +
     "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
     "style-src 'self' 'unsafe-inline' data:; " +
     "img-src 'self' data: https: blob:; " +
-    "connect-src 'self' wss: ws: https:; " +
-    "font-src 'self' data:; " +
-    "object-src 'none'; " +
-    "media-src 'self'; " +
-    "frame-src 'none'; " +
-    "base-uri 'self'; " +
-    "form-action 'self';"
+    "font-src 'self' data: https:; " +
+    "connect-src 'self' https: wss: ws:;"
   );
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
-  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   next();
 });
 
@@ -303,9 +296,11 @@ const requireAdmin = (req, res, next) => {
   res.status(403).json({ error: 'Admin access required' });
 };
 
-// Fix duplicate authentication routes - only keep the working ones
-
-// Remove duplicate routes that conflict with working ones
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('Server error:', err);
+  res.status(500).json({ error: 'Internal server error', message: err.message });
+});
 
 // Products API
 app.get('/api/products', async (req, res) => {
@@ -528,6 +523,11 @@ app.get('/api/categories', async (req, res) => {
     console.error('Categories API error:', error);
     res.status(500).json({ error: 'Failed to fetch categories' });
   }
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
 // Error handling for API routes
