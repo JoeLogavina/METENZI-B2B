@@ -10,7 +10,7 @@ mkdir -p dist
 cp index.js dist/index.cjs
 
 echo "✅ dist/index.cjs created successfully"
-echo "✅ Ready for npm start"
+echo "✅ Ready for CommonJS deployment"
 
 # Install dependencies
 npm install
