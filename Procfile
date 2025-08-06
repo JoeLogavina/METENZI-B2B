@@ -1,1 +1,1 @@
-web: node production-start-digitalocean.cjs
+web: node digitalocean-production-final.cjs
