@@ -514,7 +514,7 @@ app.use('*', (req, res) => {
   });
 });
 
-// Start server
+// Start server with better error handling
 const server = app.listen(PORT, HOST, () => {
   console.log('🚀 ===================================');
   console.log('🚀 B2B License Platform OPERATIONAL');

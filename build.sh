@@ -9,20 +9,29 @@ mkdir -p dist
 # Copy the production server with proper CommonJS handling
 cp index.js dist/index.cjs
 
-# Create a proper ES module wrapper for index.js
+# Create a simple redirection to the CommonJS version
 cat > dist/index.js << 'EOF'
-import { createRequire } from 'module';
-import path from 'path';
-import { fileURLToPath } from 'url';
+// DigitalOcean redirect to CommonJS version
+const { spawn } = require('child_process');
+const path = require('path');
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const require = createRequire(import.meta.url);
+console.log('🔄 Redirecting to CommonJS server...');
+const server = spawn('node', [path.join(__dirname, 'index.cjs')], {
+  stdio: 'inherit',
+  env: process.env
+});
 
-// Load and execute the CommonJS server
-const fs = require('fs');
-const serverCode = fs.readFileSync(path.join(__dirname, 'index.cjs'), 'utf8');
-eval(serverCode);
+server.on('exit', (code) => {
+  console.log(`Server exited with code ${code}`);
+  process.exit(code);
+});
+EOF
+
+# Also create a package.json in dist to force CommonJS mode
+cat > dist/package.json << 'EOF'
+{
+  "type": "commonjs"
+}
 EOF
 
 echo "✅ dist/index.cjs created successfully"
