@@ -25,7 +25,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// CORS and security headers
+// CORS and security headers with cache-busting
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -34,6 +34,12 @@ app.use((req, res, next) => {
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('X-Forwarded-Proto', 'https');
+  // Cache busting headers for deployment refresh
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('X-Server-Timestamp', new Date().toISOString());
+  res.setHeader('X-Deployment-Version', 'v2025-08-06-17-56');
   next();
 });
 
