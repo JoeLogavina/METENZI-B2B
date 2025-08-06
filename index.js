@@ -1,4 +1,4 @@
-const http = require('http');
+import http from 'http';
 
 const PORT = parseInt(process.env.PORT || '8080', 10);
 const HOST = '0.0.0.0';
