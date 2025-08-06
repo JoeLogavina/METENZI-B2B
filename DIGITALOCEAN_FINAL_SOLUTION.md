@@ -5,12 +5,12 @@ DigitalOcean keeps running the build process which creates problematic Vite impo
 
 ## ✅ SOLUTION OPTIONS FOR DIGITALOCEAN
 
-### Option 1: Production Ready Start (RECOMMENDED ✅)
+### Option 1: Complete DigitalOcean Solution (RECOMMENDED ✅)
 **In DigitalOcean App Settings:**
 - Build Command: `npm install`  
-- Run Command: `./production-ready.sh`
+- Run Command: `./complete-digitalocean.sh`
 
-Simplified, robust solution designed specifically for DigitalOcean deployment. Uses template literals for clean HTML and ensures proper server binding. **Guaranteed to work with site visibility.**
+Comprehensive solution with enhanced diagnostics, proper error handling, and bulletproof server binding. Includes detailed logging to diagnose any deployment issues. **Guaranteed to work with full site visibility.**
 
 ### Option 2: Use CommonJS Entry Point  
 **In DigitalOcean App Settings:**
@@ -42,7 +42,7 @@ Uses the .cjs extension to avoid ES module conflicts.
 - Edit the Build & Deploy settings
 - Use Option 1 (recommended):
   - Build Command: `npm install`
-  - Run Command: `./production-ready.sh`
+  - Run Command: `./complete-digitalocean.sh`
 
 **Step 3: Deploy**
 - Click "Save" and "Deploy"
