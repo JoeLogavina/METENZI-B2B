@@ -40,19 +40,21 @@ process.env.PORT = process.env.PORT || '8080';
 console.log(`🔧 PORT configured: ${process.env.PORT}`);
 console.log(`🔧 NODE_ENV configured: ${process.env.NODE_ENV}`);
 
-if (cjsExists) {
-  console.log('🎯 Starting built CommonJS server (preferred)...');
-  const { createRequire } = await import('module');
-  const require = createRequire(import.meta.url);
-  require('./dist/index.cjs');
-} else if (productionCjsExists) {
+if (productionCjsExists) {
   console.log('🎯 Starting production CommonJS server (reliable)...');
   const { createRequire } = await import('module');
   const require = createRequire(import.meta.url);
   require('./server/production-server.cjs');
+} else if (cjsExists) {
+  console.log('🎯 Starting built CommonJS server (fallback)...');
+  const { createRequire } = await import('module');
+  const require = createRequire(import.meta.url);
+  require('./dist/index.cjs');
 } else if (esExists) {
-  console.log('🎯 Starting ES Module server (fallback)...');
-  await import('./dist/index.js');
+  console.log('🎯 Starting ES Module server (development only)...');
+  const { createRequire } = await import('module');
+  const require = createRequire(import.meta.url);
+  require('./server/production-server.cjs');
 } else {
   console.error('❌ No server files found');
   console.error('💡 Make sure to run: npm run build');

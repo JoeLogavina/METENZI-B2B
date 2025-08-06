@@ -42,9 +42,42 @@ if (fs.existsSync(publicDir)) {
   console.log(`⚠️ Static files directory not found: ${publicDir}`);
 }
 
-// Basic route handlers
+// Essential API routes for frontend functionality
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Mock essential API endpoints for frontend functionality
+app.get('/api/auth/me', (req, res) => {
+  res.status(401).json({ error: 'Not authenticated' });
+});
+
+app.get('/api/products', (req, res) => {
+  res.json([]);
+});
+
+app.get('/api/orders', (req, res) => {
+  res.json([]);
+});
+
+app.get('/api/cart', (req, res) => {
+  res.json([]);
+});
+
+app.get('/api/wallet', (req, res) => {
+  res.json({ data: { balance: 0, creditLimit: 0 } });
+});
+
+app.get('/api/wallet/transactions', (req, res) => {
+  res.json({ data: [] });
+});
+
+// Catch-all for other API routes
+app.all('/api/*', (req, res) => {
+  res.status(503).json({ 
+    error: 'Service temporarily unavailable',
+    message: 'Full functionality requires database connection'
+  });
 });
 
 // Catch all route - serve index.html for client-side routing
