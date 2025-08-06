@@ -110,26 +110,45 @@ app.use((req, res, next) => {
   }
 
   const port = parseInt(process.env.PORT || '8080', 10);
+  console.log(`🔧 Attempting to bind server to port ${port}`);
   
-  // Add error handling for server startup
+  // Add comprehensive error handling for server startup
   httpServer.on('error', (err: any) => {
-    console.error('Server error:', err);
+    console.error('❌ Server binding error:', err);
+    if (err.code === 'EADDRINUSE') {
+      console.error(`❌ Port ${port} is already in use`);
+    } else if (err.code === 'EACCES') {
+      console.error(`❌ Permission denied to bind to port ${port}`);
+    }
     process.exit(1);
   });
 
-  httpServer.listen(port, "0.0.0.0", () => {
-    console.log(`🎯 Server successfully bound to 0.0.0.0:${port}`);
-    console.log(`✅ Health endpoint available at: http://0.0.0.0:${port}/health`);
-    console.log(`🌐 Application ready for health checks`);
-    log(`serving on port ${port}`);
-  });
+  return new Promise((resolve, reject) => {
+    const server = httpServer.listen(port, "0.0.0.0", (error?: Error) => {
+      if (error) {
+        console.error('❌ Server listen callback error:', error);
+        reject(error);
+        return;
+      }
+      
+      console.log(`🎯 Server successfully bound to 0.0.0.0:${port}`);
+      console.log(`✅ Health endpoint available at: http://0.0.0.0:${port}/health`);
+      console.log(`🌐 Application ready for health checks`);
+      console.log(`🚀 PRODUCTION SERVER READY - PORT ${port} BOUND SUCCESSFULLY`);
+      console.log(`📡 Health check endpoints: /health, /status, /ready`);
+      log(`serving on port ${port}`);
+      resolve(server);
+    });
 
-  // Add explicit ready signal for DigitalOcean
-  httpServer.on('listening', () => {
-    console.log(`🚀 PRODUCTION SERVER READY - PORT ${port} BOUND SUCCESSFULLY`);
-    console.log(`📡 Health check endpoints: /health, /status, /ready`);
+    server.on('listening', () => {
+      console.log(`✅ Server listening event confirmed on port ${port}`);
+    });
   });
 }
 
-// Start the server
-startServer().catch(console.error);
+// Start the server with enhanced error handling
+startServer().catch((error) => {
+  console.error('❌ CRITICAL: Server startup failed:', error);
+  console.error('Stack trace:', error.stack);
+  process.exit(1);
+});
