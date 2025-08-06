@@ -1,1 +1,1 @@
-web: ./digitalocean-final.sh
+web: node start-production.js
