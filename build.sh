@@ -7,9 +7,9 @@ echo "Creating dist directory and copying production server..."
 mkdir -p dist
 
 # Copy the production server to expected location
-cp index.js dist/index.js
+cp index.js dist/index.cjs
 
-echo "✅ dist/index.js created successfully"
+echo "✅ dist/index.cjs created successfully"
 echo "✅ Ready for npm start"
 
 # Install dependencies
