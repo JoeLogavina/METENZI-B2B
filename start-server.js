@@ -15,15 +15,19 @@ console.log(`🌍 Environment: ${process.env.NODE_ENV || 'production'}`);
 
 // Check which server files exist
 const cjsPath = path.join(__dirname, 'dist', 'index.cjs');
+const productionCjsPath = path.join(__dirname, 'server', 'production-server.cjs');
 const esPath = path.join(__dirname, 'dist', 'index.js');
 
-console.log(`🔍 Checking for CommonJS server: ${cjsPath}`);
+console.log(`🔍 Checking for built CommonJS server: ${cjsPath}`);
+console.log(`🔍 Checking for production CommonJS server: ${productionCjsPath}`);
 console.log(`🔍 Checking for ES Module server: ${esPath}`);
 
 const cjsExists = fs.existsSync(cjsPath);
+const productionCjsExists = fs.existsSync(productionCjsPath);
 const esExists = fs.existsSync(esPath);
 
-console.log(`✅ CommonJS server exists: ${cjsExists}`);
+console.log(`✅ Built CommonJS server exists: ${cjsExists}`);
+console.log(`✅ Production CommonJS server exists: ${productionCjsExists}`);
 console.log(`✅ ES Module server exists: ${esExists}`);
 
 // Add startup delay for DigitalOcean health checks
@@ -37,16 +41,20 @@ console.log(`🔧 PORT configured: ${process.env.PORT}`);
 console.log(`🔧 NODE_ENV configured: ${process.env.NODE_ENV}`);
 
 if (cjsExists) {
-  console.log('🎯 Starting CommonJS server (preferred)...');
-  // Use dynamic import to load CommonJS module
+  console.log('🎯 Starting built CommonJS server (preferred)...');
   const { createRequire } = await import('module');
   const require = createRequire(import.meta.url);
   require('./dist/index.cjs');
+} else if (productionCjsExists) {
+  console.log('🎯 Starting production CommonJS server (reliable)...');
+  const { createRequire } = await import('module');
+  const require = createRequire(import.meta.url);
+  require('./server/production-server.cjs');
 } else if (esExists) {
   console.log('🎯 Starting ES Module server (fallback)...');
   await import('./dist/index.js');
 } else {
-  console.error('❌ No server files found in dist directory');
+  console.error('❌ No server files found');
   console.error('💡 Make sure to run: npm run build');
   process.exit(1);
 }
