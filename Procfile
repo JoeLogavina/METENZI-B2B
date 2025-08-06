@@ -1,1 +1,1 @@
-web: NODE_ENV=production node dist/index.cjs
+web: NODE_ENV=production node start-server.js
