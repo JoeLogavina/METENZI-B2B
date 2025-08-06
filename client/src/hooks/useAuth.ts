@@ -40,10 +40,10 @@ export function useAuth() {
       }
       return failureCount < 2;
     },
-    staleTime: 10 * 60 * 1000, // 10 minutes - longer to prevent frequent checks
-    gcTime: 30 * 60 * 1000, // 30 minutes
-    refetchOnWindowFocus: false, // Prevent refetch on window focus
-    refetchOnMount: false, // Prevent refetch on component mount if data exists
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 15 * 60 * 1000, // 15 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: true, // Always check auth on mount
   });
 
   const logoutMutation = useMutation({

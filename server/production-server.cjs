@@ -23,15 +23,34 @@ console.log(`Node version: ${process.version}`);
 console.log(`Environment: ${process.env.NODE_ENV}`);
 console.log('');
 
-// Initialize database connection
+// Initialize database connection with enhanced error handling
 let db;
-if (process.env.DATABASE_URL) {
-  console.log('✅ Database URL found - initializing connection...');
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-  db = pool;
-} else {
-  console.log('⚠️ No DATABASE_URL found - running without database');
+async function initializeDatabase() {
+  try {
+    if (process.env.DATABASE_URL) {
+      console.log('✅ Database URL found - initializing connection...');
+      const pool = new Pool({ 
+        connectionString: process.env.DATABASE_URL,
+        max: 10,
+        connectionTimeoutMillis: 15000
+      });
+      
+      // Test connection
+      await pool.query('SELECT NOW()');
+      db = pool;
+      console.log('✅ Database connection tested successfully');
+    } else {
+      console.log('⚠️ No DATABASE_URL found - running without database');
+    }
+  } catch (error) {
+    console.error('⚠️ Database schema initialization failed:', error.message);
+    console.log('🔄 Continuing with fallback mode...');
+    db = null;
+  }
 }
+
+// Initialize database asynchronously
+initializeDatabase();
 
 // Middleware setup
 app.use(compression({ 

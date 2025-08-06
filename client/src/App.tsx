@@ -46,12 +46,13 @@ function Router() {
   const { preloadOnHover } = usePreloadRoutes();
   const { preloadDataOnHover } = useDataPreload();
 
+  // Show loading only for initial authentication check
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading...</p>
+          <p className="mt-2 text-gray-600">Checking authentication...</p>
         </div>
       </div>
     );
@@ -67,41 +68,20 @@ function Router() {
         </>
       ) : (
         <>
-          {/* Default route - redirect to appropriate dashboard/shop */}
+          {/* Default route - redirect based on user role */}
           <Route path="/" component={() => {
             const { user } = useAuth();
-            const [, setLocation] = useLocation();
             
-            useEffect(() => {
-              // Redirect admin users to admin panel
-              if (user?.role === 'admin' || user?.role === 'super_admin') {
-                setLocation('/admin-panel');
-              } 
-              // Redirect B2B users to EUR shop (regardless of tenant)
-              else if (user?.role === 'b2b_user') {
-                setLocation('/eur');
-              }
-              // Redirect regular users to their tenant shop
-              else if (user?.tenantId === 'km') {
-                setLocation('/km');
-              } else if (user?.tenantId === 'eur') {
-                setLocation('/eur');
-              }
-            }, [user, setLocation]);
-            
-            return (
-              <div className="min-h-screen flex items-center justify-center">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-                  <p className="mt-2 text-gray-600">
-                    {user?.role === 'admin' || user?.role === 'super_admin' 
-                      ? 'Redirecting to admin panel...' 
-                      : 'Redirecting to your shop...'
-                    }
-                  </p>
-                </div>
-              </div>
-            );
+            // Immediate redirect based on role without additional loading
+            if (user?.role === 'admin' || user?.role === 'super_admin') {
+              return <Redirect to="/admin-panel" />;
+            } else if (user?.role === 'b2b_user') {
+              return <Redirect to="/eur" />;
+            } else if (user?.tenantId === 'km') {
+              return <Redirect to="/km" />;
+            } else {
+              return <Redirect to="/eur" />;
+            }
           }} />
           
           {/* Tenant-specific B2B Shop Routes */}
@@ -208,9 +188,9 @@ function Router() {
             );
           }} />
 
-          <Route path="/admin/users/edit/:userId" component={({ userId }: { userId: string }) => (
+          <Route path="/admin/users/edit/:userId" component={(props: any) => (
             <Suspense fallback={<AdminLoadingFallback />}>
-              <UserEditPage userId={userId} onBack={() => window.history.back()} />
+              <UserEditPage userId={props.params.userId} onBack={() => window.history.back()} />
             </Suspense>
           )} />
           <Route path="/admin/category-hierarchy-demo" component={() => (
