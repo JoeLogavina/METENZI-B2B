@@ -30,10 +30,24 @@ if (!fs.existsSync(targetFile)) {
 // Now require the CommonJS server
 console.log('Starting B2B License Platform server...');
 
-// Detect if this is build phase vs runtime phase based on environment
-const isBuildPhase = !process.env.DYNO && !process.env.WEB_CONCURRENCY && 
-                     process.env.NODE_ENV === 'production' && 
-                     !process.env.RUNTIME_PHASE;
+// Enhanced runtime detection for DigitalOcean App Platform
+const hasRuntimeEnv = process.env.DYNO || 
+                      process.env.WEB_CONCURRENCY || 
+                      process.env.RUNTIME_PHASE ||
+                      process.env.DO_APP_NAME ||
+                      process.env.APP_URL ||
+                      process.argv.includes('--runtime');
+
+// More specific build phase detection
+const isBuildPhase = process.env.NODE_ENV === 'production' && 
+                     !hasRuntimeEnv &&
+                     !process.env.PORT;
+
+console.log(`🔍 Environment Detection:`);
+console.log(`  NODE_ENV: ${process.env.NODE_ENV}`);
+console.log(`  PORT: ${process.env.PORT}`);
+console.log(`  Runtime indicators: ${hasRuntimeEnv}`);
+console.log(`  Detected phase: ${isBuildPhase ? 'BUILD' : 'RUNTIME'}`);
 
 if (isBuildPhase) {
   // Build phase - just prepare files and exit cleanly
@@ -42,17 +56,37 @@ if (isBuildPhase) {
   process.exit(0);
 }
 
-// Runtime phase - start the server with error handling
+// Runtime phase - start the server with comprehensive error handling
 console.log('🚀 Runtime phase: Starting server...');
+console.log(`🚀 Will bind to port: ${process.env.PORT || '8080'}`);
+
 try {
+  // Ensure we have the target file before requiring
+  if (!fs.existsSync(targetFile)) {
+    console.error('❌ dist/index.cjs not found during runtime!');
+    console.log('📝 Creating it now...');
+    if (fs.existsSync(sourceFile)) {
+      fs.copyFileSync(sourceFile, targetFile);
+      console.log('✅ dist/index.cjs created for runtime');
+    } else {
+      console.error('❌ Source file index.js not found!');
+      process.exit(1);
+    }
+  }
+  
+  console.log('📂 Loading CommonJS server from dist/index.cjs...');
   require('./dist/index.cjs');
+  
 } catch (error) {
+  console.error('❌ Server startup failed:', error.message);
+  console.error('📋 Error details:', error);
+  
   if (error.code === 'EADDRINUSE') {
-    console.log('⚠️  Port conflict detected during build phase');
-    console.log('✅ Files prepared, exiting cleanly for runtime phase');
-    process.exit(0);
+    console.log('⚠️  Port conflict - may be build/runtime interference');
+    console.log('🔄 Attempting graceful exit...');
+    process.exit(1); // Exit with error code for DigitalOcean to retry
   } else {
-    console.error('Server startup error:', error.message);
-    throw error;
+    console.error('💥 Fatal server error - exiting');
+    process.exit(1);
   }
 }
