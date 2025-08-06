@@ -70,8 +70,15 @@ app.use(compression({
   level: 6,
 }));
 
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: false }));
+// Robust middleware with error handling
+app.use(express.json({ 
+  limit: '50mb',
+  strict: false
+}));
+app.use(express.urlencoded({ 
+  extended: true, 
+  limit: '50mb' 
+}));
 
 // Session configuration for production with PostgreSQL store
 const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
@@ -289,30 +296,45 @@ const requireAdmin = (req, res, next) => {
   res.status(403).json({ error: 'Admin access required' });
 };
 
-// Enterprise logging and monitoring
-const winston = require('winston');
-const logger = winston.createLogger({
-  level: 'info',
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.errors({ stack: true }),
-    winston.format.json()
-  ),
-  transports: [
-    new winston.transports.Console({
-      format: winston.format.simple()
-    })
-  ]
-});
+// Enterprise logging with fallback
+let logger;
+try {
+  const winston = require('winston');
+  logger = winston.createLogger({
+    level: 'info',
+    format: winston.format.combine(
+      winston.format.timestamp(),
+      winston.format.errors({ stack: true }),
+      winston.format.json()
+    ),
+    transports: [
+      new winston.transports.Console({
+        format: winston.format.simple()
+      })
+    ]
+  });
+  console.log('✅ Enterprise logging initialized with Winston');
+} catch (error) {
+  logger = console;
+  console.log('⚠️ Winston not available, using console logging');
+}
 
 // Global error handler with enterprise logging
 app.use((err, req, res, next) => {
-  logger.error('Server error:', { 
-    error: err.message, 
+  const errorData = {
+    error: err.message,
     stack: err.stack,
     url: req.url,
-    method: req.method 
-  });
+    method: req.method,
+    timestamp: new Date().toISOString()
+  };
+  
+  if (logger.error && logger !== console) {
+    logger.error('Server error:', errorData);
+  } else {
+    console.error('Server error:', JSON.stringify(errorData, null, 2));
+  }
+  
   res.status(500).json({ error: 'Internal server error', message: err.message });
 });
 
