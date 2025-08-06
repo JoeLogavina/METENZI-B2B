@@ -11,7 +11,7 @@
 ### **Files Created/Updated:**
 
 1. **`dist/index.cjs`** - Full CommonJS B2B platform server
-2. **`production-start-digitalocean.js`** - DigitalOcean start script
+2. **`production-start-digitalocean.cjs`** - DigitalOcean start script
 3. **`build.sh`** - Updated to create `.cjs` files
 4. **`app.yaml`** - Updated to use CommonJS start script
 5. **`index.js`** - CommonJS fallback version
@@ -20,7 +20,7 @@
 
 **app.yaml:**
 ```yaml
-run_command: node production-start-digitalocean.js
+run_command: node production-start-digitalocean.cjs
 build_command: ./build.sh
 ```
 
@@ -29,7 +29,7 @@ build_command: ./build.sh
 - Runs npm install
 - Ready for DigitalOcean deployment
 
-**production-start-digitalocean.js:**
+**production-start-digitalocean.cjs:**
 - Bypasses package.json module restrictions
 - Directly requires the CommonJS server
 
@@ -79,7 +79,7 @@ build_command: ./build.sh
 ## 📋 **FILES TO COMMIT**
 
 - ✅ `dist/index.cjs` (CommonJS server)
-- ✅ `production-start-digitalocean.js` (Start script)
+- ✅ `production-start-digitalocean.cjs` (Start script)
 - ✅ `build.sh` (Updated build)
 - ✅ `app.yaml` (Updated deployment config)
 - ✅ `index.js` (Updated CommonJS format)
