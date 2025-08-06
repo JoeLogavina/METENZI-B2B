@@ -56,11 +56,11 @@ initializeDatabase();
 app.use((req, res, next) => {
   res.setHeader('Content-Security-Policy', 
     "default-src 'self'; " +
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com https://fonts.gstatic.com; " +
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; " +
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+    "style-src 'self' 'unsafe-inline' data:; " +
     "img-src 'self' data: https: blob:; " +
-    "connect-src 'self' wss: ws:; " +
-    "font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; " +
+    "connect-src 'self' wss: ws: https:; " +
+    "font-src 'self' data:; " +
     "object-src 'none'; " +
     "media-src 'self'; " +
     "frame-src 'none'; " +
@@ -303,37 +303,9 @@ const requireAdmin = (req, res, next) => {
   res.status(403).json({ error: 'Admin access required' });
 };
 
-// Authentication API routes
-app.post('/api/auth/login', passport.authenticate('local'), (req, res) => {
-  res.json({ 
-    user: {
-      id: req.user.id,
-      username: req.user.username,
-      role: req.user.role,
-      tenantId: req.user.tenantId
-    }
-  });
-});
+// Fix duplicate authentication routes - only keep the working ones
 
-app.post('/api/auth/logout', (req, res) => {
-  req.logout((err) => {
-    if (err) return res.status(500).json({ error: 'Logout failed' });
-    res.json({ message: 'Logged out successfully' });
-  });
-});
-
-app.get('/api/auth/me', (req, res) => {
-  if (req.isAuthenticated()) {
-    res.json({
-      id: req.user.id,
-      username: req.user.username,
-      role: req.user.role,
-      tenantId: req.user.tenantId
-    });
-  } else {
-    res.status(401).json({ error: 'Not authenticated' });
-  }
-});
+// Remove duplicate routes that conflict with working ones
 
 // Products API
 app.get('/api/products', async (req, res) => {
