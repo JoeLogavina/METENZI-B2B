@@ -152,13 +152,56 @@ app.get('/ready', (req, res) => {
   res.json({ ready: true });
 });
 
-// Serve static files from dist/public
+// Static file serving configuration  
 const publicDir = path.join(__dirname, '..', 'dist', 'public');
-if (fs.existsSync(publicDir)) {
-  app.use(express.static(publicDir));
-  console.log(`✅ Static files configured: ${publicDir}`);
+
+// Check if static directory exists
+if (!fs.existsSync(publicDir)) {
+  console.error(`❌ Static directory not found: ${publicDir}`);
+  const parentDir = path.join(__dirname, '..');
+  console.log('Available directories:', fs.readdirSync(parentDir));
+  
+  // Try alternative paths
+  const altPaths = [
+    path.join(__dirname, 'dist', 'public'),
+    path.join(__dirname, '..', '..', 'dist', 'public'),
+    path.join(process.cwd(), 'dist', 'public')
+  ];
+  
+  for (const altPath of altPaths) {
+    if (fs.existsSync(altPath)) {
+      console.log(`✅ Found static files at: ${altPath}`);
+      app.use('/', express.static(altPath, {
+        setHeaders: (res, filePath) => {
+          if (filePath.endsWith('.js')) {
+            res.setHeader('Content-Type', 'application/javascript');
+          } else if (filePath.endsWith('.css')) {
+            res.setHeader('Content-Type', 'text/css');
+          }
+        }
+      }));
+      break;
+    }
+  }
 } else {
-  console.log(`⚠️ Static files directory not found: ${publicDir}`);
+  console.log('✅ Static directory exists');
+  console.log('Static files:', fs.readdirSync(publicDir).slice(0, 10));
+  
+  // Serve static files with proper headers
+  app.use('/', express.static(publicDir, {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.js')) {
+        res.setHeader('Content-Type', 'application/javascript');
+      } else if (filePath.endsWith('.css')) {
+        res.setHeader('Content-Type', 'text/css');
+      } else if (filePath.endsWith('.html')) {
+        res.setHeader('Content-Type', 'text/html');
+      }
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+    },
+    fallthrough: true,
+    index: false
+  }));
 }
 
 // Authentication middleware
@@ -442,15 +485,26 @@ app.use('/api/*', (err, req, res, next) => {
 app.get('*', (req, res) => {
   // Skip API routes
   if (req.path.startsWith('/api/')) {
+    console.log(`❌ API endpoint not found: ${req.path}`);
     return res.status(404).json({ error: 'API endpoint not found' });
   }
   
-  const indexPath = path.join(publicDir, 'index.html');
-  if (fs.existsSync(indexPath)) {
-    res.sendFile(indexPath);
-  } else {
-    res.status(404).json({ error: 'Application not built properly' });
+  // Find index.html in various possible locations
+  const possiblePaths = [
+    path.join(__dirname, '..', 'dist', 'public', 'index.html'),
+    path.join(__dirname, 'dist', 'public', 'index.html'),
+    path.join(process.cwd(), 'dist', 'public', 'index.html')
+  ];
+  
+  for (const indexPath of possiblePaths) {
+    if (fs.existsSync(indexPath)) {
+      console.log(`✅ Serving index.html from: ${indexPath}`);
+      return res.sendFile(indexPath);
+    }
   }
+  
+  console.error('❌ index.html not found in any location');
+  res.status(404).json({ error: 'Application not built properly - index.html missing' });
 });
 
 console.log('⏳ Waiting for server to bind completely...');
