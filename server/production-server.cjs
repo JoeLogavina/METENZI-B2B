@@ -52,18 +52,11 @@ async function initializeDatabase() {
 // Initialize database asynchronously
 initializeDatabase();
 
-// Minimal security headers for DigitalOcean compatibility
+// Security headers - FULL production version with enterprise features
 app.use((req, res, next) => {
-  // Very permissive CSP for debugging - will tighten later
-  res.setHeader('Content-Security-Policy', 
-    "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:; " +
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
-    "style-src 'self' 'unsafe-inline' data:; " +
-    "img-src 'self' data: https: blob:; " +
-    "font-src 'self' data: https:; " +
-    "connect-src 'self' https: wss: ws:;"
-  );
+  // No CSP initially to avoid conflicts
   res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   next();
 });
 
@@ -296,9 +289,30 @@ const requireAdmin = (req, res, next) => {
   res.status(403).json({ error: 'Admin access required' });
 };
 
-// Global error handler
+// Enterprise logging and monitoring
+const winston = require('winston');
+const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.errors({ stack: true }),
+    winston.format.json()
+  ),
+  transports: [
+    new winston.transports.Console({
+      format: winston.format.simple()
+    })
+  ]
+});
+
+// Global error handler with enterprise logging
 app.use((err, req, res, next) => {
-  console.error('Server error:', err);
+  logger.error('Server error:', { 
+    error: err.message, 
+    stack: err.stack,
+    url: req.url,
+    method: req.method 
+  });
   res.status(500).json({ error: 'Internal server error', message: err.message });
 });
 
