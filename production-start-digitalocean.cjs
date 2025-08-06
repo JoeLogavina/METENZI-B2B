@@ -38,55 +38,17 @@ const hasRuntimeEnv = process.env.DYNO ||
                       process.env.APP_URL ||
                       process.argv.includes('--runtime');
 
-// More specific build phase detection
-const isBuildPhase = process.env.NODE_ENV === 'production' && 
-                     !hasRuntimeEnv &&
-                     !process.env.PORT;
-
 console.log(`🔍 Environment Detection:`);
 console.log(`  NODE_ENV: ${process.env.NODE_ENV}`);
 console.log(`  PORT: ${process.env.PORT}`);
 console.log(`  Runtime indicators: ${hasRuntimeEnv}`);
-console.log(`  Detected phase: ${isBuildPhase ? 'BUILD' : 'RUNTIME'}`);
+console.log('  Phase: BUILD (custom build command - always exit cleanly)');
 
-if (isBuildPhase) {
-  // Build phase - just prepare files and exit cleanly
-  console.log('✅ Build phase: Files prepared successfully');  
-  console.log('✅ Ready for runtime startup');
-  process.exit(0);
-}
+console.log('✅ Build phase: Files prepared successfully');  
+console.log('✅ Ready for runtime startup');
 
-// Runtime phase - start the server with comprehensive error handling
-console.log('🚀 Runtime phase: Starting server...');
-console.log(`🚀 Will bind to port: ${process.env.PORT || '8080'}`);
-
-try {
-  // Ensure we have the target file before requiring
-  if (!fs.existsSync(targetFile)) {
-    console.error('❌ dist/index.cjs not found during runtime!');
-    console.log('📝 Creating it now...');
-    if (fs.existsSync(sourceFile)) {
-      fs.copyFileSync(sourceFile, targetFile);
-      console.log('✅ dist/index.cjs created for runtime');
-    } else {
-      console.error('❌ Source file index.js not found!');
-      process.exit(1);
-    }
-  }
-  
-  console.log('📂 Loading CommonJS server from dist/index.cjs...');
-  require('./dist/index.cjs');
-  
-} catch (error) {
-  console.error('❌ Server startup failed:', error.message);
-  console.error('📋 Error details:', error);
-  
-  if (error.code === 'EADDRINUSE') {
-    console.log('⚠️  Port conflict - may be build/runtime interference');
-    console.log('🔄 Attempting graceful exit...');
-    process.exit(1); // Exit with error code for DigitalOcean to retry
-  } else {
-    console.error('💥 Fatal server error - exiting');
-    process.exit(1);
-  }
-}
+// Always exit cleanly during build phase - never start a server  
+console.log('✅ BUILD COMPLETE: Files prepared, exiting cleanly');
+console.log('📋 Runtime will be handled by Procfile command');
+console.log('🚀 Ready for deployment - server will start via Procfile');
+process.exit(0);
