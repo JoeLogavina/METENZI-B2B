@@ -42,9 +42,8 @@ console.log(`🔧 NODE_ENV configured: ${process.env.NODE_ENV}`);
 
 if (productionCjsExists) {
   console.log('🎯 Starting production CommonJS server (reliable)...');
-  const { createRequire } = await import('module');
-  const require = createRequire(import.meta.url);
-  require('./server/production-server.cjs');
+  const { spawn } = await import('child_process');
+  spawn('node', ['server/production-server.cjs'], { stdio: 'inherit' });
 } else if (cjsExists) {
   console.log('🎯 Starting built CommonJS server (fallback)...');
   const { createRequire } = await import('module');
