@@ -1,1 +1,1 @@
-web: node production-start-clean.cjs
+web: node production-digitalocean-unified.cjs
