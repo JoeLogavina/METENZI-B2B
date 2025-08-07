@@ -98,9 +98,60 @@ function Router() {
           
           {/* Dedicated tenant routes */}
           <Route path="/eur" component={EURShop} />
+          <Route path="/eur/cart" component={() => (
+            <Suspense fallback={<CartLoadingFallback />}>
+              <CartPage />
+            </Suspense>
+          )} />
+          <Route path="/eur/checkout" component={() => (
+            <Suspense fallback={<CheckoutLoadingFallback />}>
+              <CheckoutPage />
+            </Suspense>
+          )} />
+          <Route path="/eur/orders" component={() => (
+            <Suspense fallback={<OrdersLoadingFallback />}>
+              <OrdersPage />
+            </Suspense>
+          )} />
+          <Route path="/eur/wallet" component={() => (
+            <Suspense fallback={<WalletLoadingFallback />}>
+              <WalletPage />
+            </Suspense>
+          )} />
+          <Route path="/eur/branches" component={() => (
+            <Suspense fallback={<AdminLoadingFallback />}>
+              <MyBranchesPage />
+            </Suspense>
+          )} />
+          
           <Route path="/km" component={() => (
             <Suspense fallback={<ShopLoadingFallback />}>
               <KMShop />
+            </Suspense>
+          )} />
+          <Route path="/km/cart" component={() => (
+            <Suspense fallback={<CartLoadingFallback />}>
+              <CartPage />
+            </Suspense>
+          )} />
+          <Route path="/km/checkout" component={() => (
+            <Suspense fallback={<CheckoutLoadingFallback />}>
+              <CheckoutPage />
+            </Suspense>
+          )} />
+          <Route path="/km/orders" component={() => (
+            <Suspense fallback={<OrdersLoadingFallback />}>
+              <OrdersPage />
+            </Suspense>
+          )} />
+          <Route path="/km/wallet" component={() => (
+            <Suspense fallback={<WalletLoadingFallback />}>
+              <WalletPage />
+            </Suspense>
+          )} />
+          <Route path="/km/branches" component={() => (
+            <Suspense fallback={<AdminLoadingFallback />}>
+              <MyBranchesPage />
             </Suspense>
           )} />
 
