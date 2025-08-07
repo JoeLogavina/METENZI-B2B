@@ -52,7 +52,7 @@ export default function AuthPage() {
   const loginMutation = useMutation({
     mutationFn: async (credentials: { username: string; password: string }) => {
       const res = await apiRequest("POST", "/api/login", credentials);
-      return await res.json();
+      return res;
     },
     onSuccess: (data) => {
       toast({

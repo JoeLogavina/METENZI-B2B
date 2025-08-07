@@ -34,9 +34,12 @@ export default function AdminLogin() {
   const loginMutation = useMutation({
     mutationFn: async (credentials: { username: string; password: string }) => {
       const res = await apiRequest("POST", "/api/login", credentials);
-      return await res.json();
+      return res;
     },
     onSuccess: (userData) => {
+      // Update user data in cache immediately first
+      queryClient.setQueryData(["/api/user"], userData);
+      
       // Check if user has admin role
       if (userData && ['admin', 'super_admin'].includes(userData.role)) {
         toast({
@@ -44,11 +47,13 @@ export default function AdminLogin() {
           description: "Welcome to Admin Panel!",
         });
         
-        // Update user data in cache immediately
-        queryClient.setQueryData(["/api/user"], userData);
-        
         // Force immediate invalidation to trigger auth state update
         queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+        
+        // Small delay to ensure state update, then redirect
+        setTimeout(() => {
+          window.location.href = '/admin-panel';
+        }, 100);
       } else {
         toast({
           title: "Access Denied",

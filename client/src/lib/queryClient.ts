@@ -78,7 +78,7 @@ export async function apiRequest(
   });
 
   await throwIfResNotOk(res);
-  return res;
+  return res.headers.get('content-type')?.includes('application/json') ? await res.json() : res;
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
