@@ -272,7 +272,8 @@ app.post('/api/logout', (req, res) => {
 
 // CSRF Token endpoint (for frontend compatibility)
 app.get('/api/csrf-token', (req, res) => {
-  res.json({ token: 'csrf-token-placeholder' });
+  const token = `csrf-${Date.now()}-${Math.random().toString(36).substring(2)}`;
+  res.json({ csrfToken: token });
 });
 
 
@@ -351,10 +352,21 @@ const requireAuth = (req, res, next) => {
 };
 
 const requireAdmin = (req, res, next) => {
+  console.log('🔒 Admin middleware check:', {
+    isAuthenticated: req.isAuthenticated(),
+    user: req.user ? { username: req.user.username, role: req.user.role } : null
+  });
+  
   if (req.isAuthenticated() && (req.user.role === 'admin' || req.user.role === 'super_admin')) {
+    console.log('✅ Admin access granted for:', req.user.username);
     return next();
   }
-  res.status(403).json({ error: 'Admin access required' });
+  
+  console.log('❌ Admin access denied:', {
+    authenticated: req.isAuthenticated(),
+    userRole: req.user?.role || 'none'
+  });
+  res.status(401).json({ error: 'Admin authentication required' });
 };
 
 // Enterprise logging with fallback
