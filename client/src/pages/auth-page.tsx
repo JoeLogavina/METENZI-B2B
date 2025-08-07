@@ -23,32 +23,6 @@ export default function AuthPage() {
   const urlParams = new URLSearchParams(window.location.search);
   const redirectParam = urlParams.get('redirect');
 
-  // Redirect based on authentication - using React Router redirect instead of window.location
-  if (!isLoading && isAuthenticated && user) {
-    console.log('Auth redirect logic:', { redirectParam, userTenant: user.tenantId, userRole: user.role });
-    
-    if (redirectParam === 'admin' && ['admin', 'super_admin'].includes(user.role)) {
-      return <Redirect to="/admin-panel" />;
-    } else if (user.role === 'admin' || user.role === 'super_admin') {
-      return <Redirect to="/admin-panel" />;
-    } else if (user.role === 'b2b_user') {
-      return <Redirect to="/eur" />;
-    } else if (user.tenantId === 'km') {
-      return <Redirect to="/km" />;
-    } else {
-      return <Redirect to="/eur" />;
-    }
-  }
-
-  // Show loading if checking auth
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   const loginMutation = useMutation({
     mutationFn: async (credentials: { username: string; password: string }) => {
       const res = await apiRequest("POST", "/api/login", credentials);
@@ -131,9 +105,27 @@ export default function AuthPage() {
     }));
   };
 
+  // Redirect based on authentication - using React Router redirect instead of window.location
+  if (!isLoading && isAuthenticated && user) {
+    console.log('Auth redirect logic:', { redirectParam, userTenant: user.tenantId, userRole: user.role });
+    
+    if (redirectParam === 'admin' && ['admin', 'super_admin'].includes(user.role)) {
+      return <Redirect to="/admin-panel" />;
+    } else if (user.role === 'admin' || user.role === 'super_admin') {
+      return <Redirect to="/admin-panel" />;
+    } else if (user.role === 'b2b_user') {
+      return <Redirect to="/eur" />;
+    } else if (user.tenantId === 'km') {
+      return <Redirect to="/km" />;
+    } else {
+      return <Redirect to="/eur" />;
+    }
+  }
+
+  // Show loading if checking auth
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
