@@ -5,9 +5,9 @@ echo "🔧 Fixed production build..."
 # Create dist directory
 mkdir -p dist
 
-# Simple copy approach - Node.js is more lenient with .mjs files
-echo "🔧 Copying TypeScript as ES module..."
-cp server/index.ts dist/index.mjs
+# Copy clean JavaScript version
+echo "🔧 Copying clean JavaScript server..."
+cp index.js dist/index.js
 
 # Create ES module config
 echo '{"type":"module"}' > dist/package.json

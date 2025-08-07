@@ -1,305 +1,150 @@
-#!/usr/bin/env node
-
-/**
- * Production Session Fix - Addresses MemoryStore Warning and Authentication Issues
- * 
- * This script creates a production-ready server with proper session storage
- * and all necessary endpoints for the B2B platform.
- */
-
-const express = require('express');
-const session = require('express-session');
-const passport = require('passport');
-const LocalStrategy = require('passport-local').Strategy;
-const bcrypt = require('bcrypt');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+import express from "express";
+import compression from "compression";
+import { registerRoutes } from "./routes.js";
+import { setupVite, serveStatic, log } from "./vite.js";
+import { initializeDatabase } from "./startup/database-init.js";
+import { initializeSentry, Sentry, Handlers } from "./monitoring/sentry.js";
+import { register as prometheusRegister, trackHttpRequest } from "./monitoring/prometheus.js";
+import { errorTrackingMiddleware, authenticationTrackingMiddleware, b2bTrackingMiddleware } from "./middleware/monitoring.js";
+import path from 'path';
 
 const app = express();
-const PORT = process.env.PORT || 5000;
 
-console.log('🚀 Production Session Fix Server Starting...');
-console.log(`📍 Target Port: ${PORT}`);
-console.log(`🔧 Environment: ${process.env.NODE_ENV || 'production'}`);
-console.log('🔧 Build Script Fix Applied - MemoryStore Warning Elimination');
+// Initialize database optimizations - moved to async wrapper
+async function startServer() {
+  console.log('🔧 Starting server initialization...');
+  
+  // Initialize monitoring systems first
+  console.log('🔧 Initializing Sentry...');
+  initializeSentry();
+  
+  console.log('🔧 Initializing database...');
+  await initializeDatabase();
+  console.log('✅ Database initialization completed');
 
-// Create uploads directory
-const uploadsDir = path.join(__dirname, 'uploads', 'products');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-  console.log('✅ Created uploads directory');
-}
-
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadsDir),
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'product-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
-const upload = multer({ 
-  storage,
-  limits: { fileSize: 10 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|gif|webp/;
-    const isValid = allowedTypes.test(path.extname(file.originalname).toLowerCase()) &&
-                   allowedTypes.test(file.mimetype);
-    cb(isValid ? null : new Error('Only image files allowed'), isValid);
-  }
-});
-
-// Middleware setup
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-// CORS for production
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin,X-Requested-With,Content-Type,Accept,Authorization');
-  if (req.method === 'OPTIONS') res.sendStatus(200);
-  else next();
-});
-
-// Production-ready session configuration (using file-based store instead of memory)
-const FileStore = require('session-file-store')(session);
-
-app.use(session({
-  store: new FileStore({
-    path: './sessions',
-    ttl: 86400, // 24 hours
-    reapInterval: 3600 // Clean up expired sessions every hour
-  }),
-  secret: process.env.SESSION_SECRET || 'production-session-secret-' + Date.now(),
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: false, // Set to true in production with HTTPS
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
-  }
+// Enterprise Performance Optimization: Response Compression
+// Provides 30-50% bandwidth reduction for API responses
+app.use(compression({ 
+  filter: (req, res) => {
+    // Compress all text responses, JSON, and API responses
+    if (req.headers['x-no-compression']) return false;
+    return compression.filter(req, res);
+  },
+  threshold: 1024, // Only compress responses larger than 1KB
+  level: 6, // Balanced compression ratio vs speed
 }));
 
-console.log('✅ Production session storage configured (file-based)');
+// Sentry request handler must be first middleware (if available)
+if (process.env.SENTRY_DSN) {
+  app.use(Handlers.requestHandler());
+  app.use(Handlers.tracingHandler());
+}
 
-// Mock user database for authentication
-const users = {
-  'admin': {
-    id: 'admin-1',
-    username: 'admin',
-    password: '$2b$10$K7L/8cY22//gocZzgEaE2u.OoLFFE.FpxPMqQhwL3K8QBDG3F2w/O', // password123
-    role: 'super_admin'
-  },
-  'b2bkm': {
-    id: 'b2bkm-1', 
-    username: 'b2bkm',
-    password: '$2b$10$K7L/8cY22//gocZzgEaE2u.OoLFFE.FpxPMqQhwL3K8QBDG3F2w/O', // password123
-    role: 'b2b_user'
-  },
-  'munich_branch': {
-    id: 'munich-1',
-    username: 'munich_branch', 
-    password: '$2b$10$K7L/8cY22//gocZzgEaE2u.OoLFFE.FpxPMqQhwL3K8QBDG3F2w/O', // password123
-    role: 'b2b_user'
-  }
-};
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: false }));
 
-// Passport configuration
-app.use(passport.initialize());
-app.use(passport.session());
+// Add monitoring middleware
+app.use(authenticationTrackingMiddleware);
+app.use(b2bTrackingMiddleware);
 
-passport.use(new LocalStrategy(
-  async (username, password, done) => {
-    try {
-      const user = users[username];
-      if (!user) {
-        return done(null, false, { message: 'Incorrect username.' });
+// Serve static files from uploads directory
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
+app.use((req, res, next) => {
+  const start = Date.now();
+  const reqPath = req.path;
+  let capturedJsonResponse = undefined;
+
+  const originalResJson = res.json;
+  res.json = function (bodyJson, ...args) {
+    capturedJsonResponse = bodyJson;
+    return originalResJson.apply(res, [bodyJson, ...args]);
+  };
+
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    
+    // Track metrics for monitoring
+    const tenant = reqPath.includes('/eur') ? 'EUR' : reqPath.includes('/km') ? 'KM' : 'unknown';
+    trackHttpRequest(req.method, reqPath, res.statusCode, duration, tenant);
+    
+    if (reqPath.startsWith("/api")) {
+      let logLine = `${req.method} ${reqPath} ${res.statusCode} in ${duration}ms`;
+      if (capturedJsonResponse) {
+        logLine += ` :: ${JSON.stringify(capturedJsonResponse).substring(0, 200)}`;
       }
-
-      const isValid = await bcrypt.compare(password, user.password);
-      if (!isValid) {
-        return done(null, false, { message: 'Incorrect password.' });
-      }
-
-      console.log(`✅ User authenticated: ${username}`);
-      return done(null, user);
-    } catch (error) {
-      return done(error);
+      console.log(logLine);
     }
-  }
-));
+  });
 
-passport.serializeUser((user, done) => {
-  done(null, user.id);
+  next();
 });
 
-passport.deserializeUser((id, done) => {
-  const user = Object.values(users).find(u => u.id === id);
-  done(null, user);
-});
+// Add error tracking middleware before routes
+app.use(errorTrackingMiddleware);
 
-// Authentication middleware
-const isAuthenticated = (req, res, next) => {
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  res.status(401).json({ message: 'Unauthorized' });
-};
+console.log('🔧 Registering routes...');
+registerRoutes(app);
+console.log('✅ Routes registered successfully');
 
-// Routes
+console.log('🔧 Setting up static file serving...');
+if (process.env.NODE_ENV === 'production') {
+  console.log('🔧 Setting up production static file serving...');
+  serveStatic(app);
+} else {
+  console.log('🔧 Setting up development Vite server...');
+  await setupVite(app);
+  console.log('✅ Development Vite server configured');
+}
 
-// Health check
+// Health check endpoints for production monitoring
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'healthy',
-    service: 'production-session-fix',
-    sessionStore: 'file-based',
-    timestamp: new Date().toISOString()
+  res.status(200).json({ 
+    status: 'healthy', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    version: process.env.npm_package_version || '1.0.0'
   });
 });
 
-// Authentication routes
-app.post('/api/login', passport.authenticate('local'), (req, res) => {
-  console.log(`✅ Login successful: ${req.user.username}`);
-  res.json({
-    success: true,
-    user: {
-      id: req.user.id,
-      username: req.user.username,
-      role: req.user.role
-    }
-  });
+app.get('/status', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-app.post('/api/logout', (req, res) => {
-  req.logout(() => {
-    res.json({ success: true, message: 'Logged out successfully' });
-  });
+app.get('/ready', (req, res) => {
+  res.status(200).json({ ready: true, timestamp: new Date().toISOString() });
 });
 
-app.get('/api/user', isAuthenticated, (req, res) => {
-  res.json({
-    id: req.user.id,
-    username: req.user.username,
-    role: req.user.role
-  });
-});
-
-// Upload endpoints - Multiple routes for compatibility
-const uploadHandler = (req, res) => {
+// Prometheus metrics endpoint
+app.get('/metrics', async (req, res) => {
   try {
-    console.log(`📁 Upload request: ${req.method} ${req.path} - User: ${req.user?.username || 'anonymous'}`);
-    
-    if (!req.file) {
-      return res.status(400).json({
-        error: 'VALIDATION_ERROR',
-        message: 'No image file provided'
-      });
-    }
-
-    const imageUrl = `/uploads/products/${req.file.filename}`;
-    
-    console.log(`✅ Upload successful: ${imageUrl}`);
-
-    res.json({
-      success: true,
-      imageUrl,
-      filename: req.file.filename,
-      originalName: req.file.originalname,
-      size: req.file.size,
-      message: 'Image uploaded successfully'
-    });
-  } catch (error) {
-    console.error(`❌ Upload error:`, error);
-    res.status(500).json({
-      error: 'INTERNAL_SERVER_ERROR',
-      message: 'Failed to upload image'
-    });
-  }
-};
-
-// Register upload routes (some protected, some open for compatibility)
-app.post('/api/admin/upload-image', isAuthenticated, upload.single('image'), uploadHandler);
-app.post('/api/images/upload', upload.single('image'), uploadHandler);
-app.post('/api/upload-image-fallback', upload.single('image'), uploadHandler);
-
-// License counts endpoint
-app.get('/api/admin/license-counts', isAuthenticated, (req, res) => {
-  try {
-    console.log('📊 License counts requested by:', req.user.username);
-    
-    const licenseCounts = {
-      'prod-1': 50,
-      'prod-2': 75,
-      'prod-3': 30, 
-      'prod-4': 100,
-      'prod-5': 25
-    };
-
-    res.json({
-      success: true,
-      data: licenseCounts
-    });
-  } catch (error) {
-    console.error('❌ License counts error:', error);
-    res.status(500).json({
-      error: 'INTERNAL_SERVER_ERROR',
-      message: 'Failed to get license counts',
-      data: {}
-    });
+    res.set('Content-Type', prometheusRegister.contentType);
+    res.end(await prometheusRegister.metrics());
+  } catch (ex) {
+    res.status(500).end(ex);
   }
 });
 
-// Admin dashboard endpoint
-app.get('/api/admin/dashboard', isAuthenticated, (req, res) => {
-  if (req.user.role !== 'super_admin' && req.user.role !== 'admin') {
-    return res.status(403).json({ message: 'Forbidden' });
-  }
+// Error handling middleware
+if (process.env.SENTRY_DSN) {
+  app.use(Handlers.errorHandler());
+}
 
-  res.json({
-    totalUsers: 3,
-    totalSales: "€0",
-    activeKeys: 150,
-    totalProducts: 5
-  });
+const port = process.env.PORT || 8080;
+console.log('🔧 Attempting to bind server to port', port);
+
+app.listen(port, '0.0.0.0', () => {
+  console.log('🎯 Server successfully bound to 0.0.0.0:' + port);
+  console.log('✅ Health endpoint available at: http://0.0.0.0:' + port + '/health');
+  console.log('🌐 Application ready for health checks');
+  console.log('🚀 PRODUCTION SERVER READY - PORT ' + port + ' BOUND SUCCESSFULLY');
+  console.log('📡 Health check endpoints: /health, /status, /ready');
 });
 
-// CSRF token
-app.get('/api/csrf-token', (req, res) => {
-  res.json({
-    csrfToken: 'production-' + Date.now(),
-    message: 'Production CSRF token'
-  });
-});
+console.log('✅ Server listening event confirmed on port', port);
 
-// Error handling
-app.use((error, req, res, next) => {
-  console.error('❌ Server error:', error);
-  res.status(500).json({
-    error: 'INTERNAL_SERVER_ERROR',
-    message: 'Production server encountered an error'
-  });
-});
+}
 
-// Start server
-app.listen(PORT, '0.0.0.0', () => {
-  console.log('🎯 Production Session Fix Server Ready!');
-  console.log(`📡 Server: http://0.0.0.0:${PORT}`);
-  console.log(`🔐 Session storage: File-based (no memory leak)`);
-  console.log(`📁 Upload routes: /api/admin/upload-image, /api/images/upload, /api/upload-image-fallback`);
-  console.log(`🔑 Auth routes: /api/login, /api/logout, /api/user`);
-  console.log(`📊 Admin routes: /api/admin/dashboard, /api/admin/license-counts`);
-  console.log(`❤️  Health check: /health`);
-});
-
-// Graceful shutdown
-['SIGTERM', 'SIGINT'].forEach(signal => {
-  process.on(signal, () => {
-    console.log(`🛑 Production server shutting down (${signal})`);
-    process.exit(0);
-  });
-});// Production deployment fix 07/08/2025 20:46:25,34 
+// Start the server
+startServer().catch(console.error);
