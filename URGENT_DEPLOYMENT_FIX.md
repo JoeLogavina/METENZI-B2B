@@ -1,54 +1,41 @@
-# URGENT Git Deployment Fix
+# 🚨 URGENT DEPLOYMENT FIX
 
-## Current Situation
-You have Git conflicts preventing deployment. Your local repository has unpulled changes.
+## The Real Problem
 
-## IMMEDIATE SOLUTION
+The issue is that DigitalOcean's npm install with `--no-save` isn't properly making the packages available to the subsequent build commands. The packages are installed but not in the correct scope.
 
-### Option 1: Reset and Force Deploy (Recommended)
+## IMMEDIATE SOLUTION - Change Build Command
+
+Replace your current DigitalOcean Build Command with this more robust version:
+
 ```bash
-# Reset your local branch to match remote exactly
-git fetch origin
-git reset --hard origin/main
-
-# Copy production files again
-echo '{"name":"production-b2b-platform","version":"1.0.0","main":"index.js","scripts":{"start":"node index.js","build":"echo Build complete - production ready"},"dependencies":{"express":"^4.18.2","express-session":"^1.17.3","session-file-store":"^1.5.0","passport":"^0.6.0","passport-local":"^1.0.0","bcrypt":"^5.1.0","multer":"^1.4.5-lts.1"},"engines":{"node":">=16.0.0"}}' > package.json
-
-# Add deployment marker
-echo "// DEPLOYMENT FIX $(date)" >> index.js
-
-# Commit and force push
-git add .
-git commit -m "PRODUCTION DEPLOYMENT FIX: Build script + session storage"
-git push origin main --force
+npm install @vitejs/plugin-react@latest vite@latest esbuild@latest typescript@latest && npm run build && echo '{"type":"module"}' > dist/package.json
 ```
 
-### Option 2: Branch Deploy
+**Remove the `--no-save` flag** - this was causing the packages to not be properly available.
+
+## Alternative Solution - Use Global Install
+
+If the above doesn't work, try this approach:
+
 ```bash
-# Create new branch for deployment
-git checkout -b production-deploy
-git add .
-git commit -m "Production deployment with build script fix"
-git push origin production-deploy --force
-
-# Then merge in GitHub/set as default branch
+npm install -g @vitejs/plugin-react vite esbuild typescript && npm run build && echo '{"type":"module"}' > dist/package.json
 ```
 
-## What This Fixes
-- Adds missing "build" script that caused deployment failure
-- Implements file-based session storage (no MemoryStore warnings)
-- Provides all authentication and upload functionality
+## Why This Will Work
 
-## Environment Variable (Critical)
-Set in DigitalOcean App Settings:
-```
-SESSION_SECRET=042ed3bdf9db9119f62b9b2b9f8610c99310dca1227cf355538edcc7c156a7c6
-```
+1. **Removes `--no-save`** - packages will be properly installed and available
+2. **Uses latest versions** - ensures compatibility  
+3. **Installs before build** - packages are available when vite.config.ts is loaded
+4. **Creates ES module config** - proper module type for production
 
-## Expected Result
-- Clean DigitalOcean build (3-5 minutes)
-- No MemoryStore warnings
-- Admin panel fully functional
-- All endpoints working: /api/admin/dashboard, /api/admin/upload-image, etc.
+## Test This First
 
-Use Option 1 for fastest deployment.
+Try the first solution (without `--no-save`) as it's the safest approach. The temporary installation will still work but the packages will be properly available during the build process.
+
+## DigitalOcean Settings
+
+- **Build Command**: `npm install @vitejs/plugin-react@latest vite@latest esbuild@latest typescript@latest && npm run build && echo '{"type":"module"}' > dist/package.json`
+- **Run Command**: `node dist/index.js`
+
+This should resolve the "Cannot find package '@vitejs/plugin-react'" error completely.
