@@ -33,6 +33,14 @@ Complete production CommonJS server implemented with full API functionality for 
 - Fixed CSRF validation that was blocking legitimate frontend authentication requests
 - All upload routes and admin endpoints tested and confirmed working in development environment
 
+**Production Session Storage Fix (August 7, 2025):**
+- Completely eliminated MemoryStore warnings by implementing file-based session storage using session-file-store
+- Fixed all production 401 authentication errors with proper Passport.js configuration and bcrypt password hashing
+- Created standalone production server (production-session-fix.cjs) with complete authentication system and all required endpoints
+- Replaced main server files (index.js and package.json) for Git-based DigitalOcean deployment
+- Production server includes: file-based sessions, authentication middleware, upload endpoints, admin routes, and proper error handling
+- All configured user credentials maintained: admin/password123, b2bkm/password123, munich_branch/password123
+
 Core features include:
 - **Hierarchical Category System**: A 3-level system using self-referencing and materialized paths.
 - **B2B Client Management**: Extended user profiles with B2B-specific fields, custom per-client product pricing, real-time wallet management, and comprehensive transaction tracking.
