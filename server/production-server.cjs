@@ -105,9 +105,42 @@ passport.use(new LocalStrategy(
       if (!db) {
         // Fallback authentication for demo
         const demoUsers = {
-          'b2bkm': { id: 'b2b-1', username: 'b2bkm', password: 'password123', role: 'b2b_user', tenantId: 'km' },
-          'munich_branch': { id: 'branch-1', username: 'munich_branch', password: 'password123', role: 'b2b_user', tenantId: 'km' },
-          'admin': { id: 'admin-1', username: 'admin', password: 'password123', role: 'admin', tenantId: 'eur' }
+          'b2bkm': { 
+            id: 'b2b-parent-2', 
+            username: 'b2bkm', 
+            password: 'password123', 
+            role: 'b2b_user', 
+            tenantId: 'eur',
+            email: 'b2bkm@example.com',
+            firstName: 'Maria',
+            lastName: 'Schmidt',
+            companyName: 'KM Solutions GmbH',
+            isActive: true
+          },
+          'munich_branch': { 
+            id: 'km-branch-1', 
+            username: 'munich_branch', 
+            password: 'password123', 
+            role: 'b2b_user', 
+            tenantId: 'km',
+            email: 'munich@example.com',
+            firstName: 'Hans',
+            lastName: 'Mueller',
+            companyName: 'Munich Branch',
+            isActive: true
+          },
+          'admin': { 
+            id: 'admin-1', 
+            username: 'admin', 
+            password: 'password123', 
+            role: 'admin', 
+            tenantId: 'eur',
+            email: 'admin@example.com',
+            firstName: 'Admin',
+            lastName: 'User',
+            companyName: 'Admin Panel',
+            isActive: true
+          }
         };
         
         const user = demoUsers[username];
@@ -144,9 +177,39 @@ passport.deserializeUser(async (id, done) => {
     if (!db) {
       // Fallback for demo
       const demoUsers = {
-        'b2b-1': { id: 'b2b-1', username: 'b2bkm', role: 'b2b_user', tenantId: 'km' },
-        'branch-1': { id: 'branch-1', username: 'munich_branch', role: 'b2b_user', tenantId: 'km' },
-        'admin-1': { id: 'admin-1', username: 'admin', role: 'admin', tenantId: 'eur' }
+        'b2b-parent-2': { 
+          id: 'b2b-parent-2', 
+          username: 'b2bkm', 
+          role: 'b2b_user', 
+          tenantId: 'eur',
+          email: 'b2bkm@example.com',
+          firstName: 'Maria',
+          lastName: 'Schmidt',
+          companyName: 'KM Solutions GmbH',
+          isActive: true
+        },
+        'km-branch-1': { 
+          id: 'km-branch-1', 
+          username: 'munich_branch', 
+          role: 'b2b_user', 
+          tenantId: 'km',
+          email: 'munich@example.com',
+          firstName: 'Hans',
+          lastName: 'Mueller',
+          companyName: 'Munich Branch',
+          isActive: true
+        },
+        'admin-1': { 
+          id: 'admin-1', 
+          username: 'admin', 
+          role: 'admin', 
+          tenantId: 'eur',
+          email: 'admin@example.com',
+          firstName: 'Admin',
+          lastName: 'User',
+          companyName: 'Admin Panel',
+          isActive: true
+        }
       };
       return done(null, demoUsers[id] || null);
     }
@@ -161,8 +224,10 @@ passport.deserializeUser(async (id, done) => {
 // Authentication endpoints
 app.get('/api/user', (req, res) => {
   if (req.isAuthenticated()) {
+    console.log('✅ User authenticated:', req.user.username, 'Role:', req.user.role);
     res.json(req.user);
   } else {
+    console.log('❌ User not authenticated');
     res.status(401).json({ error: 'Unauthorized' });
   }
 });
@@ -181,13 +246,18 @@ app.post('/api/login', (req, res, next) => {
         console.error('Session error:', err);
         return res.status(500).json({ error: 'Session creation failed' });
       }
-      res.json({ 
-        user: {
-          id: user.id,
-          username: user.username,
-          role: user.role,
-          tenantId: user.tenantId
-        }
+      console.log('✅ User logged in successfully:', user.username, 'Role:', user.role);
+      // Return user object directly (not wrapped in 'user' property)
+      res.json({
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        tenantId: user.tenantId,
+        email: user.email || null,
+        firstName: user.firstName || null,
+        lastName: user.lastName || null,
+        companyName: user.companyName || null,
+        isActive: user.isActive !== false
       });
     });
   })(req, res, next);
