@@ -94,8 +94,12 @@ if (process.env.DATABASE_URL) {
       createTableIfMissing: false,
       ttl: Math.floor(sessionTtl / 1000),
       tableName: 'sessions',
+      pool: { 
+        max: 5,
+        ssl: { rejectUnauthorized: false } // Additional SSL bypass for pool
+      }
     });
-    console.log('✅ PostgreSQL session store configured');
+    console.log('✅ PostgreSQL session store configured with SSL bypass');
   } catch (error) {
     console.log('⚠️ PostgreSQL session store failed, using memory store:', error.message);
     sessionStore = new session.MemoryStore();
