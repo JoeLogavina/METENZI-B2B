@@ -1,1 +1,1 @@
-web: node server/bulletproof-production.cjs
+web: node server/enterprise-production.cjs
