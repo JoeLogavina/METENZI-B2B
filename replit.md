@@ -29,7 +29,9 @@ Complete production CommonJS server implemented with full API functionality for 
 - Created three redundant upload routes for maximum production compatibility: `/api/admin/upload-image`, `/api/images/upload`, `/api/upload-image-fallback`
 - Enhanced upload middleware with production-ready error handling and automatic directory creation
 - Fixed TypeScript errors in image storage service for clean deployment
-- All upload routes tested and confirmed working in development environment
+- Added missing `/api/admin/license-counts` endpoint essential for admin panel functionality
+- Fixed CSRF validation that was blocking legitimate frontend authentication requests
+- All upload routes and admin endpoints tested and confirmed working in development environment
 
 Core features include:
 - **Hierarchical Category System**: A 3-level system using self-referencing and materialized paths.

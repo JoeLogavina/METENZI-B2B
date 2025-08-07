@@ -87,6 +87,26 @@ router.post('/upload-image', uploadMiddleware.single('image'), (req, res) => {
   }
 });
 
+// License counts endpoint - Required for admin panel
+router.get('/license-counts', async (req, res) => {
+  try {
+    const storage = await import('../../storage');
+    const licenseCounts = await storage.storageSystem.getLicenseCounts();
+    
+    res.json({
+      success: true,
+      data: licenseCounts
+    });
+  } catch (error) {
+    console.error('Error getting license counts:', error);
+    res.status(500).json({
+      error: 'INTERNAL_SERVER_ERROR',
+      message: 'Failed to get license counts',
+      data: {}
+    });
+  }
+});
+
 // Mount sub-routers
 router.use('/products', adminProductsRouter);
 router.use('/users', adminUsersRouter, userEditRouter);
