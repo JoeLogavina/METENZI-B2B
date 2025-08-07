@@ -1,43 +1,25 @@
 #!/usr/bin/env node
 
-// Production startup script for DigitalOcean
-// This bypasses the build process and runs the TypeScript server directly
+/**
+ * Production Entry Point - Handles both CommonJS and ES Module environments
+ * 
+ * This file ensures the application starts correctly on DigitalOcean regardless
+ * of module system configuration.
+ */
 
-import { spawn } from 'child_process';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-console.log('Starting B2B License Platform in production mode...');
-
-// Start the TypeScript server directly using tsx
-const serverProcess = spawn('npx', ['tsx', join(__dirname, 'server/index.ts')], {
-  stdio: 'inherit',
-  env: {
-    ...process.env,
-    NODE_ENV: 'production'
-  }
-});
-
-serverProcess.on('close', (code) => {
-  console.log(`Server process exited with code ${code}`);
-  process.exit(code);
-});
-
-serverProcess.on('error', (error) => {
-  console.error('Failed to start server:', error);
-  process.exit(1);
-});
-
-// Handle process termination gracefully
-process.on('SIGTERM', () => {
-  console.log('Received SIGTERM, shutting down gracefully...');
-  serverProcess.kill('SIGTERM');
-});
-
-process.on('SIGINT', () => {
-  console.log('Received SIGINT, shutting down gracefully...');
-  serverProcess.kill('SIGINT');
-});
+// Try to import the built ES module first
+import('./dist/index.js')
+  .then(() => {
+    console.log('✅ Production server started via ES module');
+  })
+  .catch((error) => {
+    console.error('❌ Failed to start ES module, falling back to index.js:', error.message);
+    
+    // Fallback to the CommonJS production server
+    try {
+      require('./index.js');
+    } catch (fallbackError) {
+      console.error('❌ Both ES module and CommonJS fallback failed:', fallbackError.message);
+      process.exit(1);
+    }
+  });
