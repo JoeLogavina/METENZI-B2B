@@ -272,17 +272,16 @@ if (!fs.existsSync(publicDir)) {
   }));
 }
 
-// Authentication middleware
+// Authentication middleware (fixed placement)
 const requireAuth = (req, res, next) => {
   if (req.isAuthenticated()) {
     return next();
   }
-  res.status(401).json({ error: 'Not authenticated' });
+  res.status(401).json({ error: 'Authentication required' });
 };
 
-// Admin middleware
 const requireAdmin = (req, res, next) => {
-  if (req.isAuthenticated() && req.user.role === 'admin') {
+  if (req.isAuthenticated() && (req.user.role === 'admin' || req.user.role === 'super_admin')) {
     return next();
   }
   res.status(403).json({ error: 'Admin access required' });
