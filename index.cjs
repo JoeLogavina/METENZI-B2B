@@ -32,7 +32,8 @@ async function initializeDatabase() {
       const pool = new Pool({ 
         connectionString: process.env.DATABASE_URL,
         max: 10,
-        connectionTimeoutMillis: 15000
+        connectionTimeoutMillis: 15000,
+        ssl: { rejectUnauthorized: false } // Handle self-signed certificates
       });
       
       // Test connection
@@ -65,21 +66,43 @@ app.use(compression({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false }));
 
+// CORS headers for font files and static assets
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  
+  // Handle font files specifically
+  if (req.path.match(/\.(woff|woff2|ttf|eot|otf)$/)) {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Cache-Control', 'public, max-age=31536000');
+  }
+  
+  next();
+});
+
 // Session configuration for production with PostgreSQL store
 const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
 let sessionStore;
 
 if (process.env.DATABASE_URL) {
-  const pgStore = connectPg(session);
-  sessionStore = new pgStore({
-    conString: process.env.DATABASE_URL,
-    createTableIfMissing: true,
-    ttl: sessionTtl,
-    tableName: 'sessions',
-  });
-  console.log('✅ PostgreSQL session store configured');
+  try {
+    const pgStore = connectPg(session);
+    sessionStore = new pgStore({
+      conString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false }, // Handle self-signed certificates
+      createTableIfMissing: false,
+      ttl: Math.floor(sessionTtl / 1000),
+      tableName: 'sessions',
+    });
+    console.log('✅ PostgreSQL session store configured');
+  } catch (error) {
+    console.log('⚠️ PostgreSQL session store failed, using memory store:', error.message);
+    sessionStore = new session.MemoryStore();
+  }
 } else {
   console.log('⚠️ Using memory store (not recommended for production)');
+  sessionStore = new session.MemoryStore();
 }
 
 app.use(session({
@@ -240,10 +263,16 @@ if (!fs.existsSync(publicDir)) {
       console.log(`✅ Found static files at: ${altPath}`);
       app.use('/', express.static(altPath, {
         setHeaders: (res, filePath) => {
+          // Set CORS headers for all static files
+          res.setHeader('Access-Control-Allow-Origin', '*');
+          
           if (filePath.endsWith('.js')) {
             res.setHeader('Content-Type', 'application/javascript');
           } else if (filePath.endsWith('.css')) {
             res.setHeader('Content-Type', 'text/css');
+          } else if (filePath.match(/\.(woff|woff2|ttf|eot|otf)$/)) {
+            res.setHeader('Content-Type', 'font/woff2');
+            res.setHeader('Cache-Control', 'public, max-age=31536000');
           }
         }
       }));
@@ -257,12 +286,19 @@ if (!fs.existsSync(publicDir)) {
   // Serve static files with proper headers
   app.use('/', express.static(publicDir, {
     setHeaders: (res, filePath) => {
+      // Set CORS headers for all static files
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      
       if (filePath.endsWith('.js')) {
         res.setHeader('Content-Type', 'application/javascript');
       } else if (filePath.endsWith('.css')) {
         res.setHeader('Content-Type', 'text/css');
       } else if (filePath.endsWith('.html')) {
         res.setHeader('Content-Type', 'text/html');
+      } else if (filePath.match(/\.(woff|woff2|ttf|eot|otf)$/)) {
+        res.setHeader('Content-Type', 'font/woff2');
+        res.setHeader('Cache-Control', 'public, max-age=31536000');
+        return; // Early return for fonts
       }
       res.setHeader('Cache-Control', 'public, max-age=3600');
     },
