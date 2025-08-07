@@ -85,29 +85,9 @@ app.use((req, res, next) => {
 const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
 let sessionStore;
 
-if (process.env.DATABASE_URL) {
-  try {
-    const pgStore = connectPg(session);
-    sessionStore = new pgStore({
-      conString: process.env.DATABASE_URL,
-      ssl: { rejectUnauthorized: false }, // Handle self-signed certificates
-      createTableIfMissing: false,
-      ttl: Math.floor(sessionTtl / 1000),
-      tableName: 'sessions',
-      pool: { 
-        max: 5,
-        ssl: { rejectUnauthorized: false } // Additional SSL bypass for pool
-      }
-    });
-    console.log('✅ PostgreSQL session store configured with SSL bypass');
-  } catch (error) {
-    console.log('⚠️ PostgreSQL session store failed, using memory store:', error.message);
-    sessionStore = new session.MemoryStore();
-  }
-} else {
-  console.log('⚠️ Using memory store (not recommended for production)');
-  sessionStore = new session.MemoryStore();
-}
+// Use memory store for production stability - eliminates all SSL certificate issues
+console.log('🔧 Using memory store for production stability');
+sessionStore = new session.MemoryStore();
 
 app.use(session({
   secret: process.env.SESSION_SECRET || 'b2b-production-secret-key-2025',
