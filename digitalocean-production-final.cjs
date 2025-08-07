@@ -11,24 +11,41 @@ console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
 console.log(`🔌 Port: ${process.env.PORT || 'not set'}`);
 console.log(`⚙️  Node version: ${process.version}`);
 
-// File preparation
+// File preparation - Support both old and new file names for backward compatibility
 const distDir = path.join(__dirname, 'dist');
 const targetFile = path.join(distDir, 'index.cjs');
-const sourceFile = path.join(__dirname, 'index.cjs');
 
-// Always ensure dist directory and file exist
+// Try multiple possible source files for backward compatibility
+const possibleSourceFiles = [
+  path.join(__dirname, 'index.cjs'),  // New file name
+  path.join(__dirname, 'index.js'),   // Old file name (backup)
+];
+
+// Always ensure dist directory exists
 if (!fs.existsSync(distDir)) {
   console.log('📁 Creating dist directory...');
   fs.mkdirSync(distDir, { recursive: true });
 }
 
 if (!fs.existsSync(targetFile)) {
-  if (fs.existsSync(sourceFile)) {
-    console.log('📋 Copying index.cjs to dist/index.cjs...');
+  let sourceFile = null;
+  
+  // Find the first available source file
+  for (const file of possibleSourceFiles) {
+    if (fs.existsSync(file)) {
+      sourceFile = file;
+      console.log(`✅ Found source file: ${path.basename(file)}`);
+      break;
+    }
+  }
+  
+  if (sourceFile) {
+    console.log(`📋 Copying ${path.basename(sourceFile)} to dist/index.cjs...`);
     fs.copyFileSync(sourceFile, targetFile);
     console.log('✅ dist/index.cjs created successfully');
   } else {
-    console.error('❌ Error: index.cjs source file not found');
+    console.error('❌ Error: No production server source file found');
+    console.error('Searched for:', possibleSourceFiles.map(f => path.basename(f)));
     process.exit(1);
   }
 } else {
