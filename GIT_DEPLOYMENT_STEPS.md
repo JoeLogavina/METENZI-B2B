@@ -1,67 +1,67 @@
-# Git Deployment to DigitalOcean - Simple Steps
+# Git Deployment Steps - Merge Conflict Resolution
 
-## What You Need to Do
+## Current Status
+Your Git shows merge conflicts that need to be resolved before deployment.
 
-### 1. Replace Your Main Files
-Copy these files from the `production-deployment` folder to your main project:
+## Step-by-Step Resolution
 
+### 1. Fetch and Pull Remote Changes
 ```bash
-# Copy the production server as your main index.js
-cp production-deployment/index.js ./index.js
+# Fetch the latest changes from remote
+git fetch origin
 
-# Copy the production package.json  
-cp production-deployment/package.json ./package.json
+# Pull and merge remote changes (this may show merge conflicts)
+git pull origin main
 ```
 
-### 2. Commit and Push to Git
+### 2. If Merge Conflicts Appear
 ```bash
-git add index.js package.json
-git commit -m "Fix: Replace server with production session fix - eliminates MemoryStore warnings and fixes uploads"
+# Check which files have conflicts
+git status
+
+# For each conflicted file, edit manually to resolve conflicts
+# Look for conflict markers: <<<<<<< ======= >>>>>>>
+# Choose which version to keep or merge them manually
+
+# After resolving conflicts in each file:
+git add <conflicted-file>
+
+# Complete the merge
+git commit -m "Resolve merge conflicts"
+```
+
+### 3. Alternative: Force Push (Use with Caution)
+If you want to overwrite remote with your local changes:
+```bash
+# WARNING: This overwrites remote history
+git push origin main --force
+```
+
+### 4. After Resolving Conflicts, Deploy
+```bash
+# Verify your files are correct
+git status
+
+# Push to trigger DigitalOcean deployment
 git push origin main
 ```
 
-### 3. DigitalOcean Will Automatically:
-- Pull your changes from Git
-- Run `npm install` (installs the new session dependencies)
-- Create the build
-- Deploy the new server
-- Start with the fixed session storage
+## Quick Resolution Commands
+```bash
+# Option A: Pull and resolve conflicts
+git pull origin main
+# (resolve any conflicts manually)
+git add .
+git commit -m "Resolve merge conflicts and deploy production fix"
+git push origin main
 
-## What Gets Fixed Automatically
+# Option B: Force push (overwrites remote)
+git push origin main --force
+```
 
-✅ **MemoryStore Warning Eliminated**
-- No more "MemoryStore is not designed for production" warnings
-- Uses file-based session storage instead
+## Your Production Files Are Ready
+- package.json: Includes build script ✅
+- index.js: Production server with session storage ✅
+- Dependencies: All specified correctly ✅
 
-✅ **Authentication Fixed** 
-- All 401 errors resolved
-- Proper Passport.js authentication
-- Session persistence
-
-✅ **Upload Functionality Restored**
-- `/api/admin/upload-image` works again
-- `/api/images/upload` fallback available
-- `/api/upload-image-fallback` emergency route
-
-✅ **Admin Panel Working**
-- `/api/admin/license-counts` returns data
-- `/api/admin/dashboard` loads properly
-- Image uploads in admin panel functional
-
-## Environment Variables (Set in DigitalOcean)
-In your DigitalOcean App Settings → Environment Variables, add:
-- `SESSION_SECRET` = "your-secure-secret-key-here"
-- `NODE_ENV` = "production"
-
-## Expected Deployment Time
-- Build: ~2-3 minutes
-- Deploy: ~1-2 minutes
-- Total: ~5 minutes until live
-
-## Verification After Deployment
-Once deployed, test these endpoints:
-- `https://starnek.com/health` - Should show healthy status
-- Admin panel login should work without 401 errors
-- Image upload in admin panel should work without 404 errors
-
-That's it! The Git push triggers automatic deployment with all fixes included.
+Once you resolve the Git conflicts and push, your DigitalOcean deployment will complete successfully.
