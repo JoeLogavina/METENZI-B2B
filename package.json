@@ -1,14 +1,19 @@
 {
-  "name": "emergency-upload-server",
+  "name": "production-session-fix",
   "version": "1.0.0",
-  "description": "Emergency server for production upload fixes",
-  "main": "production-emergency-server.cjs",
+  "description": "Production-ready server with proper session storage and authentication",
+  "main": "production-session-fix.cjs",
   "scripts": {
-    "start": "node production-emergency-server.cjs",
-    "emergency": "PORT=3001 node production-emergency-server.cjs"
+    "start": "node production-session-fix.cjs",
+    "production": "NODE_ENV=production node production-session-fix.cjs"
   },
   "dependencies": {
     "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "session-file-store": "^1.5.0",
+    "passport": "^0.6.0",
+    "passport-local": "^1.0.0",
+    "bcrypt": "^5.1.0",
     "multer": "^1.4.5-lts.1"
   },
   "engines": {
