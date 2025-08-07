@@ -23,32 +23,22 @@ export default function AuthPage() {
   const urlParams = new URLSearchParams(window.location.search);
   const redirectParam = urlParams.get('redirect');
 
-  // Redirect based on authentication and redirect parameter
-  useEffect(() => {
-    if (!isLoading && isAuthenticated && user) {
-      console.log('Auth redirect logic:', { redirectParam, userTenant: user.tenantId, userRole: user.role });
-      
-      if (redirectParam === 'admin' && ['admin', 'super_admin'].includes(user.role)) {
-        console.log('Redirecting to admin panel');
-        window.location.href = '/admin-panel';
-      } else if (redirectParam === 'eur' && user.tenantId === 'eur') {
-        console.log('Redirecting to EUR shop');
-        window.location.href = '/shop/eur';
-      } else if (redirectParam === 'km' && user.tenantId === 'km') {
-        console.log('Redirecting to KM shop');
-        window.location.href = '/shop/km';
-      } else if (user.tenantId === 'eur') {
-        console.log('Default redirect to EUR shop for EUR user');
-        window.location.href = '/shop/eur';
-      } else if (user.tenantId === 'km') {
-        console.log('Default redirect to KM shop for KM user');
-        window.location.href = '/shop/km';
-      } else {
-        console.log('Default redirect to home');
-        window.location.href = '/';
-      }
+  // Redirect based on authentication - using React Router redirect instead of window.location
+  if (!isLoading && isAuthenticated && user) {
+    console.log('Auth redirect logic:', { redirectParam, userTenant: user.tenantId, userRole: user.role });
+    
+    if (redirectParam === 'admin' && ['admin', 'super_admin'].includes(user.role)) {
+      return <Redirect to="/admin-panel" />;
+    } else if (user.role === 'admin' || user.role === 'super_admin') {
+      return <Redirect to="/admin-panel" />;
+    } else if (user.role === 'b2b_user') {
+      return <Redirect to="/eur" />;
+    } else if (user.tenantId === 'km') {
+      return <Redirect to="/km" />;
+    } else {
+      return <Redirect to="/eur" />;
     }
-  }, [isLoading, isAuthenticated, user, redirectParam]);
+  }
 
   // Show loading if checking auth
   if (isLoading) {
@@ -65,8 +55,21 @@ export default function AuthPage() {
       return await res.json();
     },
     onSuccess: (data) => {
+      // Update user data in cache
       queryClient.setQueryData(["/api/user"], data);
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      
+      // Don't force invalidate here - let the redirect handle it
+      // The useAuth hook will automatically update and trigger the redirect
+      
+      toast({
+        title: "Login successful",
+        description: "Welcome back!",
+      });
+      
+      // Small delay to ensure state updates before redirect
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      }, 100);
       
       // Validate tenant access for specific redirect parameters
       const userTenant = data.tenantId;

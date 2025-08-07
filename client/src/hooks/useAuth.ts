@@ -40,10 +40,11 @@ export function useAuth() {
       }
       return failureCount < 2;
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 15 * 60 * 1000, // 15 minutes
+    staleTime: 1 * 60 * 1000, // 1 minute - shorter for better login flow
+    gcTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
     refetchOnMount: true, // Always check auth on mount
+    refetchInterval: false, // Disable background refetch to prevent conflicts
   });
 
   const logoutMutation = useMutation({

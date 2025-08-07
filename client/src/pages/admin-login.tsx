@@ -6,22 +6,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Building2, Shield, ArrowLeft } from "lucide-react";
+import { Redirect } from "wouter";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function AdminLogin() {
   const { user, isAuthenticated, logout, isLoggingOut } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     username: '',
     password: ''
   });
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  // Redirect if already authenticated admin
-  useEffect(() => {
-    if (isAuthenticated && user && ['admin', 'super_admin'].includes((user as any).role)) {
-      window.location.href = '/admin-panel';
-    }
-  }, [isAuthenticated, user]);
+  // Redirect if already authenticated admin - using React Router
+  if (isAuthenticated && user && ['admin', 'super_admin'].includes((user as any).role)) {
+    return <Redirect to="/admin-panel" />;
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -30,51 +31,46 @@ export default function AdminLogin() {
     });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoggingIn(true);
-    
-    try {
-      const response = await fetch('/api/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.text();
-        throw new Error(errorData || 'Login failed');
-      }
-
-      const userData = await response.json();
+  const loginMutation = useMutation({
+    mutationFn: async (credentials: { username: string; password: string }) => {
+      const res = await apiRequest("POST", "/api/login", credentials);
+      return await res.json();
+    },
+    onSuccess: (userData) => {
+      // Update user data in cache
+      queryClient.setQueryData(["/api/user"], userData);
       
       // Check if user has admin role
       if (userData && ['admin', 'super_admin'].includes(userData.role)) {
         toast({
           title: "Admin Login Successful",
-          description: "Redirecting to Admin Panel...",
+          description: "Welcome to Admin Panel!",
         });
+        
+        // Invalidate queries to refresh auth state
         setTimeout(() => {
-          window.location.href = '/admin-panel';
-        }, 500);
+          queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+        }, 100);
       } else {
         toast({
           title: "Access Denied",
           description: "Admin privileges required to access this portal.",
           variant: "destructive",
         });
-        setIsLoggingIn(false);
       }
-    } catch (error) {
+    },
+    onError: (error: any) => {
       toast({
         title: "Login Failed",
-        description: error instanceof Error ? error.message : "Invalid credentials",
+        description: error?.message || "Invalid credentials",
         variant: "destructive",
       });
-      setIsLoggingIn(false);
-    }
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    loginMutation.mutate(formData);
   };
 
   return (
