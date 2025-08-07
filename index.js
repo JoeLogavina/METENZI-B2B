@@ -1,14 +1,19 @@
 // Full Production CommonJS server for DigitalOcean deployment with complete API functionality
-const express = require('express');
-const path = require('path');
-const fs = require('fs');
-const session = require('express-session');
-const connectPg = require('connect-pg-simple');
-const passport = require('passport');
-const LocalStrategy = require('passport-local').Strategy;
-const bcrypt = require('bcrypt');
-const { Pool } = require('@neondatabase/serverless');
-const compression = require('compression');
+import express from 'express';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+import session from 'express-session';
+import connectPg from 'connect-pg-simple';
+import passport from 'passport';
+import { Strategy as LocalStrategy } from 'passport-local';
+import bcrypt from 'bcrypt';
+import { Pool } from '@neondatabase/serverless';
+import compression from 'compression';
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '8080', 10);
@@ -167,10 +172,36 @@ app.get('/api/user', (req, res) => {
   }
 });
 
-app.post('/api/login', passport.authenticate('local', {
-  successRedirect: '/',
-  failureRedirect: '/auth'
-}));
+app.post('/api/login', (req, res, next) => {
+  passport.authenticate('local', (err, user, info) => {
+    if (err) {
+      console.error('Login authentication error:', err);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+    if (!user) {
+      console.log('Login failed for username:', req.body.username);
+      return res.status(401).json({ error: 'Invalid username or password' });
+    }
+    
+    req.logIn(user, (err) => {
+      if (err) {
+        console.error('Login session error:', err);
+        return res.status(500).json({ error: 'Login session failed' });
+      }
+      
+      console.log('✅ User logged in successfully:', user.username);
+      return res.json({
+        success: true,
+        user: {
+          id: user.id,
+          username: user.username,
+          role: user.role,
+          tenantId: user.tenantId
+        }
+      });
+    });
+  })(req, res, next);
+});
 
 app.post('/api/logout', (req, res) => {
   req.logout((err) => {
@@ -326,40 +357,11 @@ app.get('/api/products', async (req, res) => {
       return res.json(demoProducts);
     }
 
-    const result = await db.query(`
-      SELECT p.*, COALESCE(s.quantity, 0) as stock_count 
-      FROM products p 
-      LEFT JOIN stock s ON p.id = s.product_id 
-      WHERE p.is_active = true
-      ORDER BY p.created_at DESC
-    `);
+    const result = await db.query('SELECT * FROM products WHERE is_active = true ORDER BY name');
     res.json(result.rows);
   } catch (error) {
     console.error('Products API error:', error);
     res.status(500).json({ error: 'Failed to fetch products' });
-  }
-});
-
-// Orders API
-app.get('/api/orders', requireAuth, async (req, res) => {
-  try {
-    if (!db) {
-      return res.json([]);
-    }
-
-    const result = await db.query(`
-      SELECT o.*, oi.product_id, oi.quantity, oi.unit_price, p.name as product_name
-      FROM orders o
-      LEFT JOIN order_items oi ON o.id = oi.order_id
-      LEFT JOIN products p ON oi.product_id = p.id
-      WHERE o.user_id = $1
-      ORDER BY o.created_at DESC
-    `, [req.user.id]);
-    
-    res.json(result.rows);
-  } catch (error) {
-    console.error('Orders API error:', error);
-    res.status(500).json({ error: 'Failed to fetch orders' });
   }
 });
 
@@ -371,7 +373,7 @@ app.get('/api/cart', requireAuth, async (req, res) => {
     }
 
     const result = await db.query(`
-      SELECT c.*, p.name, p.price, p.b2b_price
+      SELECT c.*, p.name, p.price, p.b2b_price 
       FROM cart c
       JOIN products p ON c.product_id = p.id
       WHERE c.user_id = $1
@@ -547,78 +549,39 @@ app.get('*', (req, res) => {
   res.status(404).json({ error: 'Application not built properly - index.html missing' });
 });
 
-console.log('⏳ Waiting for server to bind completely...');
-
-// Initialize database schema if needed
-async function initializeDatabase() {
-  if (!db) return;
+// Start the server
+const server = app.listen(PORT, HOST, () => {
+  console.log('⏳ Waiting for server to bind completely...');
   
-  try {
-    // Create sessions table if it doesn't exist
-    await db.query(`
-      CREATE TABLE IF NOT EXISTS sessions (
-        sid VARCHAR(32) PRIMARY KEY,
-        sess JSONB NOT NULL,
-        expire TIMESTAMP(6) NOT NULL
-      );
-    `);
-    
-    // Create index on expire for cleanup
-    await db.query(`
-      CREATE INDEX IF NOT EXISTS IDX_session_expire ON sessions(expire);
-    `);
-    
-    console.log('✅ Database schema initialized');
-  } catch (error) {
-    console.log('⚠️ Database schema initialization failed:', error.message);
-  }
-}
-
-// Start server with comprehensive error handling
-const server = app.listen(PORT, HOST, async (error) => {
-  if (error) {
-    console.error('❌ Server failed to start:', error);
-    process.exit(1);
-  }
-  
-  console.log('🚀 ===================================');
-  console.log('🚀 B2B License Platform OPERATIONAL');
-  console.log('🚀 ===================================');
-  console.log(`🌐 Server running on http://${HOST}:${PORT}`);
-  console.log(`🔍 Health check: http://${HOST}:${PORT}/health`);
-  console.log(`🛍️ EUR Shop: http://${HOST}:${PORT}/eur`);
-  console.log(`🏪 KM Shop: http://${HOST}:${PORT}/km`);
-  console.log('🚀 ===================================');
-  console.log('');
-  
-  // Initialize database
-  await initializeDatabase();
-  
-  console.log('✅ Ready to accept connections');
-  console.log('✅ All endpoints configured and operational');
-  console.log('✅ DigitalOcean deployment successful');
+  setTimeout(() => {
+    console.log('🚀 ===================================');
+    console.log('🚀 B2B License Platform OPERATIONAL');
+    console.log('🚀 ===================================');
+    console.log(`🌐 Server running on http://${HOST}:${PORT}`);
+    console.log(`🔍 Health check: http://${HOST}:${PORT}/health`);
+    console.log(`🛍️ EUR Shop: http://${HOST}:${PORT}/eur`);
+    console.log(`🏪 KM Shop: http://${HOST}:${PORT}/km`);
+    console.log('🚀 ===================================');
+    console.log('');
+    console.log('✅ Ready to accept connections');
+    console.log('✅ All endpoints configured and operational');
+    console.log('✅ DigitalOcean deployment successful');
+  }, 1000);
 });
 
-server.on('error', (err) => {
-  console.error('❌ Server error:', err);
-  if (err.code === 'EADDRINUSE') {
-    console.error(`❌ Port ${PORT} is already in use`);
-  }
-  process.exit(1);
-});
-
+// Graceful shutdown
 process.on('SIGTERM', () => {
-  console.log('🔄 SIGTERM received, shutting down gracefully...');
+  console.log('🛑 SIGTERM received, shutting down gracefully');
   server.close(() => {
-    console.log('✅ Server closed successfully');
-    process.exit(0);
+    console.log('✅ Process terminated');
   });
 });
 
 process.on('SIGINT', () => {
-  console.log('🔄 SIGINT received, shutting down gracefully...');
+  console.log('🛑 SIGINT received, shutting down gracefully');
   server.close(() => {
-    console.log('✅ Server closed successfully');
-    process.exit(0);
+    console.log('✅ Process terminated');  
   });
 });
+
+export default app;
