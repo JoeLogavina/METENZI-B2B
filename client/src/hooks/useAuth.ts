@@ -8,6 +8,7 @@ export function useAuth() {
     data: user,
     error,
     isLoading,
+    isFetching,
   } = useQuery({
     queryKey: ["/api/user"],
     queryFn: async () => {
@@ -40,11 +41,12 @@ export function useAuth() {
       }
       return failureCount < 2;
     },
-    staleTime: 1 * 60 * 1000, // 1 minute - shorter for better login flow
+    staleTime: 30 * 1000, // 30 seconds - very short for immediate login flow
     gcTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
     refetchOnMount: true, // Always check auth on mount
     refetchInterval: false, // Disable background refetch to prevent conflicts
+    networkMode: 'always', // Always attempt requests
   });
 
   const logoutMutation = useMutation({
@@ -69,7 +71,7 @@ export function useAuth() {
 
   return {
     user,
-    isLoading,
+    isLoading: isLoading || isFetching,
     isAuthenticated: !!user,
     logout: () => logoutMutation.mutate(),
     isLoggingOut: logoutMutation.isPending,

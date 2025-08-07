@@ -55,21 +55,16 @@ export default function AuthPage() {
       return await res.json();
     },
     onSuccess: (data) => {
-      // Update user data in cache
-      queryClient.setQueryData(["/api/user"], data);
-      
-      // Don't force invalidate here - let the redirect handle it
-      // The useAuth hook will automatically update and trigger the redirect
-      
       toast({
         title: "Login successful",
         description: "Welcome back!",
       });
       
-      // Small delay to ensure state updates before redirect
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      }, 100);
+      // Update user data in cache immediately
+      queryClient.setQueryData(["/api/user"], data);
+      
+      // Force immediate invalidation to trigger auth state update
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       
       // Validate tenant access for specific redirect parameters
       const userTenant = data.tenantId;

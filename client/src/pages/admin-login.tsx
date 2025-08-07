@@ -37,9 +37,6 @@ export default function AdminLogin() {
       return await res.json();
     },
     onSuccess: (userData) => {
-      // Update user data in cache
-      queryClient.setQueryData(["/api/user"], userData);
-      
       // Check if user has admin role
       if (userData && ['admin', 'super_admin'].includes(userData.role)) {
         toast({
@@ -47,10 +44,11 @@ export default function AdminLogin() {
           description: "Welcome to Admin Panel!",
         });
         
-        // Invalidate queries to refresh auth state
-        setTimeout(() => {
-          queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-        }, 100);
+        // Update user data in cache immediately
+        queryClient.setQueryData(["/api/user"], userData);
+        
+        // Force immediate invalidation to trigger auth state update
+        queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       } else {
         toast({
           title: "Access Denied",
@@ -152,10 +150,10 @@ export default function AdminLogin() {
 
                 <Button
                   type="submit"
-                  disabled={isLoggingIn}
+                  disabled={loginMutation.isPending}
                   className="w-full bg-[#4D9DE0] hover:bg-[#4a94d1] text-white font-medium py-2.5 rounded-[5px] transition-all duration-200 uppercase tracking-[0.5px]"
                 >
-                  {isLoggingIn ? (
+                  {loginMutation.isPending ? (
                     <div className="flex items-center justify-center">
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
                       AUTHENTICATING...
