@@ -302,4 +302,4 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`🛑 Production server shutting down (${signal})`);
     process.exit(0);
   });
-});
+});// Production deployment fix 07/08/2025 20:46:25,34 
