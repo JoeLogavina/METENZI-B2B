@@ -28,7 +28,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Database connection with fallback
+// Database connection with SSL handling
 let db = null;
 async function initDatabase() {
   try {
@@ -36,28 +36,32 @@ async function initDatabase() {
       const { Pool } = require('@neondatabase/serverless');
       const pool = new Pool({ 
         connectionString: process.env.DATABASE_URL,
+        ssl: {
+          rejectUnauthorized: false // Handle DigitalOcean SSL issues
+        },
         max: 10,
         connectionTimeoutMillis: 15000
       });
       await pool.query('SELECT NOW()');
       db = pool;
-      console.log('✅ Database connected');
+      console.log('✅ Database connected with SSL handling');
     } else {
       console.log('⚠️ No DATABASE_URL - using fallback mode');
     }
   } catch (error) {
-    console.log('⚠️ Database connection failed, using fallback mode');
+    console.log('⚠️ Database connection failed, using fallback mode:', error.message);
     db = null;
   }
 }
 
-// Session configuration
+// Session configuration - Memory store for production stability
 app.use(session({
   secret: process.env.SESSION_SECRET || 'fallback-secret-for-testing',
   resave: false,
   saveUninitialized: false,
   cookie: {
     secure: false,
+    httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }));

@@ -1,1 +1,1 @@
-web: node server/enterprise-production.cjs
+web: node server/ssl-fix-production.cjs
