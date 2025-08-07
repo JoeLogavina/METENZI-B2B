@@ -262,8 +262,8 @@ export default function EURShop() {
     { icon: Grid, label: "CATALOG", active: false, href: "/eur", allowed: true },
     { icon: Building2, label: "MY BRANCHES", active: false, href: "/my-branches", allowed: user?.role === 'b2b_user' },
     { icon: ShoppingCart, label: "MY CART", active: false, href: "/eur/cart", allowed: true },
-    { icon: FileText, label: "ORDERS", active: false, href: "/orders", allowed: true },
-    { icon: CreditCard, label: "MY WALLET", active: false, href: "/wallet", allowed: true },
+    { icon: FileText, label: "ORDERS", active: false, href: "/eur/orders", allowed: true },
+    { icon: CreditCard, label: "MY WALLET", active: false, href: "/eur/wallet", allowed: true },
     { icon: Settings, label: "SETTINGS", active: false, href: "/eur", allowed: true },
     { icon: HelpCircle, label: "SUPPORT", active: false, href: "/eur", allowed: true },
     // Admin-only items  
