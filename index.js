@@ -22,6 +22,7 @@ const PORT = process.env.PORT || 5000;
 console.log('🚀 Production Session Fix Server Starting...');
 console.log(`📍 Target Port: ${PORT}`);
 console.log(`🔧 Environment: ${process.env.NODE_ENV || 'production'}`);
+console.log('🔧 Build Script Fix Applied - MemoryStore Warning Elimination');
 
 // Create uploads directory
 const uploadsDir = path.join(__dirname, 'uploads', 'products');
