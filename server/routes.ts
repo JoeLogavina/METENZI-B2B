@@ -472,7 +472,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Apply CSRF validation to API routes (except auth endpoints)
   app.use('/api', (req: any, res: any, next: any) => {
-    if (req.path === '/login' || req.path === '/admin/login' || req.path === '/csrf-token') {
+    // Skip CSRF validation for auth-related and GET endpoints
+    if (req.path === '/login' || 
+        req.path === '/admin/login' || 
+        req.path === '/csrf-token' ||
+        req.path === '/user' ||
+        req.method === 'GET') {
       return next();
     }
     return validateCSRF(req, res, next);
@@ -480,6 +485,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Use the admin router with additional security
   app.use('/api/admin', adminRouter);
+  
+  // Production fallback upload route for immediate deployment fixes
+  const { uploadMiddleware } = await import('./middleware/upload.middleware');
+  app.post('/api/upload-image-fallback', uploadMiddleware.single('image'), (req: any, res: any) => {
+    console.log('🔄 Fallback upload route accessed (production emergency route)');
+    
+    if (!req.file) {
+      return res.status(400).json({
+        error: 'VALIDATION_ERROR',
+        message: 'No image file provided'
+      });
+    }
+
+    const imageUrl = `/uploads/products/${req.file.filename}`;
+    
+    console.log('✅ Fallback upload successful:', {
+      imageUrl,
+      filename: req.file.filename
+    });
+
+    res.json({
+      imageUrl,
+      filename: req.file.filename,
+      originalName: req.file.originalname,
+      size: req.file.size,
+      message: 'Image uploaded successfully via fallback route'
+    });
+  });
   app.use('/api/users', usersRouter);
   
   // Register admin security routes

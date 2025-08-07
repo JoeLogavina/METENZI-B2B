@@ -43,10 +43,19 @@ router.get('/dashboard', async (req, res) => {
 
 // General image upload endpoint for new products
 
-// Simple upload route that doesn't require a product ID (for new products)
+// Production-ready upload route that works with minimal authentication
 router.post('/upload-image', uploadMiddleware.single('image'), (req, res) => {
   try {
+    console.log('📁 Admin upload-image route accessed:', {
+      method: req.method,
+      hasFile: !!req.file,
+      isAuthenticated: req.isAuthenticated && req.isAuthenticated(),
+      user: req.user?.username || 'not-authenticated',
+      userAgent: req.get('User-Agent')
+    });
+
     if (!req.file) {
+      console.error('❌ No file provided to upload-image route');
       return res.status(400).json({
         error: 'VALIDATION_ERROR',
         message: 'No image file provided'
@@ -56,6 +65,12 @@ router.post('/upload-image', uploadMiddleware.single('image'), (req, res) => {
     // Generate the URL path for the uploaded image
     const imageUrl = `/uploads/products/${req.file.filename}`;
     
+    console.log('✅ Image uploaded successfully:', {
+      imageUrl,
+      filename: req.file.filename,
+      size: req.file.size
+    });
+
     res.json({
       imageUrl,
       filename: req.file.filename,
@@ -64,7 +79,7 @@ router.post('/upload-image', uploadMiddleware.single('image'), (req, res) => {
       message: 'Image uploaded successfully'
     });
   } catch (error) {
-    console.error('Upload route error:', error);
+    console.error('❌ Upload route error:', error);
     res.status(500).json({
       error: 'INTERNAL_SERVER_ERROR',
       message: 'Failed to upload image'
