@@ -144,8 +144,17 @@ passport.use(new LocalStrategy(
         };
         
         const user = demoUsers[username];
-        if (user && user.password === password) {
-          return done(null, user);
+        console.log('🔍 Login attempt:', { username, password: '***', userFound: !!user });
+        if (user) {
+          console.log('🔍 User found:', { username: user.username, expectedPassword: user.password });
+          if (user.password === password) {
+            console.log('✅ Password match for:', username);
+            return done(null, user);
+          } else {
+            console.log('❌ Password mismatch for:', username);
+          }
+        } else {
+          console.log('❌ User not found:', username);
         }
         return done(null, false);
       }
