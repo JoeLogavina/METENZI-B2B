@@ -14,7 +14,7 @@ console.log(`⚙️  Node version: ${process.version}`);
 // File preparation
 const distDir = path.join(__dirname, 'dist');
 const targetFile = path.join(distDir, 'index.cjs');
-const sourceFile = path.join(__dirname, 'index.js');
+const sourceFile = path.join(__dirname, 'index.cjs');
 
 // Always ensure dist directory and file exist
 if (!fs.existsSync(distDir)) {
@@ -24,11 +24,11 @@ if (!fs.existsSync(distDir)) {
 
 if (!fs.existsSync(targetFile)) {
   if (fs.existsSync(sourceFile)) {
-    console.log('📋 Copying index.js to dist/index.cjs...');
+    console.log('📋 Copying index.cjs to dist/index.cjs...');
     fs.copyFileSync(sourceFile, targetFile);
     console.log('✅ dist/index.cjs created successfully');
   } else {
-    console.error('❌ Error: index.js source file not found');
+    console.error('❌ Error: index.cjs source file not found');
     process.exit(1);
   }
 } else {

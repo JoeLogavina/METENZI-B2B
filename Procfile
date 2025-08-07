@@ -1,1 +1,1 @@
-web: node server/production-server.cjs
+web: node index.cjs
