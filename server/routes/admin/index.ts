@@ -90,8 +90,8 @@ router.post('/upload-image', uploadMiddleware.single('image'), (req, res) => {
 // License counts endpoint - Required for admin panel
 router.get('/license-counts', async (req, res) => {
   try {
-    const storage = await import('../../storage');
-    const licenseCounts = await storage.storageSystem.getLicenseCounts();
+    const { storageSystem } = await import('../../storage');
+    const licenseCounts = await storageSystem.getLicenseCounts();
     
     res.json({
       success: true,
