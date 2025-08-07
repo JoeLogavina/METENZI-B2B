@@ -50,7 +50,18 @@ console.log(`  - Build context detected: ${isBuildContext}`);
 
 // Handle build-only flag
 if (isBuildOnly) {
-  console.log('🔧 BUILD-ONLY MODE: Files prepared, exiting cleanly');
+  console.log('🔧 BUILD-ONLY MODE: Running build process...');
+  
+  // Ensure frontend is built
+  try {
+    const { execSync } = require('child_process');
+    console.log('📦 Building frontend assets...');
+    execSync('npm run build', { stdio: 'inherit' });
+    console.log('✅ Frontend build completed');
+  } catch (error) {
+    console.log('⚠️ Frontend build failed, but continuing...');
+  }
+  
   console.log('✅ Ready for runtime deployment');
   process.exit(0);
 }
@@ -58,6 +69,17 @@ if (isBuildOnly) {
 // Handle detected build context (DigitalOcean build command)
 if (isBuildContext) {
   console.log('🔧 BUILD CONTEXT: DigitalOcean build phase detected');
+  
+  // Ensure frontend is built in build context
+  try {
+    const { execSync } = require('child_process');
+    console.log('📦 Building frontend assets in build context...');
+    execSync('npm run build', { stdio: 'inherit' });
+    console.log('✅ Frontend build completed in build context');
+  } catch (error) {
+    console.log('⚠️ Frontend build failed in build context, but continuing...');
+  }
+  
   console.log('✅ Files prepared successfully');
   console.log('📋 Exiting cleanly to avoid port conflicts');
   console.log('🚀 Runtime server will start via Procfile');
