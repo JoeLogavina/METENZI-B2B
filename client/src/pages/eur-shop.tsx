@@ -54,20 +54,25 @@ export default function EURShop() {
       
       // B2B users can access EUR shop - no redirect needed
       
-      // Allow admin users to access any tenant shop, otherwise enforce tenant restriction
-      if (!isAdmin && user.tenantId !== 'eur') {
+      // Allow admin users and B2B users to access EUR shop
+      // B2B users should be able to access EUR shop regardless of their tenantId
+      if (!isAdmin && !isB2BUser) {
         toast({
-          title: "Access Denied",
-          description: "You don't have access to the EUR shop. Redirecting to your tenant.",
+          title: "Access Denied", 
+          description: "You need B2B user access to use the EUR shop.",
           variant: "destructive",
         });
-        
-        if (user.tenantId === 'km') {
-          setLocation('/km');
-        } else {
-          setLocation('/auth');
-        }
+        setLocation('/auth');
         return;
+      }
+      
+      // For non-admin users, allow access but show a notification if they're in wrong tenant
+      if (!isAdmin && user.tenantId === 'km') {
+        toast({
+          title: "Cross-Tenant Access",
+          description: "You're accessing EUR shop from KM tenant. Some features may be limited.",
+          variant: "default",
+        });
       }
     }
   }, [user, isLoading, isAuthenticated, setLocation, toast]);
