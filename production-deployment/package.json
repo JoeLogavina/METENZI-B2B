@@ -5,6 +5,7 @@
   "main": "production-session-fix.cjs",
   "scripts": {
     "start": "node production-session-fix.cjs",
+    "build": "echo 'Build complete - production server ready'",
     "production": "NODE_ENV=production node production-session-fix.cjs"
   },
   "dependencies": {
