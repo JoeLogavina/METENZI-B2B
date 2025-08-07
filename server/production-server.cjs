@@ -205,198 +205,7 @@ app.get('/api/csrf-token', (req, res) => {
   res.json({ token: 'csrf-token-placeholder' });
 });
 
-// Missing API endpoints that frontend needs
 
-// Admin Products endpoint
-app.get('/api/admin/products', requireAdmin, async (req, res) => {
-  try {
-    if (!db) {
-      // Fallback demo products
-      return res.json([
-        {
-          id: 'prod-1',
-          sku: 'SKU-12345',
-          name: 'Microsoft Office 365 Business',
-          description: 'Complete office suite for business',
-          price: '99.99',
-          b2bPrice: '89.99',
-          category: 'Productivity',
-          platform: 'Windows',
-          isActive: true,
-          stockCount: 100,
-          licenseKeys: 50
-        },
-        {
-          id: 'prod-2',
-          sku: 'SKU-12346',
-          name: 'Adobe Creative Cloud',
-          description: 'Professional creative software suite',
-          price: '149.99',
-          b2bPrice: '139.99',
-          category: 'Design',
-          platform: 'Cross-platform',
-          isActive: true,
-          stockCount: 50,
-          licenseKeys: 25
-        },
-        {
-          id: 'prod-3',
-          sku: 'SKU-12347',
-          name: 'Antivirus Pro Security',
-          description: 'Enterprise-grade security solution',
-          price: '49.99',
-          b2bPrice: '44.99',
-          category: 'Security',
-          platform: 'Cross-platform',
-          isActive: true,
-          stockCount: 100,
-          licenseKeys: 75
-        }
-      ]);
-    }
-
-    const result = await db.query(`
-      SELECT p.*, 
-             COALESCE(s.quantity, 0) as stock_count,
-             COALESCE(lk.key_count, 0) as license_keys
-      FROM products p
-      LEFT JOIN stock s ON p.id = s.product_id
-      LEFT JOIN (SELECT product_id, COUNT(*) as key_count FROM license_keys GROUP BY product_id) lk ON p.id = lk.product_id
-      ORDER BY p.created_at DESC
-    `);
-    res.json(result.rows);
-  } catch (error) {
-    console.error('Admin products error:', error);
-    res.status(500).json({ error: 'Failed to fetch products' });
-  }
-});
-
-// License Keys endpoints
-app.get('/api/admin/license-keys/all', requireAdmin, async (req, res) => {
-  try {
-    if (!db) {
-      return res.json([
-        {
-          id: 'key-1',
-          productId: 'prod-1',
-          productName: 'Microsoft Office 365 Business',
-          keyValue: 'XXXXX-XXXXX-XXXXX-XXXXX',
-          status: 'available',
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: 'key-2',
-          productId: 'prod-2',
-          productName: 'Adobe Creative Cloud',
-          keyValue: 'YYYYY-YYYYY-YYYYY-YYYYY',
-          status: 'used',
-          createdAt: new Date().toISOString()
-        }
-      ]);
-    }
-
-    const result = await db.query(`
-      SELECT lk.*, p.name as product_name
-      FROM license_keys lk
-      JOIN products p ON lk.product_id = p.id
-      ORDER BY lk.created_at DESC
-    `);
-    res.json(result.rows);
-  } catch (error) {
-    console.error('License keys error:', error);
-    res.status(500).json({ error: 'Failed to fetch license keys' });
-  }
-});
-
-// Category hierarchy endpoint
-app.get('/api/categories/hierarchy', async (req, res) => {
-  try {
-    if (!db) {
-      return res.json([
-        {
-          id: 'cat-1',
-          name: 'Productivity',
-          level: 1,
-          parentId: null,
-          children: []
-        },
-        {
-          id: 'cat-2',
-          name: 'Design',
-          level: 1,
-          parentId: null,
-          children: []
-        },
-        {
-          id: 'cat-3',
-          name: 'Security',
-          level: 1,
-          parentId: null,
-          children: []
-        }
-      ]);
-    }
-
-    const result = await db.query(`
-      WITH RECURSIVE category_tree AS (
-        SELECT id, name, parent_id, 1 as level, ARRAY[id] as path
-        FROM categories 
-        WHERE parent_id IS NULL
-        
-        UNION ALL
-        
-        SELECT c.id, c.name, c.parent_id, ct.level + 1, ct.path || c.id
-        FROM categories c
-        JOIN category_tree ct ON c.parent_id = ct.id
-      )
-      SELECT * FROM category_tree ORDER BY level, name
-    `);
-    res.json(result.rows);
-  } catch (error) {
-    console.error('Category hierarchy error:', error);
-    res.status(500).json({ error: 'Failed to fetch category hierarchy' });
-  }
-});
-
-// Admin Wallets endpoint
-app.get('/api/admin/wallets', requireAdmin, async (req, res) => {
-  try {
-    if (!db) {
-      return res.json([
-        {
-          id: 'wallet-1',
-          userId: 'b2b-1',
-          username: 'b2bkm',
-          balance: 5000.00,
-          creditLimit: 10000.00,
-          currency: 'EUR',
-          lastTransaction: new Date().toISOString()
-        },
-        {
-          id: 'wallet-2',
-          userId: 'branch-1',
-          username: 'munich_branch',
-          balance: 2500.00,
-          creditLimit: 5000.00,
-          currency: 'EUR',
-          lastTransaction: new Date().toISOString()
-        }
-      ]);
-    }
-
-    const result = await db.query(`
-      SELECT w.*, u.username,
-             (SELECT created_at FROM wallet_transactions WHERE wallet_id = w.id ORDER BY created_at DESC LIMIT 1) as last_transaction
-      FROM wallets w
-      JOIN users u ON w.user_id = u.id
-      ORDER BY w.balance DESC
-    `);
-    res.json(result.rows);
-  } catch (error) {
-    console.error('Admin wallets error:', error);
-    res.status(500).json({ error: 'Failed to fetch wallets' });
-  }
-});
 
 // Health check endpoints
 app.get('/health', (req, res) => {
@@ -741,6 +550,198 @@ app.get('/api/categories', async (req, res) => {
   } catch (error) {
     console.error('Categories API error:', error);
     res.status(500).json({ error: 'Failed to fetch categories' });
+  }
+});
+
+// Missing Admin API endpoints that frontend needs
+
+// Admin Products endpoint
+app.get('/api/admin/products', requireAdmin, async (req, res) => {
+  try {
+    if (!db) {
+      return res.json([
+        {
+          id: 'prod-1',
+          sku: 'SKU-12345',
+          name: 'Microsoft Office 365 Business',
+          description: 'Complete office suite for business',
+          price: '99.99',
+          b2bPrice: '89.99',
+          category: 'Productivity',
+          platform: 'Windows',
+          isActive: true,
+          stockCount: 100,
+          licenseKeys: 50
+        },
+        {
+          id: 'prod-2',
+          sku: 'SKU-12346',
+          name: 'Adobe Creative Cloud',
+          description: 'Professional creative software suite',
+          price: '149.99',
+          b2bPrice: '139.99',
+          category: 'Design',
+          platform: 'Cross-platform',
+          isActive: true,
+          stockCount: 50,
+          licenseKeys: 25
+        },
+        {
+          id: 'prod-3',
+          sku: 'SKU-12347',
+          name: 'Antivirus Pro Security',
+          description: 'Enterprise-grade security solution',
+          price: '49.99',
+          b2bPrice: '44.99',
+          category: 'Security',
+          platform: 'Cross-platform',
+          isActive: true,
+          stockCount: 100,
+          licenseKeys: 75
+        }
+      ]);
+    }
+
+    const result = await db.query(`
+      SELECT p.*, 
+             COALESCE(s.quantity, 0) as stock_count,
+             COALESCE(lk.key_count, 0) as license_keys
+      FROM products p
+      LEFT JOIN stock s ON p.id = s.product_id
+      LEFT JOIN (SELECT product_id, COUNT(*) as key_count FROM license_keys GROUP BY product_id) lk ON p.id = lk.product_id
+      ORDER BY p.created_at DESC
+    `);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Admin products error:', error);
+    res.status(500).json({ error: 'Failed to fetch products' });
+  }
+});
+
+// License Keys endpoints
+app.get('/api/admin/license-keys/all', requireAdmin, async (req, res) => {
+  try {
+    if (!db) {
+      return res.json([
+        {
+          id: 'key-1',
+          productId: 'prod-1',
+          productName: 'Microsoft Office 365 Business',
+          keyValue: 'XXXXX-XXXXX-XXXXX-XXXXX',
+          status: 'available',
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: 'key-2',
+          productId: 'prod-2',
+          productName: 'Adobe Creative Cloud',
+          keyValue: 'YYYYY-YYYYY-YYYYY-YYYYY',
+          status: 'used',
+          createdAt: new Date().toISOString()
+        }
+      ]);
+    }
+
+    const result = await db.query(`
+      SELECT lk.*, p.name as product_name
+      FROM license_keys lk
+      JOIN products p ON lk.product_id = p.id
+      ORDER BY lk.created_at DESC
+    `);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('License keys error:', error);
+    res.status(500).json({ error: 'Failed to fetch license keys' });
+  }
+});
+
+// Category hierarchy endpoint
+app.get('/api/categories/hierarchy', async (req, res) => {
+  try {
+    if (!db) {
+      return res.json([
+        {
+          id: 'cat-1',
+          name: 'Productivity',
+          level: 1,
+          parentId: null,
+          children: []
+        },
+        {
+          id: 'cat-2',
+          name: 'Design',
+          level: 1,
+          parentId: null,
+          children: []
+        },
+        {
+          id: 'cat-3',
+          name: 'Security',
+          level: 1,
+          parentId: null,
+          children: []
+        }
+      ]);
+    }
+
+    const result = await db.query(`
+      WITH RECURSIVE category_tree AS (
+        SELECT id, name, parent_id, 1 as level, ARRAY[id] as path
+        FROM categories 
+        WHERE parent_id IS NULL
+        
+        UNION ALL
+        
+        SELECT c.id, c.name, c.parent_id, ct.level + 1, ct.path || c.id
+        FROM categories c
+        JOIN category_tree ct ON c.parent_id = ct.id
+      )
+      SELECT * FROM category_tree ORDER BY level, name
+    `);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Category hierarchy error:', error);
+    res.status(500).json({ error: 'Failed to fetch category hierarchy' });
+  }
+});
+
+// Admin Wallets endpoint
+app.get('/api/admin/wallets', requireAdmin, async (req, res) => {
+  try {
+    if (!db) {
+      return res.json([
+        {
+          id: 'wallet-1',
+          userId: 'b2b-1',
+          username: 'b2bkm',
+          balance: 5000.00,
+          creditLimit: 10000.00,
+          currency: 'EUR',
+          lastTransaction: new Date().toISOString()
+        },
+        {
+          id: 'wallet-2',
+          userId: 'branch-1',
+          username: 'munich_branch',
+          balance: 2500.00,
+          creditLimit: 5000.00,
+          currency: 'EUR',
+          lastTransaction: new Date().toISOString()
+        }
+      ]);
+    }
+
+    const result = await db.query(`
+      SELECT w.*, u.username,
+             (SELECT created_at FROM wallet_transactions WHERE wallet_id = w.id ORDER BY created_at DESC LIMIT 1) as last_transaction
+      FROM wallets w
+      JOIN users u ON w.user_id = u.id
+      ORDER BY w.balance DESC
+    `);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Admin wallets error:', error);
+    res.status(500).json({ error: 'Failed to fetch wallets' });
   }
 });
 
