@@ -1,32 +1,38 @@
-// Alternative production server entry point
-// This can be used instead of npm start by setting run command to: node server.js
+// Production server entry point for DigitalOcean deployment
+// This file ensures CommonJS module loading regardless of package.json settings
 
-const { spawn } = require('child_process');
+const path = require('path');
+const fs = require('fs');
 
-console.log('B2B License Platform - Alternative Production Entry');
+console.log('🔧 Production server entry point - Loading main server...');
 
-// Set production environment
-process.env.NODE_ENV = 'production';
-const port = process.env.PORT || 8080;
+// Check for main server file in multiple locations
+const possibleServerFiles = [
+  './index.cjs',
+  './dist/index.cjs',
+  './index.js',
+  './server/index.js'
+];
 
-console.log(`Starting on port ${port}`);
+let serverFile = null;
+for (const file of possibleServerFiles) {
+  if (fs.existsSync(file)) {
+    console.log(`✅ Found server file: ${file}`);
+    serverFile = file;
+    break;
+  }
+}
 
-// Start the TypeScript server
-const server = spawn('npx', ['tsx', 'server/index.ts'], {
-  stdio: 'inherit',
-  env: { ...process.env, PORT: port }
-});
-
-server.on('error', (error) => {
-  console.error('Server error:', error);
+if (!serverFile) {
+  console.error('❌ No server file found in:', possibleServerFiles);
   process.exit(1);
-});
+}
 
-server.on('close', (code) => {
-  console.log(`Server exited with code ${code}`);
-  process.exit(code || 0);
-});
-
-// Graceful shutdown
-process.on('SIGTERM', () => server.kill('SIGTERM'));
-process.on('SIGINT', () => server.kill('SIGINT'));
+// Load the main server
+try {
+  console.log(`🚀 Loading server from: ${serverFile}`);
+  require(serverFile);
+} catch (error) {
+  console.error('❌ Failed to load server:', error);
+  process.exit(1);
+}

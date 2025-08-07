@@ -1,19 +1,14 @@
 // Full Production CommonJS server for DigitalOcean deployment with complete API functionality
-import express from 'express';
-import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-import session from 'express-session';
-import connectPg from 'connect-pg-simple';
-import passport from 'passport';
-import { Strategy as LocalStrategy } from 'passport-local';
-import bcrypt from 'bcrypt';
-import { Pool } from '@neondatabase/serverless';
-import compression from 'compression';
+const express = require('express');
+const path = require('path');
+const fs = require('fs');
+const session = require('express-session');
+const connectPg = require('connect-pg-simple');
+const passport = require('passport');
+const LocalStrategy = require('passport-local').Strategy;
+const bcrypt = require('bcrypt');
+const { Pool } = require('@neondatabase/serverless');
+const compression = require('compression');
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '8080', 10);
@@ -234,9 +229,10 @@ if (!fs.existsSync(publicDir)) {
   
   // Try alternative paths
   const altPaths = [
-    path.join(__dirname, 'dist', 'public'),
-    path.join(__dirname, '..', '..', 'dist', 'public'),
-    path.join(process.cwd(), 'dist', 'public')
+    path.join(__dirname, 'public'),
+    path.join(__dirname, '..', 'public'),
+    path.join(process.cwd(), 'dist', 'public'),
+    path.join(process.cwd(), 'public')
   ];
   
   for (const altPath of altPaths) {
@@ -533,9 +529,11 @@ app.get('*', (req, res) => {
   
   // Find index.html in various possible locations
   const possiblePaths = [
+    path.join(__dirname, 'public', 'index.html'),
     path.join(__dirname, '..', 'dist', 'public', 'index.html'),
-    path.join(__dirname, 'dist', 'public', 'index.html'),
-    path.join(process.cwd(), 'dist', 'public', 'index.html')
+    path.join(__dirname, '..', 'public', 'index.html'),
+    path.join(process.cwd(), 'dist', 'public', 'index.html'),
+    path.join(process.cwd(), 'public', 'index.html')
   ];
   
   for (const indexPath of possiblePaths) {
@@ -584,4 +582,4 @@ process.on('SIGINT', () => {
   });
 });
 
-export default app;
+module.exports = app;
