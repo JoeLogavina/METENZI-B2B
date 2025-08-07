@@ -204,17 +204,18 @@ export class ImageStorageService {
    * Get all images for a product
    */
   async getProductImages(productId: string, includeVariants: boolean = false): Promise<ProductImage[]> {
-    let query = db.select().from(productImages)
-      .where(eq(productImages.productId, productId));
-
     if (!includeVariants) {
-      query = query.where(and(
-        eq(productImages.productId, productId),
-        eq(productImages.sizeType, 'original')
-      ));
+      return await db.select().from(productImages)
+        .where(and(
+          eq(productImages.productId, productId),
+          eq(productImages.sizeType, 'original')
+        ))
+        .orderBy(desc(productImages.isMain), asc(productImages.sortOrder));
     }
 
-    return await query.orderBy(desc(productImages.isMain), asc(productImages.sortOrder));
+    return await db.select().from(productImages)
+      .where(eq(productImages.productId, productId))
+      .orderBy(desc(productImages.isMain), asc(productImages.sortOrder));
   }
 
   /**
