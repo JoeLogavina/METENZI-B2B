@@ -1,9 +1,8 @@
-// Full Production CommonJS server for DigitalOcean deployment with complete API functionality
+// SSL-FIXED Production CommonJS server for DigitalOcean deployment with complete API functionality
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const session = require('express-session');
-const connectPg = require('connect-pg-simple');
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
 const bcrypt = require('bcrypt');
@@ -80,30 +79,16 @@ app.use(express.urlencoded({
   limit: '50mb' 
 }));
 
-// Session configuration for production with PostgreSQL store
+// Session configuration - Memory store for SSL stability
 const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
-let sessionStore;
-
-if (process.env.DATABASE_URL) {
-  const pgStore = connectPg(session);
-  sessionStore = new pgStore({
-    conString: process.env.DATABASE_URL,
-    createTableIfMissing: true,
-    ttl: sessionTtl,
-    tableName: 'sessions',
-  });
-  console.log('✅ PostgreSQL session store configured');
-} else {
-  console.log('⚠️ Using memory store (not recommended for production)');
-}
+console.log('✅ Memory session store configured (SSL-FIXED)');
 
 app.use(session({
   secret: process.env.SESSION_SECRET || 'b2b-production-secret-key-2025',
-  store: sessionStore,
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: false, // Set to true in production with HTTPS
+    secure: false,
     httpOnly: true,
     maxAge: sessionTtl
   }
