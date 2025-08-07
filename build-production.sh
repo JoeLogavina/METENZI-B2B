@@ -1,40 +1,21 @@
 #!/bin/bash
 
-# Production Build Script for DigitalOcean
-# Handles missing dependencies that get pruned during deployment
+# DigitalOcean Production Build Script
+echo "🚀 Starting DigitalOcean Production Build..."
 
-echo "🔧 Starting production build process..."
+# Build frontend
+echo "📦 Building frontend..."
+vite build
 
-# Check if critical build dependencies are available
-MISSING_DEPS=()
+# Build ES Module server (fallback)
+echo "🔧 Building ES Module server..."
+esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
 
-if ! npm list @vitejs/plugin-react >/dev/null 2>&1; then
-    MISSING_DEPS+=("@vitejs/plugin-react")
-fi
+# Build CommonJS server (preferred for DigitalOcean)
+echo "🔧 Building CommonJS server..."
+esbuild server/index.ts --platform=node --packages=external --bundle --format=cjs --outfile=dist/index.cjs
 
-if ! npm list vite >/dev/null 2>&1; then
-    MISSING_DEPS+=("vite")
-fi
+echo "✅ Build complete - both ES Module and CommonJS servers ready"
+echo "✅ DigitalOcean will use CommonJS server (preferred)"
 
-if ! npm list esbuild >/dev/null 2>&1; then
-    MISSING_DEPS+=("esbuild")
-fi
-
-# Install missing dependencies if any
-if [ ${#MISSING_DEPS[@]} -gt 0 ]; then
-    echo "🔧 Installing missing build dependencies: ${MISSING_DEPS[*]}"
-    npm install --no-save "${MISSING_DEPS[@]}"
-fi
-
-# Run the build
-echo "🔧 Running Vite build..."
-npx vite build
-
-echo "🔧 Running esbuild for server..."
-npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
-
-# Create package.json for ES modules
-echo "🔧 Creating dist/package.json for ES modules..."
-echo '{"type":"module"}' > dist/package.json
-
-echo "✅ Production build completed successfully!"
+ls -la dist/index.*
