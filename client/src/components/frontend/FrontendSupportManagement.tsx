@@ -31,7 +31,11 @@ import {
   Loader2,
   Users,
   TrendingUp,
-  MessageCircle
+  MessageCircle,
+  X,
+  User,
+  Calendar,
+  Eye
 } from 'lucide-react';
 
 // Form schemas
@@ -92,6 +96,233 @@ const PriorityBadge = ({ priority }: { priority: string }) => {
   );
 };
 
+// Ticket Detail Dialog Component
+const TicketDetailDialog = ({ ticket, onClose }: { ticket: any; onClose: () => void }) => {
+  const [responseMessage, setResponseMessage] = useState("");
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Ticket responses query
+  const { data: ticketResponses, isLoading: responsesLoading } = useQuery({
+    queryKey: [`/api/support/tickets/${ticket.id}/responses`],
+    retry: false
+  });
+
+  // Submit response mutation
+  const submitResponseMutation = useMutation({
+    mutationFn: async (data: { message: string }) => {
+      const response = await fetch(`/api/support/tickets/${ticket.id}/responses`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify(data),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to send response: ${response.status} - ${errorText}`);
+      }
+      
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        return response.json();
+      } else {
+        return { success: true };
+      }
+    },
+    onSuccess: (data) => {
+      console.log('Response sent successfully:', data);
+      toast({
+        title: "Success",
+        description: "Response sent successfully",
+      });
+      setResponseMessage("");
+      // Force refresh the responses
+      queryClient.invalidateQueries({ queryKey: [`/api/support/tickets/${ticket.id}/responses`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/support/tickets'] });
+      // Also refetch immediately
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: [`/api/support/tickets/${ticket.id}/responses`] });
+      }, 100);
+    },
+    onError: (error: any) => {
+      console.error('Failed to send response:', error);
+      toast({
+        title: "Error", 
+        description: error.message || "Failed to send response",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleSubmitResponse = () => {
+    if (!responseMessage.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a message",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    submitResponseMutation.mutate({
+      message: responseMessage.trim()
+    });
+  };
+
+  return (
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" aria-describedby="ticket-dialog-description">
+        <DialogHeader>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="text-[#6E6F71]">
+              Ticket #{ticket.ticketNumber}
+            </DialogTitle>
+            <Button variant="ghost" size="sm" onClick={onClose}>
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        </DialogHeader>
+        <div id="ticket-dialog-description" className="sr-only">
+          View and manage customer support ticket conversation
+        </div>
+
+        {/* Ticket Details */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+          <div>
+            <h3 className="font-semibold text-[#6E6F71]">{ticket.title}</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{ticket.description}</p>
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center">
+              <span className="text-sm text-gray-500 mr-2">Status:</span>
+              <StatusBadge status={ticket.status} />
+            </div>
+            <div className="flex items-center">
+              <span className="text-sm text-gray-500 mr-2">Priority:</span>
+              <PriorityBadge priority={ticket.priority} />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+              <Calendar className="w-4 h-4 mr-2" />
+              Created: {new Date(ticket.createdAt).toLocaleDateString()}
+            </div>
+            <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+              <Clock className="w-4 h-4 mr-2" />
+              Category: {ticket.category}
+            </div>
+          </div>
+        </div>
+
+        {/* Conversation */}
+        <div className="mt-6">
+          <h3 className="text-lg font-semibold text-[#6E6F71] mb-4 flex items-center">
+            <MessageSquare className="w-5 h-5 mr-2" />
+            Conversation
+          </h3>
+          
+          <div className="space-y-4 max-h-96 overflow-y-auto border rounded-lg p-4 bg-gray-50 dark:bg-gray-800">
+            {/* Original Request */}
+            <div className="flex space-x-3">
+              <div className="w-8 h-8 bg-[#FFB20F] rounded-full flex items-center justify-center">
+                <User className="w-4 h-4 text-white" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center space-x-2 mb-1">
+                  <span className="font-medium text-[#6E6F71]">{ticket.createdBy}</span>
+                  <span className="text-xs text-gray-500">{new Date(ticket.createdAt).toLocaleString()}</span>
+                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Original Request</span>
+                </div>
+                <div className="text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 p-3 rounded-lg">
+                  {ticket.description}
+                </div>
+              </div>
+            </div>
+
+            {/* Responses */}
+            {responsesLoading ? (
+              <div className="flex justify-center py-4">
+                <Loader2 className="w-6 h-6 animate-spin text-[#6E6F71]" />
+              </div>
+            ) : (
+              <>
+                {ticketResponses?.data?.length > 0 ? (
+                  ticketResponses.data.map((response: any) => (
+                    <div key={response.id} className="flex space-x-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        response.isInternal ? 'bg-red-500' : 'bg-[#6E6F71]'
+                      }`}>
+                        <User className="w-4 h-4 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <span className="font-medium text-[#6E6F71]">{response.respondedBy}</span>
+                          <span className="text-xs text-gray-500">{new Date(response.createdAt).toLocaleString()}</span>
+                          {response.isInternal && (
+                            <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">Internal Note</span>
+                          )}
+                        </div>
+                        <div className="text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 p-3 rounded-lg">
+                          {response.message}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-4 text-gray-500">
+                    No responses yet
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Send Response */}
+        {ticket.status !== 'closed' && (
+          <div className="mt-6">
+            <h4 className="text-md font-semibold text-[#6E6F71] mb-3 flex items-center">
+              <Send className="w-4 h-4 mr-2" />
+              Send Response
+            </h4>
+            <div className="space-y-3">
+              <Textarea
+                placeholder="Type your response here..."
+                value={responseMessage}
+                onChange={(e) => setResponseMessage(e.target.value)}
+                className="border-[#6E6F71] min-h-[100px]"
+              />
+              <div className="flex justify-end space-x-2">
+                <Button
+                  onClick={handleSubmitResponse}
+                  disabled={submitResponseMutation.isPending || !responseMessage.trim()}
+                  className="bg-[#FFB20F] hover:bg-[#e5a00e] text-white"
+                >
+                  {submitResponseMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4 mr-2" />
+                      Send Response
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 export function FrontendSupportManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -99,6 +330,8 @@ export function FrontendSupportManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
+  const [selectedTicket, setSelectedTicket] = useState<any>(null);
+  const [showTicketDetail, setShowTicketDetail] = useState(false);
 
   // Statistics query  
   const { data: stats, isLoading: statsLoading } = useQuery({
@@ -510,11 +743,14 @@ export function FrontendSupportManagement() {
                 <div className="space-y-4">
                   {filteredTickets && filteredTickets.length > 0 ? (
                     filteredTickets.map((ticket: any) => (
-                      <Card key={ticket.id} className="border-l-4 border-l-[#FFB20F]">
+                      <Card key={ticket.id} className="border-l-4 border-l-[#FFB20F] cursor-pointer hover:shadow-md transition-shadow" onClick={() => {
+                        setSelectedTicket(ticket);
+                        setShowTicketDetail(true);
+                      }}>
                         <CardContent className="p-4">
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
-                              <h3 className="font-semibold text-[#6E6F71] mb-2">
+                              <h3 className="font-semibold text-[#6E6F71] mb-2 hover:text-[#FFB20F] transition-colors">
                                 #{ticket.ticketNumber} - {ticket.title || ticket.subject}
                               </h3>
                               <p className="text-sm text-gray-600 mb-3 line-clamp-2">
@@ -530,6 +766,12 @@ export function FrontendSupportManagement() {
                                   {ticket.category?.replace('_', ' ')}
                                 </span>
                               </div>
+                            </div>
+                            <div className="flex items-center">
+                              <Button variant="ghost" size="sm" className="text-[#6E6F71] hover:text-[#FFB20F]">
+                                <Eye className="w-4 h-4 mr-2" />
+                                View
+                              </Button>
                             </div>
                           </div>
                         </CardContent>
@@ -656,6 +898,17 @@ export function FrontendSupportManagement() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Ticket Detail Dialog */}
+      {showTicketDetail && selectedTicket && (
+        <TicketDetailDialog
+          ticket={selectedTicket}
+          onClose={() => {
+            setShowTicketDetail(false);
+            setSelectedTicket(null);
+          }}
+        />
+      )}
     </div>
   );
 }
