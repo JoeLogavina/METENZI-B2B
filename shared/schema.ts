@@ -35,6 +35,14 @@ export const userRoleEnum = pgEnum("user_role", ["b2b_user", "admin", "super_adm
 // Branch type enum
 export const branchTypeEnum = pgEnum("branch_type", ["main_company", "branch"]);
 
+// Support system enums
+export const ticketStatusEnum = pgEnum("ticket_status", ["open", "in_progress", "pending", "resolved", "closed"]);
+export const ticketPriorityEnum = pgEnum("ticket_priority", ["low", "medium", "high", "urgent"]);
+export const ticketCategoryEnum = pgEnum("ticket_category", ["technical", "billing", "general", "feature_request", "bug_report"]);
+export const chatMessageTypeEnum = pgEnum("chat_message_type", ["text", "image", "file", "system"]);
+export const chatStatusEnum = pgEnum("chat_status", ["active", "closed", "archived"]);
+export const knowledgeBaseCategoryEnum = pgEnum("kb_category", ["getting_started", "technical", "billing", "troubleshooting", "api", "integration", "general"]);
+
 // Order counter table for sequential order numbers
 export const orderCounters = pgTable("order_counters", {
   id: varchar("id").primaryKey().default("main"),
@@ -242,6 +250,133 @@ export const adminPermissions = pgTable("admin_permissions", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// ===============================
+// SUPPORT SYSTEM TABLES
+// ===============================
+
+// Support tickets table
+export const supportTickets = pgTable("support_tickets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  ticketNumber: varchar("ticket_number").unique().notNull(), // Auto-generated: SPT-2025-001
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description").notNull(),
+  status: ticketStatusEnum("status").default("open").notNull(),
+  priority: ticketPriorityEnum("priority").default("medium").notNull(),
+  category: ticketCategoryEnum("category").default("general").notNull(),
+  userId: varchar("user_id").references(() => users.id).notNull(), // User who created the ticket
+  assignedToId: varchar("assigned_to_id").references(() => users.id), // Admin user assigned to handle ticket
+  tenantId: varchar("tenant_id").notNull().default("eur"), // Tenant isolation
+  tags: jsonb("tags").default([]), // Array of tag strings
+  attachments: jsonb("attachments").default([]), // Array of file URLs
+  lastResponseAt: timestamp("last_response_at"),
+  resolvedAt: timestamp("resolved_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("support_tickets_user_idx").on(table.userId),
+  index("support_tickets_assigned_idx").on(table.assignedToId),
+  index("support_tickets_status_idx").on(table.status),
+  index("support_tickets_tenant_idx").on(table.tenantId),
+  index("support_tickets_created_idx").on(table.createdAt),
+]);
+
+// Ticket responses/comments table
+export const ticketResponses = pgTable("ticket_responses", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  ticketId: varchar("ticket_id").references(() => supportTickets.id).notNull(),
+  userId: varchar("user_id").references(() => users.id).notNull(), // User who posted the response
+  message: text("message").notNull(),
+  isInternal: boolean("is_internal").default(false), // Internal admin notes
+  attachments: jsonb("attachments").default([]), // Array of file URLs
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("ticket_responses_ticket_idx").on(table.ticketId),
+  index("ticket_responses_user_idx").on(table.userId),
+  index("ticket_responses_created_idx").on(table.createdAt),
+]);
+
+// Live chat sessions table
+export const chatSessions = pgTable("chat_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id").unique().notNull(), // Chat session identifier
+  userId: varchar("user_id").references(() => users.id).notNull(), // User in the chat
+  assignedToId: varchar("assigned_to_id").references(() => users.id), // Admin handling the chat
+  status: chatStatusEnum("status").default("active").notNull(),
+  tenantId: varchar("tenant_id").notNull().default("eur"), // Tenant isolation
+  title: varchar("title", { length: 255 }).default("Chat Session"),
+  startedAt: timestamp("started_at").defaultNow(),
+  endedAt: timestamp("ended_at"),
+  lastMessageAt: timestamp("last_message_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("chat_sessions_user_idx").on(table.userId),
+  index("chat_sessions_assigned_idx").on(table.assignedToId),
+  index("chat_sessions_status_idx").on(table.status),
+  index("chat_sessions_tenant_idx").on(table.tenantId),
+]);
+
+// Chat messages table
+export const chatMessages = pgTable("chat_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id").references(() => chatSessions.id).notNull(),
+  userId: varchar("user_id").references(() => users.id).notNull(), // User who sent the message
+  message: text("message").notNull(),
+  messageType: chatMessageTypeEnum("message_type").default("text").notNull(),
+  attachments: jsonb("attachments").default([]), // Array of file URLs
+  isRead: boolean("is_read").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("chat_messages_session_idx").on(table.sessionId),
+  index("chat_messages_user_idx").on(table.userId),
+  index("chat_messages_created_idx").on(table.createdAt),
+]);
+
+// Knowledge base articles table
+export const knowledgeBaseArticles = pgTable("knowledge_base_articles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: varchar("title", { length: 255 }).notNull(),
+  slug: varchar("slug", { length: 255 }).unique().notNull(),
+  content: text("content").notNull(),
+  excerpt: text("excerpt"), // Brief summary
+  category: knowledgeBaseCategoryEnum("category").default("getting_started").notNull(),
+  tags: jsonb("tags").default([]), // Array of tag strings
+  isPublished: boolean("is_published").default(false),
+  tenantId: varchar("tenant_id").notNull().default("eur"), // Tenant isolation
+  authorId: varchar("author_id").references(() => users.id).notNull(), // Admin who wrote the article
+  viewCount: integer("view_count").default(0),
+  helpfulCount: integer("helpful_count").default(0),
+  notHelpfulCount: integer("not_helpful_count").default(0),
+  publishedAt: timestamp("published_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("kb_articles_category_idx").on(table.category),
+  index("kb_articles_published_idx").on(table.isPublished),
+  index("kb_articles_tenant_idx").on(table.tenantId),
+  index("kb_articles_author_idx").on(table.authorId),
+]);
+
+// FAQ table
+export const faqs = pgTable("faqs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  question: varchar("question", { length: 500 }).notNull(),
+  answer: text("answer").notNull(),
+  category: knowledgeBaseCategoryEnum("category").default("general").notNull(),
+  isPublished: boolean("is_published").default(false),
+  tenantId: varchar("tenant_id").notNull().default("eur"), // Tenant isolation
+  order: integer("order").default(0), // Display order
+  viewCount: integer("view_count").default(0),
+  helpfulCount: integer("helpful_count").default(0),
+  notHelpfulCount: integer("not_helpful_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("faqs_category_idx").on(table.category),
+  index("faqs_published_idx").on(table.isPublished),
+  index("faqs_tenant_idx").on(table.tenantId),
+  index("faqs_order_idx").on(table.order),
+]);
+
 // User-specific product pricing table for per-client pricing
 export const userProductPricing = pgTable("user_product_pricing", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -415,6 +550,60 @@ export const adminPermissionsRelations = relations(adminPermissions, ({ one }) =
   }),
 }));
 
+// Support system relations
+export const supportTicketsRelations = relations(supportTickets, ({ one, many }) => ({
+  user: one(users, {
+    fields: [supportTickets.userId],
+    references: [users.id],
+  }),
+  assignedTo: one(users, {
+    fields: [supportTickets.assignedToId],
+    references: [users.id],
+  }),
+  responses: many(ticketResponses),
+}));
+
+export const ticketResponsesRelations = relations(ticketResponses, ({ one }) => ({
+  ticket: one(supportTickets, {
+    fields: [ticketResponses.ticketId],
+    references: [supportTickets.id],
+  }),
+  user: one(users, {
+    fields: [ticketResponses.userId],
+    references: [users.id],
+  }),
+}));
+
+export const chatSessionsRelations = relations(chatSessions, ({ one, many }) => ({
+  user: one(users, {
+    fields: [chatSessions.userId],
+    references: [users.id],
+  }),
+  assignedTo: one(users, {
+    fields: [chatSessions.assignedToId],
+    references: [users.id],
+  }),
+  messages: many(chatMessages),
+}));
+
+export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
+  session: one(chatSessions, {
+    fields: [chatMessages.sessionId],
+    references: [chatSessions.id],
+  }),
+  user: one(users, {
+    fields: [chatMessages.userId],
+    references: [users.id],
+  }),
+}));
+
+export const knowledgeBaseArticlesRelations = relations(knowledgeBaseArticles, ({ one }) => ({
+  author: one(users, {
+    fields: [knowledgeBaseArticles.authorId],
+    references: [users.id],
+  }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -502,6 +691,42 @@ export const insertWalletTransactionSchema = createInsertSchema(walletTransactio
   createdAt: true,
 });
 
+// Support system insert schemas
+export const insertSupportTicketSchema = createInsertSchema(supportTickets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  ticketNumber: true, // Auto-generated
+});
+
+export const insertTicketResponseSchema = createInsertSchema(ticketResponses).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertChatSessionSchema = createInsertSchema(chatSessions).omit({
+  id: true,
+  createdAt: true,
+  sessionId: true, // Auto-generated
+});
+
+export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertKnowledgeBaseArticleSchema = createInsertSchema(knowledgeBaseArticles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertFaqSchema = createInsertSchema(faqs).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -529,6 +754,20 @@ export type AdminPermissions = typeof adminPermissions.$inferSelect;
 export type InsertAdminPermissions = z.infer<typeof insertAdminPermissionsSchema>;
 export type UserProductPricing = typeof userProductPricing.$inferSelect;
 export type InsertUserProductPricing = z.infer<typeof insertUserProductPricingSchema>;
+
+// Support system types
+export type SupportTicket = typeof supportTickets.$inferSelect;
+export type InsertSupportTicket = z.infer<typeof insertSupportTicketSchema>;
+export type TicketResponse = typeof ticketResponses.$inferSelect;
+export type InsertTicketResponse = z.infer<typeof insertTicketResponseSchema>;
+export type ChatSession = typeof chatSessions.$inferSelect;
+export type InsertChatSession = z.infer<typeof insertChatSessionSchema>;
+export type ChatMessage = typeof chatMessages.$inferSelect;
+export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
+export type KnowledgeBaseArticle = typeof knowledgeBaseArticles.$inferSelect;
+export type InsertKnowledgeBaseArticle = z.infer<typeof insertKnowledgeBaseArticleSchema>;
+export type Faq = typeof faqs.$inferSelect;
+export type InsertFaq = z.infer<typeof insertFaqSchema>;
 
 // Event sourcing types
 export type CartEvent = typeof cartEvents.$inferSelect;
