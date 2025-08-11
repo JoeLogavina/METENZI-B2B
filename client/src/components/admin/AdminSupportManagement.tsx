@@ -192,8 +192,8 @@ export function AdminSupportManagement() {
                 <div className="flex items-center gap-3">
                   <div className="w-2 h-2 bg-[#FFB20F] rounded-full"></div>
                   <div>
-                    <p className="font-medium text-[#6E6F71]">{ticket.subject}</p>
-                    <p className="text-sm text-gray-600">by {ticket.userFirstName} {ticket.userLastName}</p>
+                    <p className="font-medium text-[#6E6F71]">{ticket.title}</p>
+                    <p className="text-sm text-gray-600">by {ticket.userId}</p>
                   </div>
                 </div>
                 <Badge variant={ticket.status === 'open' ? 'destructive' : ticket.status === 'in_progress' ? 'default' : 'secondary'}>
@@ -321,13 +321,14 @@ export function AdminSupportManagement() {
                       <tr key={ticket.id} className="hover:bg-gray-50">
                         <td className="px-4 py-4">
                           <div>
-                            <div className="text-sm font-medium text-[#6E6F71]">{ticket.subject}</div>
-                            <div className="text-sm text-gray-500 truncate max-w-xs">{ticket.message}</div>
+                            <div className="text-sm font-medium text-[#6E6F71]">#{ticket.ticketNumber}</div>
+                            <div className="text-sm font-semibold text-gray-900">{ticket.title}</div>
+                            <div className="text-sm text-gray-500 truncate max-w-xs">{ticket.description}</div>
                           </div>
                         </td>
                         <td className="px-4 py-4">
-                          <div className="text-sm text-[#6E6F71]">{ticket.userFirstName} {ticket.userLastName}</div>
-                          <div className="text-sm text-gray-500">{ticket.userEmail}</div>
+                          <div className="text-sm text-[#6E6F71]">{ticket.userId}</div>
+                          <div className="text-sm text-gray-500 capitalize">{ticket.category}</div>
                         </td>
                         <td className="px-4 py-4">
                           <StatusBadge status={ticket.status} />
@@ -342,6 +343,12 @@ export function AdminSupportManagement() {
                           <Button
                             size="sm"
                             className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white"
+                            onClick={() => {
+                              toast({
+                                title: "Ticket Details",
+                                description: `Ticket: ${ticket.title}\nDescription: ${ticket.description}\nStatus: ${ticket.status}\nPriority: ${ticket.priority}`,
+                              });
+                            }}
                           >
                             View Details
                           </Button>

@@ -114,9 +114,9 @@ export function FrontendSupportManagement() {
 
   // Filtered tickets for display
   const filteredTickets = React.useMemo(() => {
-    if (!tickets?.data) return [];
+    if (!(tickets as any)?.data) return [];
     
-    return tickets.data.filter((ticket: any) => {
+    return (tickets as any).data.filter((ticket: any) => {
       const matchesSearch = !searchTerm || 
         ticket.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         ticket.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -127,7 +127,7 @@ export function FrontendSupportManagement() {
       
       return matchesSearch && matchesStatus && matchesPriority;
     });
-  }, [tickets?.data, searchTerm, statusFilter, priorityFilter]);
+  }, [(tickets as any)?.data, searchTerm, statusFilter, priorityFilter]);
 
   // Knowledge base articles query
   const { data: kbArticles, isLoading: kbLoading } = useQuery({
