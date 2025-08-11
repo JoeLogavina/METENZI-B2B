@@ -93,25 +93,42 @@ export function AdminSupportManagement() {
       mutationFn: async (data: { message: string; isInternal: boolean }) => {
         const response = await fetch(`/api/admin/support/tickets/${ticket.id}/responses`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          credentials: 'include',
           body: JSON.stringify(data),
         });
         
         if (!response.ok) {
-          throw new Error(`Failed to send response: ${response.statusText}`);
+          const errorText = await response.text();
+          throw new Error(`Failed to send response: ${response.status} - ${errorText}`);
         }
         
-        return response.json();
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          return response.json();
+        } else {
+          // If not JSON, just return a success indicator
+          return { success: true };
+        }
       },
-      onSuccess: () => {
+      onSuccess: (data) => {
+        console.log('Response sent successfully:', data);
         toast({
           title: "Success",
           description: "Response sent successfully",
         });
         setResponseMessage("");
         setIsInternal(false);
+        // Force refresh the responses
         queryClient.invalidateQueries({ queryKey: [`/api/admin/support/tickets/${ticket.id}/responses`] });
         queryClient.invalidateQueries({ queryKey: ['/api/admin/support/tickets'] });
+        // Also refetch immediately
+        setTimeout(() => {
+          queryClient.refetchQueries({ queryKey: [`/api/admin/support/tickets/${ticket.id}/responses`] });
+        }, 100);
       },
       onError: (error: any) => {
         console.error('Failed to send response:', error);
