@@ -336,6 +336,21 @@ export default function EURShop() {
   const { isMobile } = useDeviceDetection();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // Support notification system - fetch active tickets for badge count
+  const { data: supportTickets } = useQuery({
+    queryKey: ["/api/support/tickets"],
+    retry: false,
+    refetchInterval: 30000, // Refresh every 30 seconds
+    enabled: isAuthenticated
+  });
+
+  // Calculate notification count based on active tickets
+  const activeTickets = supportTickets || [];
+  const notificationCount = Array.isArray(activeTickets) ? activeTickets.filter((ticket: any) => 
+    ticket.status === 'open' || ticket.status === 'in-progress'
+  ).length : 0;
+  const hasNewNotifications = notificationCount > 0;
+
   return (
     <div className="min-h-screen bg-[#f5f6f5] flex font-['Inter',-apple-system,BlinkMacSystemFont,sans-serif]">
       {/* Desktop Sidebar - Show on Desktop */}
@@ -367,6 +382,12 @@ export default function EURShop() {
                   >
                     <item.icon className="w-5 h-5 mr-3" />
                     <span className="font-medium text-sm">{item.label}</span>
+                    {/* Support notification badge for desktop */}
+                    {item.label === "SUPPORT" && hasNewNotifications && (
+                      <span className="ml-auto bg-[#FFB20F] text-black text-xs rounded-full min-w-[20px] h-5 px-1 flex items-center justify-center font-mono font-semibold animate-pulse">
+                        {notificationCount > 99 ? '99+' : notificationCount}
+                      </span>
+                    )}
                   </button>
                 </li>
               ))}
@@ -457,6 +478,12 @@ export default function EURShop() {
                     >
                       <item.icon className="w-5 h-5 mr-3" />
                       <span className="font-medium text-sm">{item.label}</span>
+                      {/* Support notification badge for mobile */}
+                      {item.label === "SUPPORT" && hasNewNotifications && (
+                        <span className="ml-auto bg-[#FFB20F] text-black text-xs rounded-full min-w-[20px] h-5 px-1 flex items-center justify-center font-mono font-semibold animate-pulse">
+                          {notificationCount > 99 ? '99+' : notificationCount}
+                        </span>
+                      )}
                     </button>
                   </li>
                 ))}
