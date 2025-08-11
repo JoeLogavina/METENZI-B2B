@@ -6,6 +6,7 @@ export type TenantType = 'admin' | 'eur-shop' | 'km-shop';
 export interface TenantContext {
   type: TenantType;
   currency: Currency;
+  tenantId: string;
   isAdmin: boolean;
   isShop: boolean;
 }
@@ -30,6 +31,7 @@ export function tenantResolutionMiddleware(req: Request, res: Response, next: Ne
     tenant = {
       type: 'admin',
       currency: 'EUR', // Default for admin, can switch dynamically
+      tenantId: 'eur',
       isAdmin: true,
       isShop: false
     };
@@ -37,6 +39,7 @@ export function tenantResolutionMiddleware(req: Request, res: Response, next: Ne
     tenant = {
       type: 'eur-shop',
       currency: 'EUR',
+      tenantId: 'eur',
       isAdmin: false,
       isShop: true
     };
@@ -44,6 +47,7 @@ export function tenantResolutionMiddleware(req: Request, res: Response, next: Ne
     tenant = {
       type: 'km-shop',
       currency: 'KM',
+      tenantId: 'km',
       isAdmin: false,
       isShop: true
     };
@@ -52,6 +56,7 @@ export function tenantResolutionMiddleware(req: Request, res: Response, next: Ne
     tenant = {
       type: 'eur-shop',
       currency: 'EUR',
+      tenantId: 'eur',
       isAdmin: false,
       isShop: true
     };

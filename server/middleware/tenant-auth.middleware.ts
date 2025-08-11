@@ -12,6 +12,9 @@ export function tenantAuthMiddleware(req: Request, res: Response, next: NextFunc
     return res.status(401).json({ message: 'Unauthorized' });
   }
 
+  // For B2B users, check tenant access
+  const userTenantId = user.tenantId || 'eur';
+
   // Extract tenant from URL path
   let urlTenant: 'eur' | 'km' | null = null;
   if (req.path.includes('/shop/eur') || req.originalUrl.includes('/shop/eur')) {
@@ -29,14 +32,12 @@ export function tenantAuthMiddleware(req: Request, res: Response, next: NextFunc
     req.tenant = {
       type: 'admin',
       currency: urlTenant === 'km' ? 'KM' : 'EUR',
+      tenantId: urlTenant || userTenantId || 'eur',
       isAdmin: true,
       isShop: false
     };
     return next();
   }
-
-  // For B2B users, check tenant access
-  const userTenantId = user.tenantId || 'eur';
 
   // If accessing a specific tenant URL, verify user belongs to that tenant
   if (urlTenant && urlTenant !== userTenantId) {
@@ -51,6 +52,7 @@ export function tenantAuthMiddleware(req: Request, res: Response, next: NextFunc
   req.tenant = {
     type: userTenantId === 'km' ? 'km-shop' : 'eur-shop',
     currency: userTenantId === 'km' ? 'KM' : 'EUR',
+    tenantId: userTenantId,
     isAdmin: false,
     isShop: true
   };
@@ -67,6 +69,7 @@ export function requireTenant(tenantId: 'eur' | 'km') {
       req.tenant = {
         type: 'admin',
         currency: tenantId === 'km' ? 'KM' : 'EUR',
+        tenantId: tenantId,
         isAdmin: true,
         isShop: false
       };
@@ -85,6 +88,7 @@ export function requireTenant(tenantId: 'eur' | 'km') {
     req.tenant = {
       type: tenantId === 'km' ? 'km-shop' : 'eur-shop',
       currency: tenantId === 'km' ? 'KM' : 'EUR',
+      tenantId: tenantId,
       isAdmin: false,
       isShop: true
     };

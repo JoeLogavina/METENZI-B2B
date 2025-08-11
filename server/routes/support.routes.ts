@@ -98,9 +98,21 @@ router.post('/tickets',
   validateRequest({ body: frontendTicketSchema }),
   auditLog('support:tickets:create'),
   async (req: any, res) => {
+    let ticketData: any;
     try {
       const { tenantId } = req.tenant;
-      const { userId } = req.user;
+      
+      // Multiple attempts to extract userId
+      let userId = null;
+      if (req.user && (req.user as any).id) {
+        userId = (req.user as any).id;
+      } else if (req.user && (req.user as any).userId) {
+        userId = (req.user as any).userId;
+      } else if (req.session && (req.session as any).passport && (req.session as any).passport.user) {
+        userId = (req.session as any).passport.user;
+      }
+      
+
       
       // Generate ticket number
       const timestamp = Date.now();
@@ -108,7 +120,7 @@ router.post('/tickets',
       const ticketNumber = `SPT-${timestamp}-${randomSuffix}`;
       
       // Map frontend field names to backend
-      const ticketData = {
+      ticketData = {
         title: req.body.subject, // Frontend sends 'subject', backend expects 'title'
         description: req.body.message, // Frontend sends 'message', backend expects 'description'
         priority: req.body.priority,
@@ -122,11 +134,19 @@ router.post('/tickets',
         .insert(supportTickets)
         .values(ticketData)
         .returning();
-      
       res.status(201).json({ data: ticket });
     } catch (error) {
       console.error('Error creating support ticket:', error);
-      res.status(500).json({ error: 'Failed to create support ticket' });
+      console.error('Error details:', {
+        message: (error as Error).message,
+        stack: (error as Error).stack,
+        name: (error as Error).name,
+        ticketData
+      });
+      res.status(500).json({ 
+        error: 'Failed to create support ticket',
+        details: (error as Error).message 
+      });
     }
   }
 );
