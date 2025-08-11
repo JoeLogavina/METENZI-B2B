@@ -502,10 +502,10 @@ export function FrontendSupportManagement() {
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
                               <h3 className="font-semibold text-[#6E6F71] mb-2">
-                                #{ticket.ticketNumber} - {ticket.subject}
+                                #{ticket.ticketNumber} - {ticket.title || ticket.subject}
                               </h3>
                               <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                                {ticket.message}
+                                {ticket.description || ticket.message}
                               </p>
                               <div className="flex items-center gap-4">
                                 <StatusBadge status={ticket.status} />
