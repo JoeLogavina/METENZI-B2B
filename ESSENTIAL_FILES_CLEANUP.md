@@ -53,6 +53,11 @@ Removed all redundant production deployment files and documentation, keeping onl
 - Authentication test artifacts
 - Debug session files
 
+### SiteGround Files (3+ files)
+- SiteGround deployment directory and archive
+- SiteGround PHP version implementation
+- SiteGround-specific configuration files
+
 ## 📁 Clean Project Structure
 
 The project now has a clean structure with only essential files:
