@@ -36,6 +36,7 @@ import { useDebounce } from "use-debounce";
 import AdvancedProductFilters from "@/components/AdvancedProductFilters";
 import ProductCard from "@/components/optimized/ProductCard";
 import { useDeviceDetection } from "@/hooks/mobile/useDeviceDetection";
+import { FrontendSupportManagement } from "@/components/frontend/FrontendSupportManagement";
 
 
 // EUR-specific shop component with proper tenant isolation
@@ -92,6 +93,7 @@ export default function EURShop() {
   const [isCartHovered, setIsCartHovered] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [addingProductId, setAddingProductId] = useState<string | null>(null);
+  const [activeView, setActiveView] = useState<'shop' | 'support'>('shop');
 
   // Debounce filters to prevent excessive API calls
   const [debouncedFilters] = useDebounce(filters, 300);
@@ -258,16 +260,71 @@ export default function EURShop() {
   const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
   
   const sidebarItems = [
-    { icon: Package, label: "EUR SHOP", active: true, href: "/eur", allowed: true },
-    { icon: Grid, label: "CATALOG", active: false, href: "/eur", allowed: true },
-    { icon: Building2, label: "MY BRANCHES", active: false, href: "/my-branches", allowed: user?.role === 'b2b_user' },
-    { icon: ShoppingCart, label: "MY CART", active: false, href: "/eur/cart", allowed: true },
-    { icon: FileText, label: "ORDERS", active: false, href: "/eur/orders", allowed: true },
-    { icon: CreditCard, label: "MY WALLET", active: false, href: "/eur/wallet", allowed: true },
-    { icon: Settings, label: "SETTINGS", active: false, href: "/eur", allowed: true },
-    { icon: HelpCircle, label: "SUPPORT", active: false, href: "/eur", allowed: true },
+    { 
+      icon: Package, 
+      label: "EUR SHOP", 
+      active: activeView === 'shop', 
+      action: () => setActiveView('shop'), 
+      allowed: true 
+    },
+    { 
+      icon: Grid, 
+      label: "CATALOG", 
+      active: false, 
+      action: () => setActiveView('shop'), 
+      allowed: true 
+    },
+    { 
+      icon: Building2, 
+      label: "MY BRANCHES", 
+      active: false, 
+      href: "/my-branches", 
+      allowed: user?.role === 'b2b_user' 
+    },
+    { 
+      icon: ShoppingCart, 
+      label: "MY CART", 
+      active: false, 
+      href: "/eur/cart", 
+      allowed: true 
+    },
+    { 
+      icon: FileText, 
+      label: "ORDERS", 
+      active: false, 
+      href: "/eur/orders", 
+      allowed: true 
+    },
+    { 
+      icon: CreditCard, 
+      label: "MY WALLET", 
+      active: false, 
+      href: "/eur/wallet", 
+      allowed: true 
+    },
+    { 
+      icon: Settings, 
+      label: "SETTINGS", 
+      active: false, 
+      action: () => setActiveView('shop'), 
+      allowed: true 
+    },
+    { 
+      icon: HelpCircle, 
+      label: "SUPPORT", 
+      active: activeView === 'support', 
+      action: () => setActiveView('support'), 
+      allowed: true 
+    },
     // Admin-only items  
-    { icon: Settings, label: "ADMIN PANEL", active: false, href: "/admin-panel", allowed: isAdmin, admin: true },
+    { 
+      icon: Settings, 
+      label: "ADMIN PANEL", 
+      active: false, 
+      href: "/admin-panel", 
+      allowed: isAdmin, 
+      admin: true 
+    },
   ].filter(item => item.allowed);
 
   const formatEURPrice = (amount: number | string): string => {
@@ -301,7 +358,7 @@ export default function EURShop() {
               {sidebarItems.map((item, index) => (
                 <li key={index}>
                   <button
-                    onClick={() => window.location.href = item.href}
+                    onClick={() => item.action ? item.action() : (item.href && (window.location.href = item.href))}
                     className={`w-full flex items-center px-3 py-2.5 text-sm rounded-md transition-colors duration-200 ${
                       item.active
                         ? 'bg-[#FFB20F] text-black font-semibold'
@@ -385,7 +442,11 @@ export default function EURShop() {
                   <li key={index}>
                     <button
                       onClick={() => {
-                        window.location.href = item.href;
+                        if (item.action) {
+                          item.action();
+                        } else if (item.href) {
+                          window.location.href = item.href;
+                        }
                         setIsMobileMenuOpen(false);
                       }}
                       className={`w-full flex items-center px-3 py-2.5 text-sm rounded-md transition-colors duration-200 ${
@@ -496,8 +557,15 @@ export default function EURShop() {
 
         {/* Main Content Area with Vertical Filters */}
         <div className="flex-1 flex overflow-hidden max-w-full">
-          {/* Advanced Filters Sidebar - Hidden on mobile */}
-          <div className={`${isMobile ? 'hidden' : 'w-80'} bg-white border-r border-[#ddd] p-4 overflow-y-auto flex-shrink-0`}>
+          {/* Support View */}
+          {activeView === 'support' ? (
+            <div className="flex-1 min-w-0">
+              <FrontendSupportManagement />
+            </div>
+          ) : (
+            <>
+              {/* Advanced Filters Sidebar - Hidden on mobile */}
+              <div className={`${isMobile ? 'hidden' : 'w-80'} bg-white border-r border-[#ddd] p-4 overflow-y-auto flex-shrink-0`}>
             <AdvancedProductFilters
               filters={{
                 search: filters.search,
@@ -632,6 +700,8 @@ export default function EURShop() {
               </div>
             )}
           </div>
+            </>
+          )}
         </div>
       </div>
     </div>
