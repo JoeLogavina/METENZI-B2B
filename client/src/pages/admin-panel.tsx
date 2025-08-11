@@ -33,7 +33,8 @@ import {
   UserX,
   TreePine,
   Activity,
-  AlertTriangle
+  AlertTriangle,
+  MessageCircle
 } from "lucide-react";
 import WalletManagement from "@/components/wallet-management";
 import UserForm from "@/components/user-form";
@@ -47,6 +48,7 @@ import { EmbeddedKeyManagement } from "@/components/admin/EmbeddedKeyManagement"
 import { ComprehensiveProductForm } from "@/components/admin/ComprehensiveProductForm";
 import { BranchManagement } from "@/components/admin/BranchManagement";
 import { UserDetailView } from "@/components/admin/UserDetailView";
+import { AdminSupportManagement } from "@/components/admin/AdminSupportManagement";
 
 interface DashboardStats {
   totalUsers: number;
@@ -69,7 +71,8 @@ type AdminView =
   | 'wallet'
   | 'reports'
   | 'settings'
-  | 'security';
+  | 'security'
+  | 'support';
 
 interface AdminState {
   currentView: AdminView;
@@ -340,6 +343,7 @@ export default function AdminPanel() {
     { id: 'keys', icon: Key, label: 'Keys Management', allowed: true },
     { id: 'wallets', icon: Wallet, label: 'Wallet Management', allowed: true },
     { id: 'permissions', icon: Shield, label: 'Permissions', allowed: (user as any)?.role === 'super_admin' },
+    { id: 'support', icon: MessageCircle, label: 'Support Management', allowed: true },
     { id: 'monitoring', icon: Activity, label: 'Monitoring', allowed: true },
     { id: 'alerts', icon: AlertTriangle, label: 'Alerts', allowed: true },
     { id: 'reports', icon: FileText, label: 'Reports', allowed: true },
@@ -970,6 +974,10 @@ export default function AdminPanel() {
             {activeSection === 'monitoring' && <MonitoringSection />}
 
             {activeSection === 'alerts' && <AlertsSection />}
+
+            {activeSection === 'support' && (
+              <AdminSupportManagement />
+            )}
 
             {(activeSection === 'permissions' || activeSection === 'reports') && (
               <Card>
