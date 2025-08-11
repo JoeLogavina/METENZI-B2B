@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -107,14 +107,27 @@ export function FrontendSupportManagement() {
   });
 
   // Tickets query
-  const { data: tickets, isLoading: ticketsLoading } = useQuery({
-    queryKey: ['/api/support/tickets', { 
-      search: searchTerm, 
-      status: statusFilter === 'all' ? '' : statusFilter, 
-      priority: priorityFilter === 'all' ? '' : priorityFilter 
-    }],
+  const { data: tickets, isLoading: ticketsLoading, refetch: refetchTickets } = useQuery({
+    queryKey: ['/api/support/tickets'],
     retry: false
   });
+
+  // Filtered tickets for display
+  const filteredTickets = React.useMemo(() => {
+    if (!tickets?.data) return [];
+    
+    return tickets.data.filter((ticket: any) => {
+      const matchesSearch = !searchTerm || 
+        ticket.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        ticket.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        ticket.ticketNumber?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesStatus = statusFilter === 'all' || ticket.status === statusFilter;
+      const matchesPriority = priorityFilter === 'all' || ticket.priority === priorityFilter;
+      
+      return matchesSearch && matchesStatus && matchesPriority;
+    });
+  }, [tickets?.data, searchTerm, statusFilter, priorityFilter]);
 
   // Knowledge base articles query
   const { data: kbArticles, isLoading: kbLoading } = useQuery({
@@ -237,7 +250,7 @@ export function FrontendSupportManagement() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-[#FFB20F]">
-                  {statsLoading ? '...' : ((stats as any)?.data?.total || '0')}
+                  {statsLoading ? '...' : ((stats as any)?.data?.totalTickets || '0')}
                 </div>
               </CardContent>
             </Card>
@@ -251,7 +264,7 @@ export function FrontendSupportManagement() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-blue-600">
-                  {statsLoading ? '...' : ((stats as any)?.data?.open || '0')}
+                  {statsLoading ? '...' : ((stats as any)?.data?.openTickets || '0')}
                 </div>
               </CardContent>
             </Card>
@@ -265,7 +278,7 @@ export function FrontendSupportManagement() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-green-600">
-                  {statsLoading ? '...' : ((stats as any)?.data?.resolved || '0')}
+                  {statsLoading ? '...' : ((stats as any)?.data?.resolvedTickets || '0')}
                 </div>
               </CardContent>
             </Card>
@@ -487,6 +500,14 @@ export function FrontendSupportManagement() {
                 </Select>
               </div>
 
+              {/* Debug Info */}
+              <div className="mb-4 p-3 bg-gray-100 rounded text-sm">
+                <strong>Debug:</strong> 
+                Loading: {ticketsLoading ? 'true' : 'false'} | 
+                Raw tickets: {tickets ? JSON.stringify(tickets).substring(0, 100) + '...' : 'null'} |
+                Filtered: {filteredTickets?.length || 0} tickets
+              </div>
+
               {/* Tickets List */}
               {ticketsLoading ? (
                 <div className="flex items-center justify-center py-8">
@@ -495,8 +516,8 @@ export function FrontendSupportManagement() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {(tickets as any)?.data && (tickets as any).data.length > 0 ? (
-                    (tickets as any).data.map((ticket: any) => (
+                  {filteredTickets && filteredTickets.length > 0 ? (
+                    filteredTickets.map((ticket: any) => (
                       <Card key={ticket.id} className="border-l-4 border-l-[#FFB20F]">
                         <CardContent className="p-4">
                           <div className="flex items-start justify-between">
