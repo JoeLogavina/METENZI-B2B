@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -69,13 +69,26 @@ export function AdminSupportManagement() {
 
   // Tickets query
   const { data: tickets, isLoading: ticketsLoading } = useQuery({
-    queryKey: ['/api/admin/support/tickets', { 
-      search: searchTerm, 
-      status: statusFilter === 'all' ? '' : statusFilter, 
-      priority: priorityFilter === 'all' ? '' : priorityFilter 
-    }],
+    queryKey: ['/api/admin/support/tickets'],
     retry: false
   });
+
+  // Filtered tickets for display
+  const filteredTickets = React.useMemo(() => {
+    if (!(tickets as any)?.data) return [];
+    
+    return (tickets as any).data.filter((ticket: any) => {
+      const matchesSearch = !searchTerm || 
+        ticket.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        ticket.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        ticket.ticketNumber?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesStatus = statusFilter === 'all' || ticket.status === statusFilter;
+      const matchesPriority = priorityFilter === 'all' || ticket.priority === priorityFilter;
+      
+      return matchesSearch && matchesStatus && matchesPriority;
+    });
+  }, [(tickets as any)?.data, searchTerm, statusFilter, priorityFilter]);
 
   // Knowledge base articles query
   const { data: articles, isLoading: articlesLoading } = useQuery({
@@ -98,7 +111,7 @@ export function AdminSupportManagement() {
     satisfactionRating: 0
   };
 
-  const ticketData = (tickets as any)?.data || [];
+  const ticketData = filteredTickets || [];
   const articleData = (articles as any)?.data || [];
   const faqData = (faqs as any)?.data || [];
 

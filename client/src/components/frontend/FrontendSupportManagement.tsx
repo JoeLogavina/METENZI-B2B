@@ -500,14 +500,6 @@ export function FrontendSupportManagement() {
                 </Select>
               </div>
 
-              {/* Debug Info */}
-              <div className="mb-4 p-3 bg-gray-100 rounded text-sm">
-                <strong>Debug:</strong> 
-                Loading: {ticketsLoading ? 'true' : 'false'} | 
-                Raw tickets: {tickets ? JSON.stringify(tickets).substring(0, 100) + '...' : 'null'} |
-                Filtered: {filteredTickets?.length || 0} tickets
-              </div>
-
               {/* Tickets List */}
               {ticketsLoading ? (
                 <div className="flex items-center justify-center py-8">
