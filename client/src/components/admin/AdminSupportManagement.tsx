@@ -84,7 +84,7 @@ export function AdminSupportManagement() {
 
     // Ticket responses query
     const { data: ticketResponses, isLoading: responsesLoading } = useQuery({
-      queryKey: ['/api/admin/support/tickets', ticket.id, 'responses'],
+      queryKey: [`/api/admin/support/tickets/${ticket.id}/responses`],
       retry: false
     });
 
@@ -110,13 +110,14 @@ export function AdminSupportManagement() {
         });
         setResponseMessage("");
         setIsInternal(false);
-        queryClient.invalidateQueries({ queryKey: ['/api/admin/support/tickets', ticket.id, 'responses'] });
+        queryClient.invalidateQueries({ queryKey: [`/api/admin/support/tickets/${ticket.id}/responses`] });
         queryClient.invalidateQueries({ queryKey: ['/api/admin/support/tickets'] });
       },
-      onError: (error) => {
+      onError: (error: any) => {
+        console.error('Failed to send response:', error);
         toast({
-          title: "Error",
-          description: "Failed to send response",
+          title: "Error", 
+          description: error.message || "Failed to send response",
           variant: "destructive",
         });
       }
