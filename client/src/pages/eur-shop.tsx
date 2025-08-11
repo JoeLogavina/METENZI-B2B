@@ -336,20 +336,28 @@ export default function EURShop() {
   const { isMobile } = useDeviceDetection();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Support notification system - fetch active tickets for badge count
-  const { data: supportTickets } = useQuery({
-    queryKey: ["/api/support/tickets"],
+  // Support notification system - fetch ticket stats for badge count
+  const { data: ticketStats } = useQuery({
+    queryKey: ["/api/support/tickets/stats"],
     retry: false,
     refetchInterval: 30000, // Refresh every 30 seconds
     enabled: isAuthenticated
   });
 
-  // Calculate notification count based on active tickets
-  const activeTickets = supportTickets || [];
-  const notificationCount = Array.isArray(activeTickets) ? activeTickets.filter((ticket: any) => 
-    ticket.status === 'open' || ticket.status === 'in-progress'
-  ).length : 0;
+  // Calculate notification count based on stats API response
+  const statsData = (ticketStats as any)?.data;
+  const openTickets = parseInt(statsData?.openTickets || '0');
+  
+  // Get in-progress count from statusBreakdown array
+  const statusBreakdown = statsData?.statusBreakdown || [];
+  const inProgressCount = statusBreakdown.find((item: any) => item.status === 'in_progress')?.count || '0';
+  const inProgressTickets = parseInt(inProgressCount);
+  
+  const notificationCount = openTickets + inProgressTickets;
   const hasNewNotifications = notificationCount > 0;
+
+  // Keep debug for now to verify functionality
+  console.log('✨ Support notifications:', { notificationCount, hasNewNotifications });
 
   return (
     <div className="min-h-screen bg-[#f5f6f5] flex font-['Inter',-apple-system,BlinkMacSystemFont,sans-serif]">
@@ -384,7 +392,7 @@ export default function EURShop() {
                     <span className="font-medium text-sm">{item.label}</span>
                     {/* Support notification badge for desktop */}
                     {item.label === "SUPPORT" && hasNewNotifications && (
-                      <span className="ml-auto bg-[#FFB20F] text-black text-xs rounded-full min-w-[20px] h-5 px-1 flex items-center justify-center font-mono font-semibold animate-pulse">
+                      <span className="ml-auto bg-[#E15554] text-white text-xs rounded-full min-w-[22px] h-6 px-2 flex items-center justify-center font-bold shadow-lg border-2 border-white animate-pulse">
                         {notificationCount > 99 ? '99+' : notificationCount}
                       </span>
                     )}
@@ -480,7 +488,7 @@ export default function EURShop() {
                       <span className="font-medium text-sm">{item.label}</span>
                       {/* Support notification badge for mobile */}
                       {item.label === "SUPPORT" && hasNewNotifications && (
-                        <span className="ml-auto bg-[#FFB20F] text-black text-xs rounded-full min-w-[20px] h-5 px-1 flex items-center justify-center font-mono font-semibold animate-pulse">
+                        <span className="ml-auto bg-[#E15554] text-white text-xs rounded-full min-w-[22px] h-6 px-2 flex items-center justify-center font-bold shadow-lg border-2 border-white animate-pulse">
                           {notificationCount > 99 ? '99+' : notificationCount}
                         </span>
                       )}
