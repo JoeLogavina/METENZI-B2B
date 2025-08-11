@@ -1,0 +1,130 @@
+{
+  "timestamp": "2025-08-11T17:23:19.874Z",
+  "summary": {
+    "accessible": 2,
+    "authRequired": 8,
+    "notFound": 0,
+    "errors": 0,
+    "total": 10
+  },
+  "results": [
+    {
+      "endpoint": "/api/support/tickets",
+      "method": "GET",
+      "name": "List Support Tickets",
+      "status": 401,
+      "isOk": false,
+      "body": {
+        "error": "UNAUTHORIZED",
+        "message": "Authentication required"
+      }
+    },
+    {
+      "endpoint": "/api/support/chat/sessions",
+      "method": "GET",
+      "name": "List Chat Sessions",
+      "status": 401,
+      "isOk": false,
+      "body": {
+        "error": "UNAUTHORIZED",
+        "message": "Authentication required"
+      }
+    },
+    {
+      "endpoint": "/api/support/kb/articles",
+      "method": "GET",
+      "name": "List Knowledge Base Articles",
+      "status": 401,
+      "isOk": false,
+      "body": {
+        "error": "UNAUTHORIZED",
+        "message": "Authentication required"
+      }
+    },
+    {
+      "endpoint": "/api/support/faqs",
+      "method": "GET",
+      "name": "List FAQs",
+      "status": 401,
+      "isOk": false,
+      "body": {
+        "error": "UNAUTHORIZED",
+        "message": "Authentication required"
+      }
+    },
+    {
+      "endpoint": "/api/admin/support/tickets",
+      "method": "GET",
+      "name": "Admin - List All Tickets",
+      "status": 401,
+      "isOk": false,
+      "body": {
+        "error": "UNAUTHORIZED",
+        "message": "Authentication required"
+      }
+    },
+    {
+      "endpoint": "/api/admin/support/tickets/stats",
+      "method": "GET",
+      "name": "Admin - Ticket Statistics",
+      "status": 401,
+      "isOk": false,
+      "body": {
+        "error": "UNAUTHORIZED",
+        "message": "Authentication required"
+      }
+    },
+    {
+      "endpoint": "/api/admin/support/kb/articles",
+      "method": "GET",
+      "name": "Admin - List KB Articles",
+      "status": 401,
+      "isOk": false,
+      "body": {
+        "error": "UNAUTHORIZED",
+        "message": "Authentication required"
+      }
+    },
+    {
+      "endpoint": "/api/admin/support/faqs",
+      "method": "GET",
+      "name": "Admin - List FAQs",
+      "status": 401,
+      "isOk": false,
+      "body": {
+        "error": "UNAUTHORIZED",
+        "message": "Authentication required"
+      }
+    },
+    {
+      "endpoint": "/health",
+      "method": "GET",
+      "name": "Health Check",
+      "status": 200,
+      "isOk": true,
+      "body": {
+        "status": "healthy",
+        "timestamp": "2025-08-11T17:23:19.874Z",
+        "uptime": 81,
+        "version": "1.0.0",
+        "environment": "development"
+      }
+    },
+    {
+      "endpoint": "/status",
+      "method": "GET",
+      "name": "Status Check",
+      "status": 200,
+      "isOk": true,
+      "body": {
+        "status": "healthy",
+        "app": "B2B Platform"
+      }
+    }
+  ],
+  "recommendations": {
+    "routesRegistered": true,
+    "authenticationWorking": true,
+    "readyForPhase3": true
+  }
+}

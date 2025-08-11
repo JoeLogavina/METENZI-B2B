@@ -9,6 +9,8 @@ import { db } from "./db";
 import { sql, eq, and } from "drizzle-orm";
 import { adminRouter } from "./routes/admin";
 import { usersRouter } from "./routes/users.routes";
+import { supportRouter } from "./routes/support.routes";
+import { adminSupportRouter } from "./routes/admin/support.routes";
 import { errorHandler } from "./middleware/auth.middleware";
 import { securityTestRoutes } from "./routes/security-test.routes";
 import imageRoutes from "./routes/images.routes";
@@ -514,6 +516,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
   app.use('/api/users', usersRouter);
+  
+  // Support system routes
+  app.use('/api/support', supportRouter);
+  
+  // Admin support routes (registered under the admin namespace)
+  app.use('/api/admin/support', adminSupportRouter);
   
   // Register admin security routes
   const adminSecurityRoutes = await import('./routes/admin-security');
