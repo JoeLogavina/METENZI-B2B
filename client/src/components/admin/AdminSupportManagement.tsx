@@ -81,6 +81,8 @@ export function AdminSupportManagement() {
   const TicketDetailDialog = ({ ticket, onClose }: { ticket: any; onClose: () => void }) => {
     const [responseMessage, setResponseMessage] = useState("");
     const [isInternal, setIsInternal] = useState(false);
+    const [showResolveForm, setShowResolveForm] = useState(false);
+    const [resolutionMessage, setResolutionMessage] = useState("");
 
     // Ticket responses query with auto-refresh
     const { data: ticketResponses, isLoading: responsesLoading } = useQuery({
@@ -141,12 +143,65 @@ export function AdminSupportManagement() {
       }
     });
 
+    // Resolve ticket mutation
+    const resolveTicketMutation = useMutation({
+      mutationFn: async (data: { resolution: string; status: string }) => {
+        const response = await fetch(`/api/admin/support/tickets/${ticket.id}/resolve`, {
+          method: 'PATCH',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          credentials: 'include',
+          body: JSON.stringify(data),
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Failed to resolve ticket: ${response.status} - ${errorText}`);
+        }
+        
+        return response.json();
+      },
+      onSuccess: (data) => {
+        toast({
+          title: "Success",
+          description: "Ticket resolved successfully",
+        });
+        setShowResolveForm(false);
+        setResolutionMessage("");
+        // Refresh all relevant queries
+        queryClient.invalidateQueries({ queryKey: [`/api/admin/support/tickets/${ticket.id}/responses`] });
+        queryClient.invalidateQueries({ queryKey: ['/api/admin/support/tickets'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/admin/support/tickets/stats'] });
+        // Close dialog after successful resolution
+        onClose();
+      },
+      onError: (error: any) => {
+        console.error('Failed to resolve ticket:', error);
+        toast({
+          title: "Error", 
+          description: error.message || "Failed to resolve ticket",
+          variant: "destructive",
+        });
+      }
+    });
+
     const handleSubmitResponse = () => {
       if (!responseMessage.trim()) return;
       
       submitResponseMutation.mutate({
         message: responseMessage,
         isInternal: isInternal
+      });
+    };
+
+    const handleResolveTicket = () => {
+      if (!resolutionMessage.trim()) return;
+      
+      resolveTicketMutation.mutate({
+        resolution: resolutionMessage,
+        status: 'resolved'
       });
     };
 
@@ -327,6 +382,78 @@ export function AdminSupportManagement() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Resolve Ticket Section */}
+            {ticket.status !== 'resolved' && ticket.status !== 'closed' && (
+              <Card className="border-green-500">
+                <CardHeader>
+                  <CardTitle className="text-[#6E6F71] flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      Ticket Resolution
+                    </div>
+                    {!showResolveForm && (
+                      <Button
+                        onClick={() => setShowResolveForm(true)}
+                        variant="outline"
+                        className="border-green-500 text-green-600 hover:bg-green-50"
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Resolve Ticket
+                      </Button>
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                {showResolveForm && (
+                  <CardContent className="p-4">
+                    <div className="space-y-4">
+                      <Textarea
+                        placeholder="Provide a resolution summary for the customer..."
+                        value={resolutionMessage}
+                        onChange={(e) => setResolutionMessage(e.target.value)}
+                        className="min-h-[100px] border-green-500 focus:border-green-600"
+                      />
+                      
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm text-gray-600">
+                          This will close the ticket and send the resolution to the customer.
+                        </p>
+                        
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={() => {
+                              setShowResolveForm(false);
+                              setResolutionMessage("");
+                            }}
+                            variant="outline"
+                            className="border-[#6E6F71] text-[#6E6F71] hover:bg-[#6E6F71] hover:text-white"
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            onClick={handleResolveTicket}
+                            disabled={!resolutionMessage.trim() || resolveTicketMutation.isPending}
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                          >
+                            {resolveTicketMutation.isPending ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                Resolving...
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle className="w-4 h-4 mr-2" />
+                                Resolve Ticket
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                )}
+              </Card>
+            )}
           </div>
         </DialogContent>
       </Dialog>

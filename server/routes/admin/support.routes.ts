@@ -616,4 +616,81 @@ router.put('/chat/sessions/:id/assign',
   }
 );
 
+// PATCH /api/admin/support/tickets/:id/resolve - Resolve/close ticket (admin)
+router.patch('/tickets/:id/resolve',
+  tenantAuthMiddleware,
+  validateRequest({ 
+    body: z.object({
+      resolution: z.string().min(1, "Resolution message is required"),
+      status: z.enum(['resolved', 'closed']).default('resolved')
+    })
+  }),
+  auditLog('admin:support:tickets:resolve'),
+  async (req: any, res) => {
+    try {
+      const { tenantId } = req.tenant;
+      const ticketId = req.params.id;
+      const { resolution, status } = req.body;
+      
+      // Extract userId with fallback methods (matching other endpoints)
+      let userId = null;
+      if (req.user && (req.user as any).id) {
+        userId = (req.user as any).id;
+      } else if (req.user && (req.user as any).userId) {
+        userId = (req.user as any).userId;
+      } else if (req.session && (req.session as any).passport && (req.session as any).passport.user) {
+        userId = (req.session as any).passport.user;
+      }
+      
+      // Verify ticket exists and belongs to tenant
+      const [ticket] = await db
+        .select()
+        .from(supportTickets)
+        .where(and(
+          eq(supportTickets.id, ticketId),
+          eq(supportTickets.tenantId, tenantId)
+        ));
+      
+      if (!ticket) {
+        return res.status(404).json({ error: 'Ticket not found' });
+      }
+      
+      // Add resolution response
+      const [response] = await db
+        .insert(ticketResponses)
+        .values({
+          ticketId,
+          userId,
+          message: resolution,
+          isInternal: false,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+      
+      // Update ticket status and set resolved timestamp
+      const [updatedTicket] = await db
+        .update(supportTickets)
+        .set({
+          status,
+          resolvedAt: new Date(),
+          lastResponseAt: new Date(),
+          updatedAt: new Date()
+        })
+        .where(eq(supportTickets.id, ticketId))
+        .returning();
+      
+      res.json({ 
+        data: {
+          ticket: updatedTicket,
+          response: response
+        }
+      });
+    } catch (error) {
+      console.error('Error resolving ticket:', error);
+      res.status(500).json({ error: 'Failed to resolve ticket' });
+    }
+  }
+);
+
 export { router as adminSupportRouter };
