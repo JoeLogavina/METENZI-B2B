@@ -26,12 +26,17 @@ import {
   TrendingUp,
   FileText,
   UserCheck,
-  MessageSquare
+  MessageSquare,
+  Send,
+  User,
+  Calendar,
+  X
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 // Form schemas
 const createArticleSchema = z.object({
@@ -52,6 +57,14 @@ const createFaqSchema = z.object({
 type CreateArticleForm = z.infer<typeof createArticleSchema>;
 type CreateFaqForm = z.infer<typeof createFaqSchema>;
 
+// Response form schema
+const createResponseSchema = z.object({
+  message: z.string().min(1, "Message is required"),
+  isInternal: z.boolean().default(false)
+});
+
+type CreateResponseForm = z.infer<typeof createResponseSchema>;
+
 export function AdminSupportManagement() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -60,6 +73,243 @@ export function AdminSupportManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
+  const [selectedTicket, setSelectedTicket] = useState<any>(null);
+  const [showTicketDetail, setShowTicketDetail] = useState(false);
+  const [newResponse, setNewResponse] = useState("");
+
+  // Ticket Detail Dialog Component
+  const TicketDetailDialog = ({ ticket, onClose }: { ticket: any; onClose: () => void }) => {
+    const [responseMessage, setResponseMessage] = useState("");
+    const [isInternal, setIsInternal] = useState(false);
+
+    // Ticket responses query
+    const { data: ticketResponses, isLoading: responsesLoading } = useQuery({
+      queryKey: ['/api/admin/support/tickets', ticket.id, 'responses'],
+      retry: false
+    });
+
+    // Submit response mutation
+    const submitResponseMutation = useMutation({
+      mutationFn: async (data: { message: string; isInternal: boolean }) => {
+        const response = await fetch(`/api/admin/support/tickets/${ticket.id}/responses`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Failed to send response: ${response.statusText}`);
+        }
+        
+        return response.json();
+      },
+      onSuccess: () => {
+        toast({
+          title: "Success",
+          description: "Response sent successfully",
+        });
+        setResponseMessage("");
+        setIsInternal(false);
+        queryClient.invalidateQueries({ queryKey: ['/api/admin/support/tickets', ticket.id, 'responses'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/admin/support/tickets'] });
+      },
+      onError: (error) => {
+        toast({
+          title: "Error",
+          description: "Failed to send response",
+          variant: "destructive",
+        });
+      }
+    });
+
+    const handleSubmitResponse = () => {
+      if (!responseMessage.trim()) return;
+      
+      submitResponseMutation.mutate({
+        message: responseMessage,
+        isInternal: isInternal
+      });
+    };
+
+    return (
+      <Dialog open={showTicketDetail} onOpenChange={onClose}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <div className="flex items-center justify-between">
+              <DialogTitle className="text-[#6E6F71]">
+                Ticket #{ticket.ticketNumber}
+              </DialogTitle>
+              <Button variant="ghost" size="sm" onClick={onClose}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            {/* Ticket Header */}
+            <Card className="border-[#6E6F71]">
+              <CardHeader className="bg-[#6E6F71] text-white">
+                <CardTitle className="flex items-center justify-between">
+                  <span>{ticket.title}</span>
+                  <div className="flex gap-2">
+                    <Badge variant={ticket.status === 'open' ? 'destructive' : 'secondary'}>
+                      {ticket.status.replace('_', ' ')}
+                    </Badge>
+                    <Badge variant="outline" className="text-white border-white">
+                      {ticket.priority}
+                    </Badge>
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="font-medium text-[#6E6F71]">Created by:</span> {ticket.userId}
+                  </div>
+                  <div>
+                    <span className="font-medium text-[#6E6F71]">Category:</span> {ticket.category}
+                  </div>
+                  <div>
+                    <span className="font-medium text-[#6E6F71]">Created:</span> {new Date(ticket.createdAt).toLocaleString()}
+                  </div>
+                  <div>
+                    <span className="font-medium text-[#6E6F71]">Last updated:</span> {new Date(ticket.updatedAt).toLocaleString()}
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <span className="font-medium text-[#6E6F71]">Description:</span>
+                  <p className="mt-2 text-gray-700 bg-gray-50 p-3 rounded">{ticket.description}</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Conversation Thread */}
+            <Card className="border-[#6E6F71]">
+              <CardHeader>
+                <CardTitle className="text-[#6E6F71] flex items-center gap-2">
+                  <MessageCircle className="w-5 h-5" />
+                  Conversation
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4">
+                <div className="space-y-4 max-h-96 overflow-y-auto">
+                  {/* Initial ticket message */}
+                  <div className="flex gap-3 p-3 bg-blue-50 rounded-lg">
+                    <div className="flex-shrink-0">
+                      <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                        <User className="w-4 h-4 text-white" />
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-medium text-[#6E6F71]">{ticket.userId}</span>
+                        <span className="text-xs text-gray-500">
+                          {new Date(ticket.createdAt).toLocaleString()}
+                        </span>
+                        <Badge variant="outline" className="text-xs">Original Request</Badge>
+                      </div>
+                      <p className="text-gray-700">{ticket.description}</p>
+                    </div>
+                  </div>
+
+                  {/* Load responses here */}
+                  {responsesLoading ? (
+                    <div className="text-center py-4">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#6E6F71] mx-auto"></div>
+                      <p className="mt-2 text-sm text-gray-500">Loading responses...</p>
+                    </div>
+                  ) : ticketResponses?.data?.length > 0 ? (
+                    ticketResponses.data.map((response: any) => (
+                      <div key={response.id} className={`flex gap-3 p-3 rounded-lg ${
+                        response.isInternal ? 'bg-yellow-50 border-l-4 border-yellow-400' : 'bg-gray-50'
+                      }`}>
+                        <div className="flex-shrink-0">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                            response.userId === 'admin-1' ? 'bg-[#FFB20F]' : 'bg-gray-400'
+                          }`}>
+                            <User className="w-4 h-4 text-white" />
+                          </div>
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-medium text-[#6E6F71]">
+                              {response.userId === 'admin-1' ? 'Admin' : response.userId}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {new Date(response.createdAt).toLocaleString()}
+                            </span>
+                            {response.isInternal && (
+                              <Badge variant="outline" className="text-xs bg-yellow-100">Internal Note</Badge>
+                            )}
+                          </div>
+                          <p className="text-gray-700">{response.message}</p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-center text-gray-500 py-4">No responses yet</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Response Form */}
+            <Card className="border-[#FFB20F]">
+              <CardHeader>
+                <CardTitle className="text-[#6E6F71] flex items-center gap-2">
+                  <Send className="w-5 h-5" />
+                  Send Response
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4">
+                <div className="space-y-4">
+                  <Textarea
+                    placeholder="Type your response here..."
+                    value={responseMessage}
+                    onChange={(e) => setResponseMessage(e.target.value)}
+                    className="min-h-[100px] border-[#6E6F71] focus:border-[#FFB20F]"
+                  />
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="isInternal"
+                        checked={isInternal}
+                        onChange={(e) => setIsInternal(e.target.checked)}
+                        className="rounded"
+                      />
+                      <label htmlFor="isInternal" className="text-sm text-[#6E6F71]">
+                        Internal note (not visible to customer)
+                      </label>
+                    </div>
+                    
+                    <Button
+                      onClick={handleSubmitResponse}
+                      disabled={!responseMessage.trim() || submitResponseMutation.isPending}
+                      className="bg-[#FFB20F] hover:bg-[#e6a00e] text-black"
+                    >
+                      {submitResponseMutation.isPending ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black mr-2"></div>
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-4 h-4 mr-2" />
+                          Send Response
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  };
 
   // Statistics query
   const { data: stats, isLoading: statsLoading } = useQuery({
@@ -101,6 +351,8 @@ export function AdminSupportManagement() {
     queryKey: ['/api/admin/support/faqs'],
     retry: false
   });
+
+
 
   const statsData = (stats as any)?.data || {
     total: 0,
@@ -344,10 +596,8 @@ export function AdminSupportManagement() {
                             size="sm"
                             className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white"
                             onClick={() => {
-                              toast({
-                                title: "Ticket Details",
-                                description: `Ticket: ${ticket.title}\nDescription: ${ticket.description}\nStatus: ${ticket.status}\nPriority: ${ticket.priority}`,
-                              });
+                              setSelectedTicket(ticket);
+                              setShowTicketDetail(true);
                             }}
                           >
                             View Details
@@ -828,6 +1078,19 @@ export function AdminSupportManagement() {
           <FAQSection />
         </TabsContent>
       </Tabs>
+
+      {/* Ticket Detail Dialog */}
+      {showTicketDetail && selectedTicket && (
+        <TicketDetailDialog 
+          ticket={selectedTicket} 
+          onClose={() => {
+            setShowTicketDetail(false);
+            setSelectedTicket(null);
+          }}
+        />
+      )}
     </div>
   );
+
+
 }

@@ -335,6 +335,49 @@ router.put('/tickets/:id',
   }
 );
 
+// GET /api/support/tickets/:id/responses - Get responses for specific ticket
+router.get('/tickets/:id/responses',
+  tenantAuthMiddleware,
+  auditLog('support:tickets:responses:list'),
+  async (req: any, res) => {
+    try {
+      const { tenantId } = req.tenant;
+      const { userId, role } = req.user;
+      const ticketId = req.params.id;
+      
+      // Verify ticket exists and user has access
+      const [ticket] = await db
+        .select()
+        .from(supportTickets)
+        .where(and(
+          eq(supportTickets.id, ticketId),
+          eq(supportTickets.tenantId, tenantId)
+        ));
+      
+      if (!ticket) {
+        return res.status(404).json({ error: 'Ticket not found' });
+      }
+      
+      // Check permissions
+      if (role !== 'super_admin' && role !== 'admin' && ticket.userId !== userId) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+      
+      // Get responses
+      const responses = await db
+        .select()
+        .from(ticketResponses)
+        .where(eq(ticketResponses.ticketId, ticketId))
+        .orderBy(asc(ticketResponses.createdAt));
+      
+      res.json({ data: responses });
+    } catch (error) {
+      console.error('Error fetching ticket responses:', error);
+      res.status(500).json({ error: 'Failed to fetch ticket responses' });
+    }
+  }
+);
+
 // POST /api/support/tickets/:id/responses - Add response to ticket
 router.post('/tickets/:id/responses',
   tenantAuthMiddleware,
