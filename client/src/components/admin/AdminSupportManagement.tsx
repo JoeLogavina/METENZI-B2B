@@ -82,10 +82,11 @@ export function AdminSupportManagement() {
     const [responseMessage, setResponseMessage] = useState("");
     const [isInternal, setIsInternal] = useState(false);
 
-    // Ticket responses query
+    // Ticket responses query with auto-refresh
     const { data: ticketResponses, isLoading: responsesLoading } = useQuery({
       queryKey: [`/api/admin/support/tickets/${ticket.id}/responses`],
-      retry: false
+      retry: false,
+      refetchInterval: 5000 // Refresh every 5 seconds to show new customer responses
     });
 
     // Submit response mutation
@@ -155,17 +156,16 @@ export function AdminSupportManagement() {
           <DialogHeader>
             <div className="flex items-center justify-between">
               <DialogTitle className="text-[#6E6F71]">
-                Ticket #{ticket.ticketNumber}
+                Ticket #{ticket.ticketNumber} - {ticket.title}
               </DialogTitle>
               <Button variant="ghost" size="sm" onClick={onClose}>
                 <X className="w-4 h-4" />
               </Button>
             </div>
-
+            <p id="ticket-dialog-description" className="text-sm text-gray-600">
+              View and manage customer support ticket conversation. Auto-refreshes every 5 seconds to show new customer responses.
+            </p>
           </DialogHeader>
-          <div id="ticket-dialog-description" className="sr-only">
-            View and manage customer support ticket conversation
-          </div>
 
           <div className="space-y-6">
             {/* Ticket Header */}
@@ -336,13 +336,15 @@ export function AdminSupportManagement() {
   // Statistics query
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['/api/admin/support/tickets/stats'],
-    retry: false
+    retry: false,
+    refetchInterval: 30000 // Refresh every 30 seconds
   });
 
   // Tickets query
   const { data: tickets, isLoading: ticketsLoading } = useQuery({
     queryKey: ['/api/admin/support/tickets'],
-    retry: false
+    retry: false,
+    refetchInterval: 15000 // Refresh every 15 seconds to catch new responses
   });
 
   // Filtered tickets for display
@@ -591,15 +593,28 @@ export function AdminSupportManagement() {
                       </td>
                     </tr>
                   ) : (
-                    ticketData.map((ticket: any) => (
-                      <tr key={ticket.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-4">
-                          <div>
-                            <div className="text-sm font-medium text-[#6E6F71]">#{ticket.ticketNumber}</div>
-                            <div className="text-sm font-semibold text-gray-900">{ticket.title}</div>
-                            <div className="text-sm text-gray-500 truncate max-w-xs">{ticket.description}</div>
-                          </div>
-                        </td>
+                    ticketData.map((ticket: any) => {
+                      // Check if ticket has recent activity (within last 5 minutes)
+                      const isRecentlyUpdated = ticket.lastResponseAt && 
+                        new Date(ticket.lastResponseAt) > new Date(Date.now() - 5 * 60 * 1000);
+                      
+                      return (
+                        <tr key={ticket.id} className={`hover:bg-gray-50 ${isRecentlyUpdated ? 'bg-yellow-50 border-l-4 border-[#FFB20F]' : ''}`}>
+                          <td className="px-4 py-4">
+                            <div className="flex items-center gap-2">
+                              {isRecentlyUpdated && (
+                                <div className="w-2 h-2 bg-[#FFB20F] rounded-full animate-pulse"></div>
+                              )}
+                              <div>
+                                <div className="text-sm font-medium text-[#6E6F71]">#{ticket.ticketNumber}</div>
+                                <div className="text-sm font-semibold text-gray-900">{ticket.title}</div>
+                                <div className="text-sm text-gray-500 truncate max-w-xs">{ticket.description}</div>
+                                {isRecentlyUpdated && (
+                                  <div className="text-xs text-[#FFB20F] font-medium">New Response!</div>
+                                )}
+                              </div>
+                            </div>
+                          </td>
                         <td className="px-4 py-4">
                           <div className="text-sm text-[#6E6F71]">{ticket.userId}</div>
                           <div className="text-sm text-gray-500 capitalize">{ticket.category}</div>
@@ -625,8 +640,9 @@ export function AdminSupportManagement() {
                             View Details
                           </Button>
                         </td>
-                      </tr>
-                    ))
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
