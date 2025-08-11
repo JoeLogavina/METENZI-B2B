@@ -133,7 +133,7 @@ export function AdminSupportManagement() {
 
     return (
       <Dialog open={showTicketDetail} onOpenChange={onClose}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" aria-describedby="ticket-dialog-description">
           <DialogHeader>
             <div className="flex items-center justify-between">
               <DialogTitle className="text-[#6E6F71]">
@@ -143,7 +143,11 @@ export function AdminSupportManagement() {
                 <X className="w-4 h-4" />
               </Button>
             </div>
+
           </DialogHeader>
+          <div id="ticket-dialog-description" className="sr-only">
+            View and manage customer support ticket conversation
+          </div>
 
           <div className="space-y-6">
             {/* Ticket Header */}
