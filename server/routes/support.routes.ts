@@ -84,10 +84,18 @@ router.get('/tickets',
   }
 );
 
+// Define frontend validation schema for tickets
+const frontendTicketSchema = z.object({
+  subject: z.string().min(5, 'Subject must be at least 5 characters'),
+  message: z.string().min(10, 'Message must be at least 10 characters'),
+  priority: z.enum(['low', 'medium', 'high', 'urgent']),
+  category: z.enum(['technical', 'billing', 'general', 'feature_request', 'bug_report'])
+});
+
 // POST /api/support/tickets - Create new support ticket
 router.post('/tickets',
   tenantAuthMiddleware,
-  validateRequest({ body: insertSupportTicketSchema.omit({ ticketNumber: true, userId: true, tenantId: true }) }),
+  validateRequest({ body: frontendTicketSchema }),
   auditLog('support:tickets:create'),
   async (req: any, res) => {
     try {
@@ -99,20 +107,88 @@ router.post('/tickets',
       const randomSuffix = Math.random().toString(36).substring(2, 8).toUpperCase();
       const ticketNumber = `SPT-${timestamp}-${randomSuffix}`;
       
+      // Map frontend field names to backend
+      const ticketData = {
+        title: req.body.subject, // Frontend sends 'subject', backend expects 'title'
+        description: req.body.message, // Frontend sends 'message', backend expects 'description'
+        priority: req.body.priority,
+        category: req.body.category,
+        ticketNumber,
+        userId,
+        tenantId
+      };
+      
       const [ticket] = await db
         .insert(supportTickets)
-        .values({
-          ...req.body,
-          ticketNumber,
-          userId,
-          tenantId
-        })
+        .values(ticketData)
         .returning();
       
       res.status(201).json({ data: ticket });
     } catch (error) {
       console.error('Error creating support ticket:', error);
       res.status(500).json({ error: 'Failed to create support ticket' });
+    }
+  }
+);
+
+// GET /api/support/tickets/stats - Get ticket statistics for current user
+router.get('/tickets/stats',
+  tenantAuthMiddleware,
+  auditLog('support:tickets:stats'),
+  async (req: any, res) => {
+    try {
+      const { tenantId } = req.tenant;
+      const { userId, role } = req.user;
+      
+      // Build WHERE conditions
+      let whereConditions: any[] = [eq(supportTickets.tenantId, tenantId)];
+      
+      // Non-admin users can only see their own tickets
+      if (role !== 'super_admin' && role !== 'admin') {
+        whereConditions.push(eq(supportTickets.userId, userId));
+      }
+      
+      // Get total tickets count
+      const [{ totalTickets }] = await db
+        .select({ totalTickets: sql<number>`count(*)` })
+        .from(supportTickets)
+        .where(and(...whereConditions));
+      
+      // Get tickets by status
+      const statusCounts = await db
+        .select({
+          status: supportTickets.status,
+          count: sql<number>`count(*)`
+        })
+        .from(supportTickets)
+        .where(and(...whereConditions))
+        .groupBy(supportTickets.status);
+      
+      // Get tickets by priority
+      const priorityCounts = await db
+        .select({
+          priority: supportTickets.priority,
+          count: sql<number>`count(*)`
+        })
+        .from(supportTickets)
+        .where(and(...whereConditions))
+        .groupBy(supportTickets.priority);
+      
+      // Transform to expected format
+      const stats = {
+        totalTickets: totalTickets || 0,
+        openTickets: statusCounts.find(s => s.status === 'open')?.count || 0,
+        resolvedTickets: statusCounts.find(s => s.status === 'resolved')?.count || 0,
+        pendingTickets: statusCounts.find(s => s.status === 'pending')?.count || 0,
+        highPriorityTickets: priorityCounts.find(p => p.priority === 'high')?.count || 0,
+        statusBreakdown: statusCounts,
+        priorityBreakdown: priorityCounts
+      };
+      
+      res.json({ data: stats });
+    } catch (error) {
+      console.error('Error fetching ticket stats:', error);
+      res.status(500).json({ error: 'Failed to fetch ticket statistics' });
     }
   }
 );
@@ -309,7 +385,7 @@ router.get('/chat/sessions',
 // POST /api/support/chat/sessions - Create new chat session
 router.post('/chat/sessions',
   tenantAuthMiddleware,
-  validateRequest({ body: insertChatSessionSchema.omit({ sessionId: true, userId: true, tenantId: true }) }),
+  validateRequest({ body: insertChatSessionSchema.omit({ userId: true, tenantId: true }) }),
   auditLog('support:chat:sessions:create'),
   async (req: any, res) => {
     try {
