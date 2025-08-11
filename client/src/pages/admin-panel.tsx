@@ -152,6 +152,31 @@ export default function AdminPanel() {
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [editProductId, setEditProductId] = useState<string | null>(null);
   
+  // Admin Support notification system - fetch ticket stats for badge count
+  const { data: adminTicketStats } = useQuery({
+    queryKey: ["/api/admin/support/tickets/stats"],
+    retry: false,
+    refetchInterval: 30000, // Refresh every 30 seconds
+    enabled: isAuthenticated
+  });
+
+  // Calculate notification count based on admin stats API response
+  const adminStatsData = (adminTicketStats as any)?.data;
+  const adminOpenTickets = parseInt(adminStatsData?.open || '0');
+  const adminInProgressTickets = parseInt(adminStatsData?.inProgress || '0');
+  const adminNotificationCount = adminOpenTickets + adminInProgressTickets;
+  const adminHasNewNotifications = adminNotificationCount > 0;
+
+  // Debug log for admin notification system
+  console.log('🔧 Admin notifications debug:', {
+    adminTicketStats,
+    adminStatsData,
+    adminOpenTickets,
+    adminInProgressTickets,
+    adminNotificationCount,
+    adminHasNewNotifications
+  });
+
   // Edit product states
   const [editProductFormData, setEditProductFormData] = useState({
     name: '',
@@ -422,6 +447,12 @@ export default function AdminPanel() {
               >
                 <item.icon className="w-6 h-6 mr-3" />
                 <span className="uppercase tracking-[0.5px] font-medium text-sm">{item.label}</span>
+                {/* Admin Support notification badge */}
+                {item.id === 'support' && adminHasNewNotifications && (
+                  <span className="ml-auto bg-[#E15554] text-white text-xs rounded-full min-w-[22px] h-6 px-2 flex items-center justify-center font-bold shadow-lg border-2 border-white animate-pulse">
+                    {adminNotificationCount > 99 ? '99+' : adminNotificationCount}
+                  </span>
+                )}
               </div>
             ))}
           </nav>
