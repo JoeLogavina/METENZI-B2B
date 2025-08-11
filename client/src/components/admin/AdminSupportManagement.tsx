@@ -58,8 +58,8 @@ export function AdminSupportManagement() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("overview");
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [priorityFilter, setPriorityFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [priorityFilter, setPriorityFilter] = useState("all");
 
   // Statistics query
   const { data: stats, isLoading: statsLoading } = useQuery({
@@ -69,7 +69,11 @@ export function AdminSupportManagement() {
 
   // Tickets query
   const { data: tickets, isLoading: ticketsLoading } = useQuery({
-    queryKey: ['/api/admin/support/tickets', { search: searchTerm, status: statusFilter, priority: priorityFilter }],
+    queryKey: ['/api/admin/support/tickets', { 
+      search: searchTerm, 
+      status: statusFilter === 'all' ? '' : statusFilter, 
+      priority: priorityFilter === 'all' ? '' : priorityFilter 
+    }],
     retry: false
   });
 
@@ -239,7 +243,7 @@ export function AdminSupportManagement() {
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Status</SelectItem>
+                  <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="open">Open</SelectItem>
                   <SelectItem value="in_progress">In Progress</SelectItem>
                   <SelectItem value="resolved">Resolved</SelectItem>
@@ -251,7 +255,7 @@ export function AdminSupportManagement() {
                   <SelectValue placeholder="Filter by priority" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Priority</SelectItem>
+                  <SelectItem value="all">All Priority</SelectItem>
                   <SelectItem value="low">Low</SelectItem>
                   <SelectItem value="medium">Medium</SelectItem>
                   <SelectItem value="high">High</SelectItem>
