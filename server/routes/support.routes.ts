@@ -342,7 +342,18 @@ router.get('/tickets/:id/responses',
   async (req: any, res) => {
     try {
       const { tenantId } = req.tenant;
-      const { userId, role } = req.user;
+      
+      // Extract userId with fallback methods (matching other endpoints)
+      let userId = null;
+      if (req.user && (req.user as any).id) {
+        userId = (req.user as any).id;
+      } else if (req.user && (req.user as any).userId) {
+        userId = (req.user as any).userId;
+      } else if (req.session && (req.session as any).passport && (req.session as any).passport.user) {
+        userId = (req.session as any).passport.user;
+      }
+      
+      const { role } = req.user;
       const ticketId = req.params.id;
       
       // Verify ticket exists and user has access
@@ -386,7 +397,18 @@ router.post('/tickets/:id/responses',
   async (req: any, res) => {
     try {
       const { tenantId } = req.tenant;
-      const { userId, role } = req.user;
+      
+      // Extract userId with fallback methods (matching other endpoints)
+      let userId = null;
+      if (req.user && (req.user as any).id) {
+        userId = (req.user as any).id;
+      } else if (req.user && (req.user as any).userId) {
+        userId = (req.user as any).userId;
+      } else if (req.session && (req.session as any).passport && (req.session as any).passport.user) {
+        userId = (req.session as any).passport.user;
+      }
+      
+      const { role } = req.user;
       const ticketId = req.params.id;
       
       // Verify ticket exists and user has access
