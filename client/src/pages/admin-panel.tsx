@@ -998,6 +998,7 @@ export default function AdminPanel() {
                 editProductData={editProductData}
                 editProductLoading={editProductLoading}
                 editProductLicenseKeys={editProductLicenseKeys}
+                licenseKeysError={licenseKeysError}
                 refetchEditLicenseKeys={refetchEditLicenseKeys}
                 categories={categories}
                 editProductFormData={editProductFormData}
@@ -1484,6 +1485,7 @@ function EditProductIntegratedSection({
   editProductData,
   editProductLoading,
   editProductLicenseKeys,
+  licenseKeysError,
   refetchEditLicenseKeys,
   categories,
   editProductFormData,
