@@ -2982,15 +2982,16 @@ XYZ12-ABC34-DEF56-GHI78-JKL90
         </div>
       )}
 
-      {/* Activation Instructions Tab */}
+      {/* Debug Test - This should always log */}
       <div style={{ display: 'none' }}>
-        {console.log('🔧 Checking activation tab render condition:', { 
+        {console.log('🔧 JSX Re-render Test:', { 
           editActiveTab, 
-          comparison: editActiveTab === "activation", 
-          typeof: typeof editActiveTab,
-          timestamp: new Date().toLocaleTimeString()
+          timestamp: new Date().toLocaleTimeString(),
+          componentRendering: 'EditProductIntegratedSection JSX rendering'
         })}
       </div>
+
+      {/* Activation Instructions Tab */}
       {editActiveTab === "activation" && (
         <div className="space-y-6">
           <div>
