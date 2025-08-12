@@ -3035,7 +3035,7 @@ XYZ12-ABC34-DEF56-GHI78-JKL90
     </Card>
 
     {/* Duplicate Warning Dialog */}
-      {showDuplicateDialog && (
+    {showDuplicateDialog && (
         <Dialog open={showDuplicateDialog} onOpenChange={setShowDuplicateDialog}>
           <DialogContent className="max-w-md">
             <DialogHeader>
