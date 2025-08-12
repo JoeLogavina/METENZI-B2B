@@ -2982,55 +2982,7 @@ XYZ12-ABC34-DEF56-GHI78-JKL90
         </div>
       )}
 
-      {/* Activation Instructions Tab */}
-      {editActiveTab === "activation" && (
-        <div className="space-y-6">
-          <div>
-            <h4 className="text-lg font-semibold text-gray-900 uppercase tracking-[0.5px] mb-4">
-              Activation Instructions
-            </h4>
-            <p className="text-sm text-gray-600 mb-6">
-              Provide HTML-formatted activation instructions for your customers.
-            </p>
-          </div>
 
-          <div className="grid grid-cols-1 gap-6">
-            <div>
-              <Label htmlFor="activationInstructionsEur" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px] mb-2">
-                EUR Instructions
-              </Label>
-              <Textarea
-                id="activationInstructionsEur"
-                value={editProductFormData.activationInstructionsEur || ''}
-                onChange={(e) => {
-                  setEditProductFormData({ ...editProductFormData, activationInstructionsEur: e.target.value });
-                  setEditUnsavedChanges(true);
-                }}
-                className="mt-1 font-mono text-sm"
-                rows={6}
-                placeholder="Enter activation instructions for EUR customers"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="activationInstructionsKm" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px] mb-2">
-                KM Instructions
-              </Label>
-              <Textarea
-                id="activationInstructionsKm"
-                value={editProductFormData.activationInstructionsKm || ''}
-                onChange={(e) => {
-                  setEditProductFormData({ ...editProductFormData, activationInstructionsKm: e.target.value });
-                  setEditUnsavedChanges(true);
-                }}
-                className="mt-1 font-mono text-sm"
-                rows={6}
-                placeholder="Enter activation instructions for KM customers"
-              />
-            </div>
-          </div>
-        </div>
-      )}
       </CardContent>
     </Card>
 
