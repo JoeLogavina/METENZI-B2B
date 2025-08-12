@@ -111,6 +111,10 @@ export class AdminProductsController {
   async updateProduct(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
+      
+      console.log('Raw request body before parsing:', req.body);
+      console.log('Raw allowDuplicateKeys in request:', req.body.allowDuplicateKeys, 'type:', typeof req.body.allowDuplicateKeys);
+      
       const updateData = updateProductSchema.parse(req.body); // Use schema validation
 
       console.log('Updating product:', id, 'with data:', updateData);
