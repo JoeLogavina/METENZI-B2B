@@ -323,6 +323,93 @@ const TicketDetailDialog = ({ ticket, onClose }: { ticket: any; onClose: () => v
   );
 };
 
+// Article Detail Dialog Component
+const ArticleDetailDialog = ({ article, onClose }: { article: any; onClose: () => void }) => {
+  return (
+    <Dialog open={!!article} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-[#6E6F71] uppercase tracking-[0.5px] text-xl">
+            {article?.title}
+          </DialogTitle>
+          <div className="flex items-center space-x-4 pt-2">
+            <Badge variant="outline" className="text-[#6E6F71] border-[#6E6F71]">
+              {article?.category?.replace('_', ' ')}
+            </Badge>
+            <span className="text-sm text-gray-500">
+              Published: {new Date(article?.createdAt).toLocaleDateString()}
+            </span>
+            {article?.viewCount > 0 && (
+              <span className="text-sm text-gray-500">
+                Views: {article.viewCount}
+              </span>
+            )}
+          </div>
+        </DialogHeader>
+        
+        <div className="space-y-6">
+          {/* Article excerpt */}
+          {article?.excerpt && (
+            <div className="bg-[#FFB20F]/10 p-4 rounded-lg border-l-4 border-[#FFB20F]">
+              <p className="text-[#6E6F71] font-medium italic">
+                {article.excerpt}
+              </p>
+            </div>
+          )}
+          
+          {/* Article content */}
+          <div className="prose max-w-none">
+            <div 
+              className="text-gray-700 leading-relaxed"
+              style={{ whiteSpace: 'pre-wrap' }}
+            >
+              {article?.content}
+            </div>
+          </div>
+          
+          {/* Tags if available */}
+          {article?.tags && article.tags.length > 0 && (
+            <div className="pt-4 border-t">
+              <div className="flex items-center space-x-2">
+                <span className="text-sm font-medium text-[#6E6F71]">Tags:</span>
+                <div className="flex flex-wrap gap-2">
+                  {article.tags.split(',').map((tag: string, index: number) => (
+                    <Badge key={index} variant="secondary" className="text-xs">
+                      {tag.trim()}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Article metadata */}
+          <div className="pt-4 border-t text-sm text-gray-500">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <strong>Created:</strong> {new Date(article?.createdAt).toLocaleString()}
+              </div>
+              <div>
+                <strong>Last Updated:</strong> {new Date(article?.updatedAt).toLocaleString()}
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex justify-end mt-6 pt-4 border-t">
+          <Button 
+            onClick={onClose}
+            variant="outline" 
+            className="border-[#6E6F71] text-[#6E6F71] hover:bg-[#6E6F71] hover:text-white"
+          >
+            Close
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 export function FrontendSupportManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -332,6 +419,8 @@ export function FrontendSupportManagement() {
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
   const [showTicketDetail, setShowTicketDetail] = useState(false);
+  const [selectedArticle, setSelectedArticle] = useState<any>(null);
+  const [showArticleDetail, setShowArticleDetail] = useState(false);
 
   // Statistics query  
   const { data: stats, isLoading: statsLoading } = useQuery({
@@ -812,7 +901,14 @@ export function FrontendSupportManagement() {
                 <div className="space-y-4">
                   {(kbArticles as any)?.data && (kbArticles as any).data.length > 0 ? (
                     (kbArticles as any).data.map((article: any) => (
-                      <Card key={article.id} className="hover:shadow-md transition-shadow">
+                      <Card 
+                        key={article.id} 
+                        className="hover:shadow-md transition-shadow cursor-pointer"
+                        onClick={() => {
+                          setSelectedArticle(article);
+                          setShowArticleDetail(true);
+                        }}
+                      >
                         <CardContent className="p-4">
                           <h3 className="font-semibold text-[#6E6F71] mb-2">
                             {article.title}
@@ -906,6 +1002,17 @@ export function FrontendSupportManagement() {
           onClose={() => {
             setShowTicketDetail(false);
             setSelectedTicket(null);
+          }}
+        />
+      )}
+
+      {/* Article Detail Dialog */}
+      {showArticleDetail && selectedArticle && (
+        <ArticleDetailDialog
+          article={selectedArticle}
+          onClose={() => {
+            setShowArticleDetail(false);
+            setSelectedArticle(null);
           }}
         />
       )}
