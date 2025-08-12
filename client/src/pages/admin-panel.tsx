@@ -2982,6 +2982,7 @@ XYZ12-ABC34-DEF56-GHI78-JKL90
       )}
 
       {/* Activation Instructions Tab */}
+      {console.log('🔧 Checking activation tab render condition:', { editActiveTab, comparison: editActiveTab === "activation", typeof: typeof editActiveTab })}
       {editActiveTab === "activation" && (
         <div className="space-y-6">
           <div>
