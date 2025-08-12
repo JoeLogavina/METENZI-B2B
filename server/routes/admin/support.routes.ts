@@ -321,7 +321,20 @@ router.post('/kb/articles',
   async (req: any, res) => {
     try {
       const { tenantId } = req.tenant;
-      const { userId } = req.user;
+      
+      // Extract userId with fallback methods (matching other endpoints)
+      let userId = null;
+      if (req.user && (req.user as any).id) {
+        userId = (req.user as any).id;
+      } else if (req.user && (req.user as any).userId) {
+        userId = (req.user as any).userId;
+      } else if (req.session && (req.session as any).passport && (req.session as any).passport.user) {
+        userId = (req.session as any).passport.user;
+      }
+      
+      if (!userId) {
+        return res.status(401).json({ error: 'User not authenticated' });
+      }
       
       const [article] = await db
         .insert(knowledgeBaseArticles)

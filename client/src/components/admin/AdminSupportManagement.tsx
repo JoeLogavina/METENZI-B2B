@@ -41,7 +41,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 // Form schemas
 const createArticleSchema = z.object({
   title: z.string().min(1, "Title is required"),
+  slug: z.string().min(1, "Slug is required"),
   content: z.string().min(10, "Content must be at least 10 characters"),
+  excerpt: z.string().optional(),
   category: z.string().min(1, "Category is required"),
   tags: z.string().optional(),
   isPublished: z.boolean().default(true)
@@ -784,16 +786,34 @@ export function AdminSupportManagement() {
   const KnowledgeBaseSection = () => {
     const [showCreateForm, setShowCreateForm] = useState(false);
 
+    // Function to generate slug from title
+    const generateSlug = (title: string) => {
+      return title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+    };
+
     const form = useForm<CreateArticleForm>({
       resolver: zodResolver(createArticleSchema),
       defaultValues: {
         title: '',
+        slug: '',
         content: '',
+        excerpt: '',
         category: '',
         tags: '',
         isPublished: true
       }
     });
+
+    // Watch title field to auto-generate slug
+    const watchedTitle = form.watch('title');
+    React.useEffect(() => {
+      if (watchedTitle) {
+        form.setValue('slug', generateSlug(watchedTitle));
+      }
+    }, [watchedTitle, form]);
 
     const createArticleMutation = useMutation({
       mutationFn: async (data: CreateArticleForm) => {
@@ -880,6 +900,43 @@ export function AdminSupportManagement() {
                       
                       <FormField
                         control={form.control}
+                        name="slug"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-[#6E6F71]">Slug (URL-friendly)</FormLabel>
+                            <FormControl>
+                              <Input 
+                                {...field} 
+                                className="border-[#6E6F71] focus:border-[#FFB20F]"
+                                placeholder="Auto-generated from title"
+                                readOnly
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="excerpt"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-[#6E6F71]">Excerpt (Optional)</FormLabel>
+                            <FormControl>
+                              <Input 
+                                {...field} 
+                                className="border-[#6E6F71] focus:border-[#FFB20F]"
+                                placeholder="Brief summary of the article"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
                         name="category"
                         render={({ field }) => (
                           <FormItem>
@@ -890,10 +947,11 @@ export function AdminSupportManagement() {
                                   <SelectValue placeholder="Select category" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="general">General</SelectItem>
+                                  <SelectItem value="getting_started">Getting Started</SelectItem>
                                   <SelectItem value="technical">Technical</SelectItem>
                                   <SelectItem value="billing">Billing</SelectItem>
                                   <SelectItem value="account">Account</SelectItem>
+                                  <SelectItem value="troubleshooting">Troubleshooting</SelectItem>
                                 </SelectContent>
                               </Select>
                             </FormControl>
