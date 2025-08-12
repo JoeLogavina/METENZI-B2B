@@ -660,6 +660,7 @@ export class DatabaseStorage implements IStorage {
             imageUrl: products.imageUrl,
             warranty: products.warranty,
             htmlDescription: products.htmlDescription,
+            allowDuplicateKeys: products.allowDuplicateKeys,
             isActive: products.isActive,
             createdAt: products.createdAt,
             updatedAt: products.updatedAt,
