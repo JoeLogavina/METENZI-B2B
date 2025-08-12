@@ -1622,7 +1622,10 @@ function EditProductIntegratedSection({
         ...editEurPricing,
         ...editKmPricing,
         categoryId: editProductFormData.category || 'cat-software', // Default to Software category if empty
-        stock: editEurPricing.stock ? parseInt(editEurPricing.stock) : undefined
+        stock: editEurPricing.stock ? parseInt(editEurPricing.stock) : undefined,
+        // Explicitly preserve critical fields that might be overwritten
+        allowDuplicateKeys: editProductFormData.allowDuplicateKeys,
+        isActive: editProductFormData.isActive
       };
 
       console.log('Submitting product data:', submitData);
