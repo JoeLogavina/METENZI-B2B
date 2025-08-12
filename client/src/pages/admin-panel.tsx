@@ -1597,7 +1597,7 @@ function EditProductIntegratedSection({
         ...editProductFormData,
         ...editEurPricing,
         ...editKmPricing,
-        categoryId: editProductFormData.category,
+        categoryId: editProductFormData.category || 'cat-software', // Default to Software category if empty
         stock: editEurPricing.stock ? parseInt(editEurPricing.stock) : undefined
       };
 
