@@ -113,6 +113,7 @@ export class AdminProductsController {
       const updateData = req.body;
 
       console.log('Updating product:', id, 'with data:', updateData);
+      console.log('allowDuplicateKeys field value:', updateData.allowDuplicateKeys, 'type:', typeof updateData.allowDuplicateKeys);
 
       const product = await productService.updateProduct(id, updateData);
 
