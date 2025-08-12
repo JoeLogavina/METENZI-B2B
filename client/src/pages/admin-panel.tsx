@@ -1854,7 +1854,10 @@ function EditProductIntegratedSection({
               </button>
               <button
                 type="button"
-                onClick={() => setEditActiveTab('activation')}
+                onClick={() => {
+                  console.log('🔥 Activation tab clicked, setting editActiveTab to activation');
+                  setEditActiveTab('activation');
+                }}
                 className={`py-2 px-1 border-b-2 font-medium text-sm uppercase tracking-[0.5px] ${
                   editActiveTab === "activation"
                     ? "border-[#FFB20F] text-[#FFB20F]"
@@ -2980,7 +2983,7 @@ XYZ12-ABC34-DEF56-GHI78-JKL90
               Activation Instructions
             </h4>
             <div style={{ display: 'none' }}>
-              {console.log('🔧 Activation tab rendering, editProductFormData:', editProductFormData)}
+              {console.log('🔧 Activation tab rendering, editActiveTab:', editActiveTab, 'editProductFormData:', editProductFormData)}
             </div>
             <p className="text-sm text-gray-600 mb-6">
               Provide HTML-formatted activation instructions for your customers. These will be displayed on the order confirmation page and in customer emails.
