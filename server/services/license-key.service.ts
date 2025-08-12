@@ -57,28 +57,43 @@ export class LicenseKeyServiceImpl implements ILicenseKeyService {
       console.log('DEBUG Service: Raw key values:', keyValues);
       console.log('DEBUG Service: Number of raw keys:', keyValues.length);
       
+      // Get product settings to check if duplicates are allowed
+      const [product] = await db
+        .select({ allowDuplicateKeys: products.allowDuplicateKeys })
+        .from(products)
+        .where(eq(products.id, productId));
+      
+      const allowDuplicates = product?.allowDuplicateKeys || false;
+      console.log('DEBUG Service: Allow duplicate keys for this product:', allowDuplicates);
+      
       // Validate keys format
       const validatedKeys = this.validateKeys(keyValues);
       console.log('DEBUG Service: Valid keys after validation:', validatedKeys);
       console.log('DEBUG Service: Number of valid keys:', validatedKeys.length);
       
-      // Check for existing keys
-      const existingKeys = await db
-        .select({ keyValue: licenseKeys.keyValue })
-        .from(licenseKeys)
-        .where(eq(licenseKeys.productId, productId));
+      let newKeys: string[] = [];
+      let duplicates: string[] = [];
       
-      console.log('DEBUG Service: Existing keys in DB:', existingKeys);
-      const existingKeyValues = new Set(existingKeys.map(k => k.keyValue));
-      
-      const newKeys: string[] = [];
-      const duplicates: string[] = [];
-      
-      for (const key of validatedKeys) {
-        if (existingKeyValues.has(key)) {
-          duplicates.push(key);
-        } else {
-          newKeys.push(key);
+      if (allowDuplicates) {
+        // If duplicates are allowed, add all validated keys
+        newKeys = validatedKeys;
+        console.log('DEBUG Service: Duplicate keys allowed - adding all keys');
+      } else {
+        // Check for existing keys only if duplicates are not allowed
+        const existingKeys = await db
+          .select({ keyValue: licenseKeys.keyValue })
+          .from(licenseKeys)
+          .where(eq(licenseKeys.productId, productId));
+        
+        console.log('DEBUG Service: Existing keys in DB:', existingKeys);
+        const existingKeyValues = new Set(existingKeys.map(k => k.keyValue));
+        
+        for (const key of validatedKeys) {
+          if (existingKeyValues.has(key)) {
+            duplicates.push(key);
+          } else {
+            newKeys.push(key);
+          }
         }
       }
       

@@ -187,7 +187,8 @@ export default function AdminPanel() {
     platform: '',
     region: '',
     imageUrl: '',
-    isActive: true
+    isActive: true,
+    allowDuplicateKeys: false
   });
   const [editEurPricing, setEditEurPricing] = useState({
     price: '',
@@ -1524,7 +1525,8 @@ function EditProductIntegratedSection({
         platform: prod.platform || '',
         region: prod.region || '',
         imageUrl: prod.imageUrl || '',
-        isActive: prod.isActive ?? true
+        isActive: prod.isActive ?? true,
+        allowDuplicateKeys: prod.allowDuplicateKeys ?? false
       });
 
       setEditEurPricing({
@@ -2232,6 +2234,37 @@ function EditProductIntegratedSection({
               </div>
 
               <div className="space-y-4">
+                {/* Allow Duplicate Keys Toggle */}
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
+                  <div className="flex-1">
+                    <label htmlFor="allowDuplicateKeys" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px] cursor-pointer">
+                      Allow Duplicate License Keys
+                    </label>
+                    <p className="text-xs text-gray-600 mt-1">
+                      When enabled, identical license keys can be added to the pool
+                    </p>
+                    {editProductFormData.allowDuplicateKeys && (
+                      <p className="text-xs text-yellow-600 mt-1 flex items-center gap-1">
+                        <span>⚠️</span>
+                        Warning: Duplicate keys are allowed for this product
+                      </p>
+                    )}
+                  </div>
+                  <input
+                    id="allowDuplicateKeys"
+                    type="checkbox"
+                    checked={editProductFormData.allowDuplicateKeys}
+                    onChange={(e) => {
+                      setEditProductFormData({ 
+                        ...editProductFormData, 
+                        allowDuplicateKeys: e.target.checked 
+                      });
+                      setEditUnsavedChanges(true);
+                    }}
+                    className="w-4 h-4 text-[#FFB20F] bg-gray-100 border-gray-300 rounded focus:ring-[#FFB20F] focus:ring-2"
+                  />
+                </div>
+
                 <div>
                   <Label htmlFor="licenseKeys" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px]">
                     Add New License Keys (One per line)
