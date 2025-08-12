@@ -102,6 +102,7 @@ Complete production CommonJS server implemented with full API functionality for 
 - Error handling displays "Duplicate keys already exist" when duplicates are detected
 - Toggle functionality tested and confirmed working with proper visual feedback
 - All TypeScript compilation issues resolved with complete schema compatibility
+- **CRITICAL BUG FIXED (August 12, 2025):** Resolved schema validation issue where route-specific updateProductSchema in products.routes.ts was missing allowDuplicateKeys field, causing validateRequest middleware to strip the field before reaching controller. Added allowDuplicateKeys: z.boolean().optional() to fix field persistence throughout request lifecycle.
 
 Core features include:
 - **Hierarchical Category System**: A 3-level system using self-referencing and materialized paths.
