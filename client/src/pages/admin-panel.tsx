@@ -2991,8 +2991,8 @@ XYZ12-ABC34-DEF56-GHI78-JKL90
         })}
       </div>
 
-      {/* Activation Instructions Tab */}
-      {editActiveTab === "activation" && (
+      {/* Activation Instructions Tab - ALWAYS RENDER FOR TESTING */}
+      {(editActiveTab === "activation" || true) && (
         <div className="space-y-6">
           <div>
             <h4 className="text-lg font-semibold text-gray-900 uppercase tracking-[0.5px] mb-4">
