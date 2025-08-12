@@ -2982,14 +2982,11 @@ XYZ12-ABC34-DEF56-GHI78-JKL90
         </div>
       )}
 
-      {/* VISIBLE TEST ELEMENT - Should Always Show */}
-      <div className="bg-red-500 text-white p-4 mb-4">
-        <h3>DEBUG: Activation Test - editActiveTab: {editActiveTab}</h3>
-        <p>This should always be visible. Tab condition: {editActiveTab === "activation" ? "TRUE" : "FALSE"}</p>
-      </div>
-
-      {/* Activation Instructions Tab - ALWAYS RENDER FOR TESTING */}
-      {(editActiveTab === "activation" || true) && (
+      {/* Activation Instructions Tab - NO CONDITIONS */}
+      <div className="space-y-6 bg-green-200 border-4 border-green-600 p-6">
+        <div className="bg-red-500 text-white p-4 text-center">
+          <h2>🚨 ACTIVATION DEBUG: Tab={editActiveTab} | Should render when activation=true</h2>
+        </div>
         <div className="space-y-6">
           <div>
             <h4 className="text-lg font-semibold text-gray-900 uppercase tracking-[0.5px] mb-4">
