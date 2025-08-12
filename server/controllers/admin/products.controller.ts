@@ -22,6 +22,7 @@ const productParamsSchema = z.object({
 
 const updateProductSchema = insertProductSchema.partial().extend({
   stock: z.union([z.string(), z.number()]).transform(val => val ? Number(val) : 0).optional(),
+  allowDuplicateKeys: z.boolean().optional(), // Explicitly include allowDuplicateKeys for updates
 });
 
 export class AdminProductsController {
@@ -110,7 +111,7 @@ export class AdminProductsController {
   async updateProduct(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      const updateData = req.body;
+      const updateData = updateProductSchema.parse(req.body); // Use schema validation
 
       console.log('Updating product:', id, 'with data:', updateData);
       console.log('allowDuplicateKeys field value:', updateData.allowDuplicateKeys, 'type:', typeof updateData.allowDuplicateKeys);
