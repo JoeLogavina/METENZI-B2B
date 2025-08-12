@@ -627,6 +627,7 @@ export const insertProductSchema = createInsertSchema(products).omit({
   warranty: z.string().optional(),
   htmlDescription: z.string().optional(),
   stockCount: z.union([z.string(), z.number()]).transform(val => val ? Number(val) : 0).optional(),
+  allowDuplicateKeys: z.boolean().optional(), // Add explicit support for allowDuplicateKeys field
 });
 
 export const insertCategorySchema = createInsertSchema(categories).omit({
