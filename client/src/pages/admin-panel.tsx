@@ -2982,13 +2982,10 @@ XYZ12-ABC34-DEF56-GHI78-JKL90
         </div>
       )}
 
-      {/* Debug Test - This should always log */}
-      <div style={{ display: 'none' }}>
-        {console.log('🔧 JSX Re-render Test:', { 
-          editActiveTab, 
-          timestamp: new Date().toLocaleTimeString(),
-          componentRendering: 'EditProductIntegratedSection JSX rendering'
-        })}
+      {/* VISIBLE TEST ELEMENT - Should Always Show */}
+      <div className="bg-red-500 text-white p-4 mb-4">
+        <h3>DEBUG: Activation Test - editActiveTab: {editActiveTab}</h3>
+        <p>This should always be visible. Tab condition: {editActiveTab === "activation" ? "TRUE" : "FALSE"}</p>
       </div>
 
       {/* Activation Instructions Tab - ALWAYS RENDER FOR TESTING */}
