@@ -2981,10 +2981,8 @@ XYZ12-ABC34-DEF56-GHI78-JKL90
           </div>
         </div>
       )}
-
-
-      </CardContent>
-    </Card>
+    </div>
+  );
 
     {/* Duplicate Warning Dialog */}
     {showDuplicateDialog && (
