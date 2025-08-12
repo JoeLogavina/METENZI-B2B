@@ -494,9 +494,23 @@ export function AdminSupportManagement() {
   }, [(tickets as any)?.data, searchTerm, statusFilter, priorityFilter]);
 
   // Knowledge base articles query
-  const { data: articles, isLoading: articlesLoading } = useQuery({
+  const { data: articles, isLoading: articlesLoading, refetch: refetchArticles } = useQuery({
     queryKey: ['/api/admin/support/kb/articles'],
-    retry: false
+    retry: false,
+    queryFn: async () => {
+      const response = await fetch('/api/admin/support/kb/articles', {
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      return response.json();
+    }
   });
 
   // FAQ query
@@ -519,6 +533,13 @@ export function AdminSupportManagement() {
   const ticketData = filteredTickets || [];
   const articleData = (articles as any)?.data || [];
   const faqData = (faqs as any)?.data || [];
+
+  // Debug articles data
+  React.useEffect(() => {
+    if (articles) {
+      console.log('🔧 KB Articles debug:', { articles, articleData });
+    }
+  }, [articles, articleData]);
 
   // Overview Section Component
   const OverviewSection = () => (
@@ -819,6 +840,7 @@ export function AdminSupportManagement() {
       mutationFn: async (data: CreateArticleForm) => {
         const response = await fetch('/api/admin/support/kb/articles', {
           method: 'POST',
+          credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
           },
@@ -838,7 +860,9 @@ export function AdminSupportManagement() {
         });
         form.reset();
         setShowCreateForm(false);
+        // Force refresh articles
         queryClient.invalidateQueries({ queryKey: ['/api/admin/support/kb/articles'] });
+        refetchArticles();
       },
       onError: (error) => {
         toast({
