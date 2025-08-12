@@ -2969,7 +2969,7 @@ XYZ12-ABC34-DEF56-GHI78-JKL90
       )}
 
       {/* Activation Instructions Tab */}
-      {currentTab === "activation" && (
+      {editActiveTab === "activation" && (
         <div className="space-y-6">
           <div>
             <h4 className="text-lg font-semibold text-gray-900 uppercase tracking-[0.5px] mb-4">
@@ -2989,8 +2989,11 @@ XYZ12-ABC34-DEF56-GHI78-JKL90
               </Label>
               <Textarea
                 id="activationInstructionsEur"
-                value={formData.activationInstructionsEur}
-                onChange={(e) => setFormData({ ...formData, activationInstructionsEur: e.target.value })}
+                value={editProductFormData.activationInstructionsEur}
+                onChange={(e) => {
+                  setEditProductFormData({ ...editProductFormData, activationInstructionsEur: e.target.value });
+                  setEditUnsavedChanges(true);
+                }}
                 className="mt-1 font-mono text-sm"
                 rows={8}
                 placeholder={`Enter HTML-formatted activation instructions for EUR customers:
@@ -3014,8 +3017,11 @@ XYZ12-ABC34-DEF56-GHI78-JKL90
               </Label>
               <Textarea
                 id="activationInstructionsKm"
-                value={formData.activationInstructionsKm}
-                onChange={(e) => setFormData({ ...formData, activationInstructionsKm: e.target.value })}
+                value={editProductFormData.activationInstructionsKm}
+                onChange={(e) => {
+                  setEditProductFormData({ ...editProductFormData, activationInstructionsKm: e.target.value });
+                  setEditUnsavedChanges(true);
+                }}
                 className="mt-1 font-mono text-sm"
                 rows={8}
                 placeholder={`Enter HTML-formatted activation instructions for KM customers:
@@ -3042,10 +3048,10 @@ XYZ12-ABC34-DEF56-GHI78-JKL90
               <div>
                 <div className="text-xs text-gray-500 uppercase tracking-[0.5px] mb-2">EUR Customer View</div>
                 <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 min-h-[150px]">
-                  {formData.activationInstructionsEur ? (
+                  {editProductFormData.activationInstructionsEur ? (
                     <div 
                       className="prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={{ __html: formData.activationInstructionsEur }}
+                      dangerouslySetInnerHTML={{ __html: editProductFormData.activationInstructionsEur }}
                     />
                   ) : (
                     <div className="text-gray-400 italic">
@@ -3059,10 +3065,10 @@ XYZ12-ABC34-DEF56-GHI78-JKL90
               <div>
                 <div className="text-xs text-gray-500 uppercase tracking-[0.5px] mb-2">KM Customer View</div>
                 <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 min-h-[150px]">
-                  {formData.activationInstructionsKm ? (
+                  {editProductFormData.activationInstructionsKm ? (
                     <div 
                       className="prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={{ __html: formData.activationInstructionsKm }}
+                      dangerouslySetInnerHTML={{ __html: editProductFormData.activationInstructionsKm }}
                     />
                   ) : (
                     <div className="text-gray-400 italic">
