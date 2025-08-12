@@ -778,6 +778,7 @@ export type InsertCartView = z.infer<typeof insertCartViewSchema>;
 // Extend product with stock count
 export type ProductWithStock = Product & {
   stockCount: number;
+  categoryName?: string;
 };
 
 // Extend product with license keys

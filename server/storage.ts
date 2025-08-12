@@ -371,6 +371,7 @@ export class DatabaseStorage implements IStorage {
         warranty: products.warranty,
         htmlDescription: products.htmlDescription,
         categoryId: products.categoryId,
+        categoryName: categories.name, // Include category name
         region: products.region,
         platform: products.platform,
         imageUrl: products.imageUrl,
@@ -380,8 +381,9 @@ export class DatabaseStorage implements IStorage {
         stockCount: sql<number>`COUNT(CASE WHEN ${licenseKeys.isUsed} = false THEN 1 END)`,
       })
       .from(products)
+      .leftJoin(categories, eq(products.categoryId, categories.id))
       .leftJoin(licenseKeys, eq(products.id, licenseKeys.productId))
-      .groupBy(products.id)
+      .groupBy(products.id, categories.name)
       .orderBy(desc(products.createdAt));
 
     // Enhance products with images from new image management system

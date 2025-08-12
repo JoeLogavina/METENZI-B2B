@@ -851,7 +851,7 @@ export default function AdminPanel() {
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                                  {product.category}
+                                  {product.categoryName || 'Uncategorized'}
                                 </span>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium font-mono">
@@ -863,7 +863,7 @@ export default function AdminPanel() {
                                 </div>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-[#6E6F71] font-mono">
-                                {product.stock}
+                                {product.stockCount || 0}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
