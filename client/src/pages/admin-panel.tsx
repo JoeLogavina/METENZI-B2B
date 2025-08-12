@@ -1617,6 +1617,9 @@ function EditProductIntegratedSection({
   // Save product mutation
   const saveProductMutation = useMutation({
     mutationFn: async () => {
+      console.log('Debug editProductFormData before submit:', editProductFormData);
+      console.log('Debug allowDuplicateKeys before spread:', editProductFormData.allowDuplicateKeys);
+      
       const submitData = {
         ...editProductFormData,
         ...editEurPricing,
@@ -1628,7 +1631,8 @@ function EditProductIntegratedSection({
         isActive: editProductFormData.isActive
       };
 
-      console.log('Submitting product data:', submitData);
+      console.log('Debug submitData after construction:', submitData);
+      console.log('Debug allowDuplicateKeys in submitData:', submitData.allowDuplicateKeys);
 
       const response = await fetch(`/api/admin/products/${editProductId}`, {
         method: 'PUT',
