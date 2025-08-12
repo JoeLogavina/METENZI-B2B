@@ -460,6 +460,27 @@ router.delete('/kb/articles/:id',
 // ADMIN FAQ MANAGEMENT
 // ====================
 
+// GET /api/admin/support/faqs - Get all FAQs
+router.get('/faqs',
+  tenantAuthMiddleware,
+  async (req: any, res) => {
+    try {
+      const { tenantId } = req.tenant;
+      
+      const faqList = await db
+        .select()
+        .from(faqs)
+        .where(eq(faqs.tenantId, tenantId))
+        .orderBy(asc(faqs.order), desc(faqs.createdAt));
+      
+      res.json({ data: faqList });
+    } catch (error) {
+      console.error('Error fetching FAQs:', error);
+      res.status(500).json({ error: 'Failed to fetch FAQs' });
+    }
+  }
+);
+
 // POST /api/admin/support/faqs - Create FAQ
 router.post('/faqs',
   tenantAuthMiddleware,
