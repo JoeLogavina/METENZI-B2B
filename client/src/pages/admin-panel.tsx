@@ -188,9 +188,7 @@ export default function AdminPanel() {
     region: '',
     imageUrl: '',
     isActive: true,
-    allowDuplicateKeys: false,
-    activationInstructionsEur: '',
-    activationInstructionsKm: ''
+    allowDuplicateKeys: false
   });
   const [editEurPricing, setEditEurPricing] = useState({
     price: '',
@@ -1511,12 +1509,6 @@ function EditProductIntegratedSection({
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
 
-  // Debug editActiveTab changes
-  useEffect(() => {
-    console.log('🔍 EditProductIntegratedSection editActiveTab changed to:', editActiveTab);
-    console.log('🔧 Conditional render check - editActiveTab === "activation":', editActiveTab === "activation");
-  }, [editActiveTab]);
-
   // Update form data when product loads
   useEffect(() => {
     if (editProductData && typeof editProductData === 'object') {
@@ -1524,7 +1516,7 @@ function EditProductIntegratedSection({
       const prod = editProductData.data || editProductData;
       console.log('Loading product data for edit:', prod);
       
-      const newFormData = {
+      setEditProductFormData({
         name: prod.name || '',
         description: prod.description || '',
         htmlDescription: prod.htmlDescription || '',
@@ -1534,12 +1526,8 @@ function EditProductIntegratedSection({
         region: prod.region || '',
         imageUrl: prod.imageUrl || '',
         isActive: prod.isActive ?? true,
-        allowDuplicateKeys: prod.allowDuplicateKeys ?? false,
-        activationInstructionsEur: prod.activationInstructionsEur || '',
-        activationInstructionsKm: prod.activationInstructionsKm || ''
-      };
-      console.log('🔧 Setting editProductFormData:', newFormData);
-      setEditProductFormData(newFormData);
+        allowDuplicateKeys: prod.allowDuplicateKeys ?? false
+      });
 
       setEditEurPricing({
         price: prod.price || '',
@@ -1857,21 +1845,6 @@ function EditProductIntegratedSection({
                 }`}
               >
                 License Keys
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  console.log('🔥 Activation tab clicked, current editActiveTab:', editActiveTab, 'setting to activation');
-                  setEditActiveTab('activation');
-                  console.log('🔥 After setEditActiveTab call, editActiveTab should be:', 'activation');
-                }}
-                className={`py-2 px-1 border-b-2 font-medium text-sm uppercase tracking-[0.5px] ${
-                  editActiveTab === "activation"
-                    ? "border-[#FFB20F] text-[#FFB20F]"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }`}
-              >
-                Activation Instructions
               </button>
             </nav>
           </div>
@@ -2400,8 +2373,6 @@ function ProductForm({
     region: product?.region || '',
     stock: product?.stockCount || product?.stock || '',
     isActive: product?.isActive ?? true,
-    activationInstructionsEur: product?.activationInstructionsEur || '',
-    activationInstructionsKm: product?.activationInstructionsKm || '',
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -2423,8 +2394,6 @@ function ProductForm({
       platform: formData.platform,
       region: formData.region,
       isActive: formData.isActive,
-      activationInstructionsEur: formData.activationInstructionsEur || null,
-      activationInstructionsKm: formData.activationInstructionsKm || null,
     };
 
     // Only include category if it's provided and not empty
@@ -2586,14 +2555,14 @@ function ProductForm({
           {product?.id && (
             <button
               type="button"
-              onClick={() => setCurrentTab("activation")}
+              onClick={() => setCurrentTab("keys")}
               className={`py-2 px-1 border-b-2 font-medium text-sm uppercase tracking-[0.5px] ${
-                currentTab === "activation"
+                currentTab === "keys"
                   ? "border-[#FFB20F] text-[#FFB20F]"
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
               }`}
             >
-              Activation Instructions
+              License Keys
             </button>
           )}
         </nav>
@@ -2978,143 +2947,6 @@ XYZ12-ABC34-DEF56-GHI78-JKL90
                 </Button>
               </div>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Debug Test - This should always log */}
-      <div style={{ display: 'none' }}>
-        {console.log('🔧 JSX Re-render Test:', { 
-          editActiveTab, 
-          timestamp: new Date().toLocaleTimeString(),
-          componentRendering: 'EditProductIntegratedSection JSX rendering'
-        })}
-      </div>
-
-      {/* Activation Instructions Tab - ALWAYS RENDER FOR TESTING */}
-      {(editActiveTab === "activation" || true) && (
-        <div className="space-y-6">
-          <div>
-            <h4 className="text-lg font-semibold text-gray-900 uppercase tracking-[0.5px] mb-4">
-              Activation Instructions
-            </h4>
-            <div style={{ display: 'none' }}>
-              {console.log('🔧 Activation tab rendering, editActiveTab:', editActiveTab, 'editProductFormData:', editProductFormData)}
-            </div>
-            <p className="text-sm text-gray-600 mb-6">
-              Provide HTML-formatted activation instructions for your customers. These will be displayed on the order confirmation page and in customer emails.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 gap-6">
-            {/* EUR Activation Instructions */}
-            <div>
-              <Label htmlFor="activationInstructionsEur" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px] mb-2 flex items-center">
-                Activation Instructions (EUR/European Customers)
-                <span className="ml-2 text-xs text-gray-500 font-normal">HTML formatting supported</span>
-              </Label>
-              <Textarea
-                id="activationInstructionsEur"
-                value={editProductFormData.activationInstructionsEur}
-                onChange={(e) => {
-                  setEditProductFormData({ ...editProductFormData, activationInstructionsEur: e.target.value });
-                  setEditUnsavedChanges(true);
-                }}
-                className="mt-1 font-mono text-sm"
-                rows={8}
-                placeholder={`Enter HTML-formatted activation instructions for EUR customers:
-
-<h3>Activation Steps:</h3>
-<ol>
-  <li>Download the software from <a href="https://example.com/download">our website</a></li>
-  <li>Install using the provided license key</li>
-  <li>Contact support if you need assistance</li>
-</ol>
-
-<p><strong>Note:</strong> Your license key is valid for one installation only.</p>`}
-              />
-            </div>
-
-            {/* KM Activation Instructions */}
-            <div>
-              <Label htmlFor="activationInstructionsKm" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px] mb-2 flex items-center">
-                Activation Instructions (KM/Bosnian Customers)
-                <span className="ml-2 text-xs text-gray-500 font-normal">HTML formatting supported</span>
-              </Label>
-              <Textarea
-                id="activationInstructionsKm"
-                value={editProductFormData.activationInstructionsKm}
-                onChange={(e) => {
-                  setEditProductFormData({ ...editProductFormData, activationInstructionsKm: e.target.value });
-                  setEditUnsavedChanges(true);
-                }}
-                className="mt-1 font-mono text-sm"
-                rows={8}
-                placeholder={`Enter HTML-formatted activation instructions for KM customers:
-
-<h3>Koraci za aktivaciju:</h3>
-<ol>
-  <li>Preuzmite softver sa <a href="https://example.com/download">naše stranice</a></li>
-  <li>Instalirajte koristeći priloženi licencni ključ</li>
-  <li>Kontaktirajte podršku ako trebate pomoć</li>
-</ol>
-
-<p><strong>Napomena:</strong> Vaš licencni ključ je valjan samo za jednu instalaciju.</p>`}
-              />
-            </div>
-          </div>
-
-          {/* Preview Section */}
-          <div className="border-t pt-6">
-            <h5 className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px] mb-4">
-              Preview
-            </h5>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* EUR Preview */}
-              <div>
-                <div className="text-xs text-gray-500 uppercase tracking-[0.5px] mb-2">EUR Customer View</div>
-                <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 min-h-[150px]">
-                  {editProductFormData.activationInstructionsEur ? (
-                    <div 
-                      className="prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={{ __html: editProductFormData.activationInstructionsEur }}
-                    />
-                  ) : (
-                    <div className="text-gray-400 italic">
-                      Preview will appear here when you enter EUR activation instructions
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* KM Preview */}
-              <div>
-                <div className="text-xs text-gray-500 uppercase tracking-[0.5px] mb-2">KM Customer View</div>
-                <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 min-h-[150px]">
-                  {editProductFormData.activationInstructionsKm ? (
-                    <div 
-                      className="prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={{ __html: editProductFormData.activationInstructionsKm }}
-                    />
-                  ) : (
-                    <div className="text-gray-400 italic">
-                      Preview will appear here when you enter KM activation instructions
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Save Button */}
-          <div className="flex justify-end pt-4 border-t">
-            <Button
-              type="submit"
-              onClick={handleSubmit}
-              className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white"
-            >
-              Save Activation Instructions
-            </Button>
           </div>
         </div>
       )}
