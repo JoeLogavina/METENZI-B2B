@@ -23,6 +23,8 @@ const productParamsSchema = z.object({
 const updateProductSchema = insertProductSchema.partial().extend({
   stock: z.union([z.string(), z.number()]).transform(val => val ? Number(val) : 0).optional(),
   allowDuplicateKeys: z.boolean().optional(), // Explicitly include allowDuplicateKeys for updates
+  activationInstructionsEur: z.string().optional(), // HTML-formatted activation instructions for EUR users
+  activationInstructionsKm: z.string().optional(), // HTML-formatted activation instructions for KM users
 });
 
 export class AdminProductsController {

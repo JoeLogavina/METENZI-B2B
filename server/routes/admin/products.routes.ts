@@ -89,6 +89,8 @@ const updateProductSchema = z.object({
   imageUrl: z.string().optional(),
   isActive: z.boolean().optional(),
   allowDuplicateKeys: z.boolean().optional(), // Add missing allowDuplicateKeys field
+  activationInstructionsEur: z.string().optional(), // HTML-formatted activation instructions for EUR users
+  activationInstructionsKm: z.string().optional(), // HTML-formatted activation instructions for KM users
   price: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
   purchasePrice: z.union([z.string(), z.number(), z.literal("")]).transform(val => val === "" ? null : String(val)).optional(),
   retailPrice: z.union([z.string(), z.number(), z.literal("")]).transform(val => val === "" ? null : String(val)).optional(),
