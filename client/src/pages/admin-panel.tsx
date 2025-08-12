@@ -2982,18 +2982,9 @@ XYZ12-ABC34-DEF56-GHI78-JKL90
         </div>
       )}
 
-      {/* DEBUG: Always visible test element */}
-      <div className="fixed top-0 right-0 z-50 bg-red-500 text-white p-2 text-xs">
-        DEBUG: editActiveTab = {editActiveTab}
-      </div>
-
       {/* Activation Instructions Tab */}
       {editActiveTab === "activation" && (
-        <div className="space-y-6 bg-yellow-100 border-4 border-yellow-500 p-6 mt-6">
-          <div className="bg-green-500 text-white p-4 text-center">
-            <h2 className="text-xl font-bold">🎉 ACTIVATION TAB IS WORKING!</h2>
-            <p>You should be able to see this clearly now.</p>
-          </div>
+        <div className="space-y-6">
           <div>
             <h4 className="text-lg font-semibold text-gray-900 uppercase tracking-[0.5px] mb-4">
               Activation Instructions
@@ -3037,24 +3028,6 @@ XYZ12-ABC34-DEF56-GHI78-JKL90
                 placeholder="Enter activation instructions for KM customers"
               />
             </div>
-          </div>
-
-          <div className="flex items-center justify-end pt-4 border-t space-x-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onCancel}
-              className="px-6"
-            >
-              CANCEL
-            </Button>
-            <Button
-              type="button"
-              onClick={handleEditProductSubmit}
-              className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white px-6"
-            >
-              SAVE
-            </Button>
           </div>
         </div>
       )}
