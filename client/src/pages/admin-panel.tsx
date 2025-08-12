@@ -1526,7 +1526,9 @@ function EditProductIntegratedSection({
         region: prod.region || '',
         imageUrl: prod.imageUrl || '',
         isActive: prod.isActive ?? true,
-        allowDuplicateKeys: prod.allowDuplicateKeys ?? false
+        allowDuplicateKeys: prod.allowDuplicateKeys ?? false,
+        activationInstructionsEur: prod.activationInstructionsEur || '',
+        activationInstructionsKm: prod.activationInstructionsKm || ''
       });
 
       setEditEurPricing({
@@ -1845,6 +1847,17 @@ function EditProductIntegratedSection({
                 }`}
               >
                 License Keys
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditActiveTab('activation')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm uppercase tracking-[0.5px] ${
+                  editActiveTab === "activation"
+                    ? "border-[#FFB20F] text-[#FFB20F]"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                Activation Instructions
               </button>
             </nav>
           </div>
