@@ -266,9 +266,29 @@ export default function AdminPanel() {
     enabled: isAuthenticated && (activeSection === 'products' || activeSection === 'edit-product')
   });
   
-  const { data: editProductLicenseKeys = [], refetch: refetchEditLicenseKeys } = useQuery({
+  const { data: editProductLicenseKeys = [], refetch: refetchEditLicenseKeys, error: licenseKeysError } = useQuery({
     queryKey: [`/api/admin/license-keys/${editProductId}`],
-    enabled: !!editProductId && isAuthenticated && activeSection === 'edit-product'
+    queryFn: async () => {
+      console.log('🔑 Fetching license keys for product:', editProductId);
+      const res = await fetch(`/api/admin/license-keys/${editProductId}`, {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!res.ok) {
+        console.error('❌ License keys fetch failed:', res.status, res.statusText);
+        throw new Error(`${res.status}: ${res.statusText}`);
+      }
+      
+      const data = await res.json();
+      console.log('✅ License keys data received:', data);
+      return data.data || data || [];
+    },
+    enabled: !!editProductId && isAuthenticated && activeSection === 'edit-product',
+    staleTime: 0,
+    gcTime: 0
   });
 
   // Toggle product status function
@@ -2200,6 +2220,11 @@ function EditProductIntegratedSection({
                   </h4>
                   <p className="text-sm text-gray-600">
                     Current keys: {Array.isArray(editProductLicenseKeys) ? editProductLicenseKeys.length : 0}
+                    {licenseKeysError && (
+                      <span className="text-red-600 ml-2">
+                        Error: {licenseKeysError.message}
+                      </span>
+                    )}
                   </p>
                 </div>
               </div>
