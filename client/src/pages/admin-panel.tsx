@@ -1511,6 +1511,11 @@ function EditProductIntegratedSection({
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
 
+  // Debug editActiveTab changes
+  useEffect(() => {
+    console.log('🔍 EditProductIntegratedSection editActiveTab changed to:', editActiveTab);
+  }, [editActiveTab]);
+
   // Update form data when product loads
   useEffect(() => {
     if (editProductData && typeof editProductData === 'object') {
@@ -1855,8 +1860,9 @@ function EditProductIntegratedSection({
               <button
                 type="button"
                 onClick={() => {
-                  console.log('🔥 Activation tab clicked, setting editActiveTab to activation');
+                  console.log('🔥 Activation tab clicked, current editActiveTab:', editActiveTab, 'setting to activation');
                   setEditActiveTab('activation');
+                  console.log('🔥 After setEditActiveTab call, editActiveTab should be:', 'activation');
                 }}
                 className={`py-2 px-1 border-b-2 font-medium text-sm uppercase tracking-[0.5px] ${
                   editActiveTab === "activation"
