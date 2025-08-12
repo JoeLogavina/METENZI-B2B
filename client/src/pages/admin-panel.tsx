@@ -1514,6 +1514,7 @@ function EditProductIntegratedSection({
   // Debug editActiveTab changes
   useEffect(() => {
     console.log('🔍 EditProductIntegratedSection editActiveTab changed to:', editActiveTab);
+    console.log('🔧 Conditional render check - editActiveTab === "activation":', editActiveTab === "activation");
   }, [editActiveTab]);
 
   // Update form data when product loads
@@ -2982,7 +2983,14 @@ XYZ12-ABC34-DEF56-GHI78-JKL90
       )}
 
       {/* Activation Instructions Tab */}
-      {console.log('🔧 Checking activation tab render condition:', { editActiveTab, comparison: editActiveTab === "activation", typeof: typeof editActiveTab })}
+      <div style={{ display: 'none' }}>
+        {console.log('🔧 Checking activation tab render condition:', { 
+          editActiveTab, 
+          comparison: editActiveTab === "activation", 
+          typeof: typeof editActiveTab,
+          timestamp: new Date().toLocaleTimeString()
+        })}
+      </div>
       {editActiveTab === "activation" && (
         <div className="space-y-6">
           <div>
