@@ -88,6 +88,7 @@ const updateProductSchema = z.object({
   region: z.string().optional(),
   imageUrl: z.string().optional(),
   isActive: z.boolean().optional(),
+  allowDuplicateKeys: z.boolean().optional(), // Add missing allowDuplicateKeys field
   price: z.union([z.string(), z.number()]).transform(val => String(val)).optional(),
   purchasePrice: z.union([z.string(), z.number(), z.literal("")]).transform(val => val === "" ? null : String(val)).optional(),
   retailPrice: z.union([z.string(), z.number(), z.literal("")]).transform(val => val === "" ? null : String(val)).optional(),

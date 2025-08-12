@@ -45,15 +45,6 @@ if (process.env.SENTRY_DSN) {
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false }));
 
-// Debug middleware to log all request bodies for product updates
-app.use('/api/admin/products/*', (req, res, next) => {
-  if (req.method === 'PUT' && req.body) {
-    console.log('🔍 MIDDLEWARE DEBUG - Raw req.body:', JSON.stringify(req.body, null, 2));
-    console.log('🔍 MIDDLEWARE DEBUG - allowDuplicateKeys value:', req.body.allowDuplicateKeys, 'type:', typeof req.body.allowDuplicateKeys);
-  }
-  next();
-});
-
 // Add monitoring middleware
 app.use(authenticationTrackingMiddleware);
 app.use(b2bTrackingMiddleware);

@@ -112,20 +112,6 @@ export class AdminProductsController {
     try {
       const { id } = req.params;
       
-      console.log('Raw request body before parsing:', req.body);
-      console.log('Raw allowDuplicateKeys in request:', req.body.allowDuplicateKeys, 'type:', typeof req.body.allowDuplicateKeys);
-      
-      // Test schema parsing directly
-      console.log('🔍 Testing updateProductSchema.parse with req.body...');
-      try {
-        const updateData = updateProductSchema.parse(req.body); // Use schema validation
-        console.log('🔍 Schema parsing successful. Result:', updateData);
-        console.log('🔍 allowDuplicateKeys after parsing:', updateData.allowDuplicateKeys, 'type:', typeof updateData.allowDuplicateKeys);
-      } catch (parseError) {
-        console.error('🔍 Schema parsing failed:', parseError);
-        throw parseError;
-      }
-      
       const updateData = updateProductSchema.parse(req.body);
 
       console.log('Updating product:', id, 'with data:', updateData);
