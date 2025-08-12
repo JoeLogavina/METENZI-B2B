@@ -313,6 +313,27 @@ router.post('/tickets/:id/responses',
 // ADMIN KNOWLEDGE BASE MANAGEMENT
 // ====================
 
+// GET /api/admin/support/kb/articles - Get all knowledge base articles
+router.get('/kb/articles',
+  tenantAuthMiddleware,
+  async (req: any, res) => {
+    try {
+      const { tenantId } = req.tenant;
+      
+      const articles = await db
+        .select()
+        .from(knowledgeBaseArticles)
+        .where(eq(knowledgeBaseArticles.tenantId, tenantId))
+        .orderBy(desc(knowledgeBaseArticles.createdAt));
+      
+      res.json({ data: articles });
+    } catch (error) {
+      console.error('Error fetching knowledge base articles:', error);
+      res.status(500).json({ error: 'Failed to fetch articles' });
+    }
+  }
+);
+
 // POST /api/admin/support/kb/articles - Create knowledge base article
 router.post('/kb/articles',
   tenantAuthMiddleware,
