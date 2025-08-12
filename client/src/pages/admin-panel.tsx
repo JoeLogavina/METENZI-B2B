@@ -188,7 +188,9 @@ export default function AdminPanel() {
     region: '',
     imageUrl: '',
     isActive: true,
-    allowDuplicateKeys: false
+    allowDuplicateKeys: false,
+    activationInstructionsEur: '',
+    activationInstructionsKm: ''
   });
   const [editEurPricing, setEditEurPricing] = useState({
     price: '',
@@ -1516,7 +1518,7 @@ function EditProductIntegratedSection({
       const prod = editProductData.data || editProductData;
       console.log('Loading product data for edit:', prod);
       
-      setEditProductFormData({
+      const newFormData = {
         name: prod.name || '',
         description: prod.description || '',
         htmlDescription: prod.htmlDescription || '',
@@ -1529,7 +1531,9 @@ function EditProductIntegratedSection({
         allowDuplicateKeys: prod.allowDuplicateKeys ?? false,
         activationInstructionsEur: prod.activationInstructionsEur || '',
         activationInstructionsKm: prod.activationInstructionsKm || ''
-      });
+      };
+      console.log('🔧 Setting editProductFormData:', newFormData);
+      setEditProductFormData(newFormData);
 
       setEditEurPricing({
         price: prod.price || '',
@@ -2975,6 +2979,9 @@ XYZ12-ABC34-DEF56-GHI78-JKL90
             <h4 className="text-lg font-semibold text-gray-900 uppercase tracking-[0.5px] mb-4">
               Activation Instructions
             </h4>
+            <div style={{ display: 'none' }}>
+              {console.log('🔧 Activation tab rendering, editProductFormData:', editProductFormData)}
+            </div>
             <p className="text-sm text-gray-600 mb-6">
               Provide HTML-formatted activation instructions for your customers. These will be displayed on the order confirmation page and in customer emails.
             </p>
