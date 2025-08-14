@@ -115,6 +115,14 @@ export class AdminProductsController {
       const updateData = updateProductSchema.parse(req.body);
 
       console.log('Updating product:', id, 'with data:', updateData);
+    console.log('KM instruction fields received:', {
+      installationInstructionsKm: updateData.installationInstructionsKm,
+      activationInstructionsKm: updateData.activationInstructionsKm,
+      usageInstructionsKm: updateData.usageInstructionsKm,
+      systemRequirementsKm: updateData.systemRequirementsKm,
+      troubleshootingGuideKm: updateData.troubleshootingGuideKm,
+      supportContactsKm: updateData.supportContactsKm
+    });
       console.log('allowDuplicateKeys field value:', updateData.allowDuplicateKeys, 'type:', typeof updateData.allowDuplicateKeys);
 
       const product = await productService.updateProduct(id, updateData);
