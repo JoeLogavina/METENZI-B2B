@@ -11,7 +11,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useTenant } from '@/contexts/TenantContext';
-import { UserInstructions } from '@/components/UserInstructions';
+import UserInstructions from '@/components/UserInstructions';
 
 interface ProductCardProps {
   product: ProductWithStock;

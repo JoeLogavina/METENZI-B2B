@@ -47,7 +47,7 @@ interface UserInstructionsProps {
   trigger?: React.ReactNode;
 }
 
-export function UserInstructions({ product, tenantId, trigger }: UserInstructionsProps) {
+function UserInstructions({ product, tenantId, trigger }: UserInstructionsProps) {
   const [activeTab, setActiveTab] = useState("installation");
   const [copiedText, setCopiedText] = useState<string | null>(null);
 

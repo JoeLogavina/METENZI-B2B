@@ -37,6 +37,7 @@ import AdvancedProductFilters from "@/components/AdvancedProductFilters";
 import ProductCard from "@/components/optimized/ProductCard";
 import { useDeviceDetection } from "@/hooks/mobile/useDeviceDetection";
 import { FrontendSupportManagement } from "@/components/frontend/FrontendSupportManagement";
+import UserInstructions from "@/components/UserInstructions";
 
 
 // EUR-specific shop component with proper tenant isolation
@@ -976,23 +977,41 @@ function CompactProductRow({
       
       {/* ACTION */}
       <td className="px-3 py-3 whitespace-nowrap text-center">
-        <Button
-          size="sm"
-          onClick={() => onAddToCart(product)}
-          disabled={product.stockCount === 0 || isLoading || isInCart}
-          className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white border-0 px-4 py-1 rounded-[5px] text-xs font-medium transition-colors duration-200 disabled:bg-gray-300"
-        >
-          {isLoading ? (
-            <div className="flex items-center">
-              <div className="animate-spin rounded-full h-3 w-3 border-b border-white mr-1"></div>
-              ADD
-            </div>
-          ) : isInCart ? (
-            'IN CART'
-          ) : (
-            'ADD'
-          )}
-        </Button>
+        <div className="flex items-center justify-center space-x-2">
+          {/* UserInstructions Button */}
+          <UserInstructions 
+            product={product} 
+            tenantId="eur"
+            trigger={
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-[#FFB20F] text-[#FFB20F] hover:bg-[#FFB20F] hover:text-white px-3 py-1 rounded-[5px] text-xs font-medium transition-colors duration-200"
+              >
+                GUIDE
+              </Button>
+            }
+          />
+          
+          {/* Add to Cart Button */}
+          <Button
+            size="sm"
+            onClick={() => onAddToCart(product)}
+            disabled={product.stockCount === 0 || isLoading || isInCart}
+            className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white border-0 px-4 py-1 rounded-[5px] text-xs font-medium transition-colors duration-200 disabled:bg-gray-300"
+          >
+            {isLoading ? (
+              <div className="flex items-center">
+                <div className="animate-spin rounded-full h-3 w-3 border-b border-white mr-1"></div>
+                ADD
+              </div>
+            ) : isInCart ? (
+              'IN CART'
+            ) : (
+              'ADD'
+            )}
+          </Button>
+        </div>
       </td>
     </tr>
   );

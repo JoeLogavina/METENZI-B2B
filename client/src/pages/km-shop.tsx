@@ -36,6 +36,7 @@ import type { ProductWithStock } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useTenant } from "@/contexts/TenantContext";
 import { useDebounce } from "use-debounce";
+import UserInstructions from "@/components/UserInstructions";
 
 // KM-specific shop component with proper tenant isolation
 export default function KMShop() {
@@ -528,19 +529,37 @@ function KMProductRow({ product, onAddToCart, isLoading }: {
         </div>
       </td>
       <td className="px-3 py-3 whitespace-nowrap text-center">
-        <Button
-          size="sm"
-          onClick={() => onAddToCart(product)}
-          disabled={isLoading || product.stockCount === 0}
-          className="bg-[#FFB20F] hover:bg-[#E69B00] text-white border-0 px-4 py-2 rounded-[5px] font-semibold uppercase tracking-[0.5px] transition-colors duration-200 disabled:opacity-50"
-        >
-          {isLoading ? (
-            <div className="flex items-center">
-              <Loader2 className="w-3 h-3 animate-spin mr-1" />
-              Adding...
-            </div>
-          ) : product.stockCount === 0 ? "OUT OF STOCK" : "ADD"}
-        </Button>
+        <div className="flex items-center justify-center space-x-2">
+          {/* UserInstructions Button */}
+          <UserInstructions 
+            product={product} 
+            tenantId="km"
+            trigger={
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-[#FFB20F] text-[#FFB20F] hover:bg-[#FFB20F] hover:text-white px-3 py-2 rounded-[5px] font-semibold uppercase tracking-[0.5px] transition-colors duration-200"
+              >
+                UPUTSTVO
+              </Button>
+            }
+          />
+          
+          {/* Add to Cart Button */}
+          <Button
+            size="sm"
+            onClick={() => onAddToCart(product)}
+            disabled={isLoading || product.stockCount === 0}
+            className="bg-[#FFB20F] hover:bg-[#E69B00] text-white border-0 px-4 py-2 rounded-[5px] font-semibold uppercase tracking-[0.5px] transition-colors duration-200 disabled:opacity-50"
+          >
+            {isLoading ? (
+              <div className="flex items-center">
+                <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                Dodaje...
+              </div>
+            ) : product.stockCount === 0 ? "NEMA NA STANJU" : "DODAJ"}
+          </Button>
+        </div>
       </td>
     </tr>
   );
