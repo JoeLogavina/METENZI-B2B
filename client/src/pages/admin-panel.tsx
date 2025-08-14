@@ -1653,6 +1653,14 @@ function EditProductIntegratedSection({
     mutationFn: async () => {
       console.log('Debug editProductFormData before submit:', editProductFormData);
       console.log('Debug allowDuplicateKeys before spread:', editProductFormData.allowDuplicateKeys);
+      console.log('Debug KM instruction fields:', {
+        installationInstructionsKm: editProductFormData.installationInstructionsKm,
+        activationInstructionsKm: editProductFormData.activationInstructionsKm,
+        usageInstructionsKm: editProductFormData.usageInstructionsKm,
+        systemRequirementsKm: editProductFormData.systemRequirementsKm,
+        troubleshootingGuideKm: editProductFormData.troubleshootingGuideKm,
+        supportContactsKm: editProductFormData.supportContactsKm
+      });
       
       const submitData = {
         ...editProductFormData,
