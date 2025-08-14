@@ -70,17 +70,17 @@ function Router() {
         </>
       ) : (
         <>
-          {/* Default route - redirect based on user role */}
+          {/* Default route - redirect based on tenant and role */}
           <Route path="/" component={() => {
             const { user } = useAuth();
             
-            // Immediate redirect based on role without additional loading
+            // Immediate redirect based on tenant first, then role
             if (user?.role === 'admin' || user?.role === 'super_admin') {
               return <Redirect to="/admin-panel" />;
-            } else if (user?.role === 'b2b_user') {
-              return <Redirect to="/eur" />;
             } else if (user?.tenantId === 'km') {
               return <Redirect to="/km" />;
+            } else if (user?.tenantId === 'eur' || user?.role === 'b2b_user') {
+              return <Redirect to="/eur" />;
             } else {
               return <Redirect to="/eur" />;
             }
