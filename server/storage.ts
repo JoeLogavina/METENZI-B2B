@@ -393,7 +393,48 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getProduct(id: string): Promise<Product | undefined> {
-    const [product] = await db.select().from(products).where(eq(products.id, id));
+    const [product] = await db
+      .select({
+        id: products.id,
+        sku: products.sku,
+        name: products.name,
+        description: products.description,
+        price: products.price,
+        priceKm: products.priceKm,
+        purchasePrice: products.purchasePrice,
+        b2bPrice: products.b2bPrice,
+        retailPrice: products.retailPrice,
+        purchasePriceKm: products.purchasePriceKm,
+        resellerPriceKm: products.resellerPriceKm,
+        retailerPriceKm: products.retailerPriceKm,
+        categoryId: products.categoryId,
+        region: products.region,
+        platform: products.platform,
+        stockCount: products.stockCount,
+        imageUrl: products.imageUrl,
+        warranty: products.warranty,
+        htmlDescription: products.htmlDescription,
+        // User Instructions - English (EUR Shop)
+        installationInstructions: products.installationInstructions,
+        activationInstructions: products.activationInstructions,
+        usageInstructions: products.usageInstructions,
+        systemRequirements: products.systemRequirements,
+        troubleshootingGuide: products.troubleshootingGuide,
+        supportContacts: products.supportContacts,
+        // User Instructions - Bosnian (KM Shop) - THESE WERE MISSING!
+        installationInstructionsKm: products.installationInstructionsKm,
+        activationInstructionsKm: products.activationInstructionsKm,
+        usageInstructionsKm: products.usageInstructionsKm,
+        systemRequirementsKm: products.systemRequirementsKm,
+        troubleshootingGuideKm: products.troubleshootingGuideKm,
+        supportContactsKm: products.supportContactsKm,
+        allowDuplicateKeys: products.allowDuplicateKeys,
+        isActive: products.isActive,
+        createdAt: products.createdAt,
+        updatedAt: products.updatedAt,
+      })
+      .from(products)
+      .where(eq(products.id, id));
     return product;
   }
 
