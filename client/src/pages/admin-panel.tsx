@@ -1533,13 +1533,20 @@ function EditProductIntegratedSection({
         imageUrl: prod.imageUrl || '',
         isActive: prod.isActive ?? true,
         allowDuplicateKeys: prod.allowDuplicateKeys ?? false,
-        // User Instructions
+        // User Instructions - English (EUR Shop)
         installationInstructions: prod.installationInstructions || '',
         activationInstructions: prod.activationInstructions || '',
         usageInstructions: prod.usageInstructions || '',
         systemRequirements: prod.systemRequirements || '',
         troubleshootingGuide: prod.troubleshootingGuide || '',
-        supportContacts: prod.supportContacts || ''
+        supportContacts: prod.supportContacts || '',
+        // User Instructions - Bosnian (KM Shop)
+        installationInstructionsKm: prod.installationInstructionsKm || '',
+        activationInstructionsKm: prod.activationInstructionsKm || '',
+        usageInstructionsKm: prod.usageInstructionsKm || '',
+        systemRequirementsKm: prod.systemRequirementsKm || '',
+        troubleshootingGuideKm: prod.troubleshootingGuideKm || '',
+        supportContactsKm: prod.supportContactsKm || ''
       });
 
       setEditEurPricing({
@@ -2362,193 +2369,399 @@ XYZ12-ABC34-DEF56-GHI78-JKL90
           {editActiveTab === "user-instructions" && (
             <div className="space-y-6">
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                <h4 className="text-sm font-medium text-blue-800 mb-1">User Instructions & Documentation</h4>
+                <h4 className="text-sm font-medium text-blue-800 mb-1">Multi-Language User Instructions</h4>
                 <p className="text-sm text-blue-600">
-                  Create comprehensive user guides for both EUR and KM shop customers. 
-                  These instructions will be displayed to B2B users when they view products.
+                  Create comprehensive user guides in both English (EUR shop) and Bosnian (KM shop). 
+                  Each language will be displayed to customers in their respective shops.
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Installation Instructions */}
-                <div>
-                  <Label htmlFor="installationInstructions" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px] flex items-center gap-2">
-                    <Download className="w-4 h-4 text-[#FFB20F]" />
-                    Installation Instructions
-                  </Label>
-                  <Textarea
-                    id="installationInstructions"
-                    value={editProductFormData.installationInstructions}
-                    onChange={(e) => {
-                      setEditProductFormData({ ...editProductFormData, installationInstructions: e.target.value });
-                      setEditUnsavedChanges(true);
-                    }}
-                    className="mt-1"
-                    rows={6}
-                    placeholder="<h3>Installation Steps</h3>
+              {/* Language Tabs */}
+              <Tabs defaultValue="english" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="english" className="flex items-center gap-2">
+                    <span className="text-blue-600 font-medium">🇬🇧</span>
+                    English (EUR Shop)
+                  </TabsTrigger>
+                  <TabsTrigger value="bosnian" className="flex items-center gap-2">
+                    <span className="text-green-600 font-medium">🇧🇦</span>
+                    Bosnian (KM Shop)
+                  </TabsTrigger>
+                </TabsList>
+
+                {/* English Instructions */}
+                <TabsContent value="english" className="space-y-6 mt-6">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <p className="text-sm text-blue-700 font-medium">
+                      English Instructions for EUR Shop Customers
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* English Installation Instructions */}
+                    <div>
+                      <Label htmlFor="installationInstructions" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px] flex items-center gap-2">
+                        <Download className="w-4 h-4 text-[#FFB20F]" />
+                        Installation Instructions
+                      </Label>
+                      <Textarea
+                        id="installationInstructions"
+                        value={editProductFormData.installationInstructions}
+                        onChange={(e) => {
+                          setEditProductFormData({ ...editProductFormData, installationInstructions: e.target.value });
+                          setEditUnsavedChanges(true);
+                        }}
+                        className="mt-1"
+                        rows={6}
+                        placeholder="<h3>Installation Steps</h3>
 <ol>
 <li>Download the installer from your order confirmation email</li>
 <li>Run the installer as administrator</li>
 <li>Follow the setup wizard</li>
 <li>Enter your license key when prompted</li>
 </ol>"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Supports HTML formatting (h3, ol, ul, li, p, strong, em)</p>
-                </div>
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Supports HTML formatting (h3, ol, ul, li, p, strong, em)</p>
+                    </div>
 
-                {/* Activation Instructions */}
-                <div>
-                  <Label htmlFor="activationInstructions" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px] flex items-center gap-2">
-                    <Key className="w-4 h-4 text-[#FFB20F]" />
-                    Activation Instructions
-                  </Label>
-                  <Textarea
-                    id="activationInstructions"
-                    value={editProductFormData.activationInstructions}
-                    onChange={(e) => {
-                      setEditProductFormData({ ...editProductFormData, activationInstructions: e.target.value });
-                      setEditUnsavedChanges(true);
-                    }}
-                    className="mt-1"
-                    rows={6}
-                    placeholder="<h3>Activation Process</h3>
+                    {/* English Activation Instructions */}
+                    <div>
+                      <Label htmlFor="activationInstructions" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px] flex items-center gap-2">
+                        <Key className="w-4 h-4 text-[#FFB20F]" />
+                        Activation Instructions
+                      </Label>
+                      <Textarea
+                        id="activationInstructions"
+                        value={editProductFormData.activationInstructions}
+                        onChange={(e) => {
+                          setEditProductFormData({ ...editProductFormData, activationInstructions: e.target.value });
+                          setEditUnsavedChanges(true);
+                        }}
+                        className="mt-1"
+                        rows={6}
+                        placeholder="<h3>Activation Process</h3>
 <ol>
 <li>Open the software after installation</li>
 <li>Navigate to Help → License Activation</li>
 <li>Enter your license key</li>
 <li>Click 'Activate Online' for instant activation</li>
 </ol>"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Step-by-step license activation guide</p>
-                </div>
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Step-by-step license activation guide</p>
+                    </div>
 
-                {/* Usage Instructions */}
-                <div>
-                  <Label htmlFor="usageInstructions" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px] flex items-center gap-2">
-                    <Play className="w-4 h-4 text-[#FFB20F]" />
-                    Getting Started Guide
-                  </Label>
-                  <Textarea
-                    id="usageInstructions"
-                    value={editProductFormData.usageInstructions}
-                    onChange={(e) => {
-                      setEditProductFormData({ ...editProductFormData, usageInstructions: e.target.value });
-                      setEditUnsavedChanges(true);
-                    }}
-                    className="mt-1"
-                    rows={6}
-                    placeholder="<h3>Getting Started</h3>
+                    {/* English Usage Instructions */}
+                    <div>
+                      <Label htmlFor="usageInstructions" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px] flex items-center gap-2">
+                        <Play className="w-4 h-4 text-[#FFB20F]" />
+                        Getting Started Guide
+                      </Label>
+                      <Textarea
+                        id="usageInstructions"
+                        value={editProductFormData.usageInstructions}
+                        onChange={(e) => {
+                          setEditProductFormData({ ...editProductFormData, usageInstructions: e.target.value });
+                          setEditUnsavedChanges(true);
+                        }}
+                        className="mt-1"
+                        rows={6}
+                        placeholder="<h3>Getting Started</h3>
 <p>After activation, you can access all features from the main dashboard. For detailed tutorials, visit our knowledge base.</p>
 <p><strong>Quick Start:</strong> Open the application and follow the welcome tutorial.</p>"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Basic usage instructions and tips</p>
-                </div>
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Basic usage instructions and tips</p>
+                    </div>
 
-                {/* System Requirements */}
-                <div>
-                  <Label htmlFor="systemRequirements" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px] flex items-center gap-2">
-                    <Monitor className="w-4 h-4 text-[#FFB20F]" />
-                    System Requirements
-                  </Label>
-                  <Textarea
-                    id="systemRequirements"
-                    value={editProductFormData.systemRequirements}
-                    onChange={(e) => {
-                      setEditProductFormData({ ...editProductFormData, systemRequirements: e.target.value });
-                      setEditUnsavedChanges(true);
-                    }}
-                    className="mt-1"
-                    rows={6}
-                    placeholder="<h3>Minimum Requirements</h3>
+                    {/* English System Requirements */}
+                    <div>
+                      <Label htmlFor="systemRequirements" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px] flex items-center gap-2">
+                        <Monitor className="w-4 h-4 text-[#FFB20F]" />
+                        System Requirements
+                      </Label>
+                      <Textarea
+                        id="systemRequirements"
+                        value={editProductFormData.systemRequirements}
+                        onChange={(e) => {
+                          setEditProductFormData({ ...editProductFormData, systemRequirements: e.target.value });
+                          setEditUnsavedChanges(true);
+                        }}
+                        className="mt-1"
+                        rows={6}
+                        placeholder="<h3>Minimum Requirements</h3>
 <ul>
 <li>Windows 10 or later / macOS 10.14+</li>
 <li>4GB RAM minimum, 8GB recommended</li>
 <li>2GB free disk space</li>
 <li>Internet connection for activation</li>
 </ul>"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Technical specifications needed</p>
-                </div>
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Technical specifications needed</p>
+                    </div>
 
-                {/* Troubleshooting Guide */}
-                <div>
-                  <Label htmlFor="troubleshootingGuide" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px] flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-[#FFB20F]" />
-                    Troubleshooting Guide
-                  </Label>
-                  <Textarea
-                    id="troubleshootingGuide"
-                    value={editProductFormData.troubleshootingGuide}
-                    onChange={(e) => {
-                      setEditProductFormData({ ...editProductFormData, troubleshootingGuide: e.target.value });
-                      setEditUnsavedChanges(true);
-                    }}
-                    className="mt-1"
-                    rows={6}
-                    placeholder="<h3>Common Issues</h3>
+                    {/* English Troubleshooting Guide */}
+                    <div>
+                      <Label htmlFor="troubleshootingGuide" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px] flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-[#FFB20F]" />
+                        Troubleshooting Guide
+                      </Label>
+                      <Textarea
+                        id="troubleshootingGuide"
+                        value={editProductFormData.troubleshootingGuide}
+                        onChange={(e) => {
+                          setEditProductFormData({ ...editProductFormData, troubleshootingGuide: e.target.value });
+                          setEditUnsavedChanges(true);
+                        }}
+                        className="mt-1"
+                        rows={6}
+                        placeholder="<h3>Common Issues</h3>
 <p><strong>License not activating?</strong> Check your internet connection and ensure the key is entered correctly.</p>
 <p><strong>Software won't start?</strong> Try running as administrator or check system requirements.</p>"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Common problems and solutions</p>
-                </div>
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Common problems and solutions</p>
+                    </div>
 
-                {/* Support Contacts */}
-                <div>
-                  <Label htmlFor="supportContacts" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px] flex items-center gap-2">
-                    <Phone className="w-4 h-4 text-[#FFB20F]" />
-                    Support Information
-                  </Label>
-                  <Textarea
-                    id="supportContacts"
-                    value={editProductFormData.supportContacts}
-                    onChange={(e) => {
-                      setEditProductFormData({ ...editProductFormData, supportContacts: e.target.value });
-                      setEditUnsavedChanges(true);
-                    }}
-                    className="mt-1"
-                    rows={6}
-                    placeholder="<h3>Support Information</h3>
+                    {/* English Support Contacts */}
+                    <div>
+                      <Label htmlFor="supportContacts" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px] flex items-center gap-2">
+                        <Phone className="w-4 h-4 text-[#FFB20F]" />
+                        Support Information
+                      </Label>
+                      <Textarea
+                        id="supportContacts"
+                        value={editProductFormData.supportContacts}
+                        onChange={(e) => {
+                          setEditProductFormData({ ...editProductFormData, supportContacts: e.target.value });
+                          setEditUnsavedChanges(true);
+                        }}
+                        className="mt-1"
+                        rows={6}
+                        placeholder="<h3>Support Information</h3>
 <p>Email: support@b2bplatform.com</p>
 <p>Phone: +1-800-SUPPORT</p>
 <p>Live Chat: Available 24/7 through your dashboard</p>"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Contact information for customer support</p>
-                </div>
-              </div>
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Contact information for customer support</p>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                {/* Bosnian Instructions */}
+                <TabsContent value="bosnian" className="space-y-6 mt-6">
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <p className="text-sm text-green-700 font-medium">
+                      Bosanski Uputstva za KM Shop Korisnike
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Bosnian Installation Instructions */}
+                    <div>
+                      <Label htmlFor="installationInstructionsKm" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px] flex items-center gap-2">
+                        <Download className="w-4 h-4 text-[#FFB20F]" />
+                        Uputstva za Instalaciju
+                      </Label>
+                      <Textarea
+                        id="installationInstructionsKm"
+                        value={editProductFormData.installationInstructionsKm}
+                        onChange={(e) => {
+                          setEditProductFormData({ ...editProductFormData, installationInstructionsKm: e.target.value });
+                          setEditUnsavedChanges(true);
+                        }}
+                        className="mt-1"
+                        rows={6}
+                        placeholder="<h3>Koraci za Instalaciju</h3>
+<ol>
+<li>Preuzmite instaler iz email potvrde narudžbe</li>
+<li>Pokrenite instaler kao administrator</li>
+<li>Pratite čarobnjak za podešavanje</li>
+<li>Unesite licencni ključ kada se traži</li>
+</ol>"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Podržava HTML formatiranje (h3, ol, ul, li, p, strong, em)</p>
+                    </div>
+
+                    {/* Bosnian Activation Instructions */}
+                    <div>
+                      <Label htmlFor="activationInstructionsKm" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px] flex items-center gap-2">
+                        <Key className="w-4 h-4 text-[#FFB20F]" />
+                        Uputstva za Aktivaciju
+                      </Label>
+                      <Textarea
+                        id="activationInstructionsKm"
+                        value={editProductFormData.activationInstructionsKm}
+                        onChange={(e) => {
+                          setEditProductFormData({ ...editProductFormData, activationInstructionsKm: e.target.value });
+                          setEditUnsavedChanges(true);
+                        }}
+                        className="mt-1"
+                        rows={6}
+                        placeholder="<h3>Proces Aktivacije</h3>
+<ol>
+<li>Otvorite softver nakon instalacije</li>
+<li>Idite na Pomoć → Aktivacija Licence</li>
+<li>Unesite svoj licencni ključ</li>
+<li>Kliknite 'Aktiviraj Online' za trenutnu aktivaciju</li>
+</ol>"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Korak po korak vodič za aktivaciju licence</p>
+                    </div>
+
+                    {/* Bosnian Usage Instructions */}
+                    <div>
+                      <Label htmlFor="usageInstructionsKm" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px] flex items-center gap-2">
+                        <Play className="w-4 h-4 text-[#FFB20F]" />
+                        Vodič za Početak
+                      </Label>
+                      <Textarea
+                        id="usageInstructionsKm"
+                        value={editProductFormData.usageInstructionsKm}
+                        onChange={(e) => {
+                          setEditProductFormData({ ...editProductFormData, usageInstructionsKm: e.target.value });
+                          setEditUnsavedChanges(true);
+                        }}
+                        className="mt-1"
+                        rows={6}
+                        placeholder="<h3>Prvi Koraci</h3>
+<p>Nakon aktivacije, možete pristupiti svim funkcijama iz glavnog menija. Za detaljne vodiče, posjetite našu bazu znanja.</p>
+<p><strong>Brzi Start:</strong> Otvorite aplikaciju i pratite uvodni vodič.</p>"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Osnovna uputstva za korišćenje i savjeti</p>
+                    </div>
+
+                    {/* Bosnian System Requirements */}
+                    <div>
+                      <Label htmlFor="systemRequirementsKm" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px] flex items-center gap-2">
+                        <Monitor className="w-4 h-4 text-[#FFB20F]" />
+                        Sistemski Zahtjevi
+                      </Label>
+                      <Textarea
+                        id="systemRequirementsKm"
+                        value={editProductFormData.systemRequirementsKm}
+                        onChange={(e) => {
+                          setEditProductFormData({ ...editProductFormData, systemRequirementsKm: e.target.value });
+                          setEditUnsavedChanges(true);
+                        }}
+                        className="mt-1"
+                        rows={6}
+                        placeholder="<h3>Minimalni Zahtjevi</h3>
+<ul>
+<li>Windows 10 ili noviji / macOS 10.14+</li>
+<li>4GB RAM minimum, 8GB preporučeno</li>
+<li>2GB slobodnog prostora na disku</li>
+<li>Internet konekcija za aktivaciju</li>
+</ul>"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Potrebne tehničke specifikacije</p>
+                    </div>
+
+                    {/* Bosnian Troubleshooting Guide */}
+                    <div>
+                      <Label htmlFor="troubleshootingGuideKm" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px] flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-[#FFB20F]" />
+                        Vodič za Rješavanje Problema
+                      </Label>
+                      <Textarea
+                        id="troubleshootingGuideKm"
+                        value={editProductFormData.troubleshootingGuideKm}
+                        onChange={(e) => {
+                          setEditProductFormData({ ...editProductFormData, troubleshootingGuideKm: e.target.value });
+                          setEditUnsavedChanges(true);
+                        }}
+                        className="mt-1"
+                        rows={6}
+                        placeholder="<h3>Česti Problemi</h3>
+<p><strong>Licenca se ne aktivira?</strong> Provjerite internet konekciju i provjerite da li je ključ ispravno unesen.</p>
+<p><strong>Softver se neće pokrenuti?</strong> Pokušajte pokrenuti kao administrator ili provjerite sistemske zahtjeve.</p>"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Česti problemi i rješenja</p>
+                    </div>
+
+                    {/* Bosnian Support Contacts */}
+                    <div>
+                      <Label htmlFor="supportContactsKm" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px] flex items-center gap-2">
+                        <Phone className="w-4 h-4 text-[#FFB20F]" />
+                        Informacije o Podršci
+                      </Label>
+                      <Textarea
+                        id="supportContactsKm"
+                        value={editProductFormData.supportContactsKm}
+                        onChange={(e) => {
+                          setEditProductFormData({ ...editProductFormData, supportContactsKm: e.target.value });
+                          setEditUnsavedChanges(true);
+                        }}
+                        className="mt-1"
+                        rows={6}
+                        placeholder="<h3>Informacije o Podršci</h3>
+<p>Email: podrska@b2bplatforma.com</p>
+<p>Telefon: +387-XX-XXX-XXX</p>
+<p>Live Chat: Dostupan 24/7 kroz vaš panel</p>"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Kontakt informacije za korisničku podršku</p>
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
 
               {/* Preview Section */}
               <div className="border-t pt-6">
                 <h5 className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px] mb-3 flex items-center gap-2">
                   <BookOpen className="w-4 h-4 text-[#FFB20F]" />
-                  Preview: User Instructions
+                  Preview: Multi-Language User Instructions
                 </h5>
                 <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-sm text-gray-600 mb-4">
-                    This preview shows how the instructions will appear to B2B users in both EUR and KM shops.
-                  </p>
-                  <div className="bg-white rounded-lg p-4 border">
-                    <div className="flex items-center gap-2 mb-4">
-                      <BookOpen className="w-5 h-5 text-[#FFB20F]" />
-                      <span className="font-medium">User Instructions - {editProductData?.data?.name || editProductData?.name}</span>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* English Preview */}
+                    <div className="bg-white rounded-lg p-4 border">
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-blue-600">🇬🇧</span>
+                        <span className="font-medium text-sm">EUR Shop (English)</span>
+                      </div>
+                      <div className="text-xs">
+                        <strong>Available Sections:</strong>
+                        <ul className="list-disc list-inside mt-1 space-y-1">
+                          {editProductFormData.installationInstructions && <li>Installation Instructions</li>}
+                          {editProductFormData.activationInstructions && <li>Activation Instructions</li>}
+                          {editProductFormData.usageInstructions && <li>Getting Started Guide</li>}
+                          {editProductFormData.systemRequirements && <li>System Requirements</li>}
+                          {editProductFormData.troubleshootingGuide && <li>Troubleshooting Guide</li>}
+                          {editProductFormData.supportContacts && <li>Support Information</li>}
+                        </ul>
+                        {!editProductFormData.installationInstructions && 
+                         !editProductFormData.activationInstructions && 
+                         !editProductFormData.usageInstructions && 
+                         !editProductFormData.systemRequirements && 
+                         !editProductFormData.troubleshootingGuide && 
+                         !editProductFormData.supportContacts && (
+                          <p className="text-gray-500 italic mt-2">No English instructions configured yet.</p>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-sm">
-                      <strong>Available Sections:</strong>
-                      <ul className="list-disc list-inside mt-2 space-y-1">
-                        {editProductFormData.installationInstructions && <li>Installation Instructions</li>}
-                        {editProductFormData.activationInstructions && <li>Activation Instructions</li>}
-                        {editProductFormData.usageInstructions && <li>Getting Started Guide</li>}
-                        {editProductFormData.systemRequirements && <li>System Requirements</li>}
-                        {editProductFormData.troubleshootingGuide && <li>Troubleshooting Guide</li>}
-                        {editProductFormData.supportContacts && <li>Support Information</li>}
-                      </ul>
-                      {!editProductFormData.installationInstructions && 
-                       !editProductFormData.activationInstructions && 
-                       !editProductFormData.usageInstructions && 
-                       !editProductFormData.systemRequirements && 
-                       !editProductFormData.troubleshootingGuide && 
-                       !editProductFormData.supportContacts && (
-                        <p className="text-gray-500 italic">No instructions configured yet. Fill in the fields above to create user documentation.</p>
-                      )}
+
+                    {/* Bosnian Preview */}
+                    <div className="bg-white rounded-lg p-4 border">
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-green-600">🇧🇦</span>
+                        <span className="font-medium text-sm">KM Shop (Bosanski)</span>
+                      </div>
+                      <div className="text-xs">
+                        <strong>Dostupne Sekcije:</strong>
+                        <ul className="list-disc list-inside mt-1 space-y-1">
+                          {editProductFormData.installationInstructionsKm && <li>Uputstva za Instalaciju</li>}
+                          {editProductFormData.activationInstructionsKm && <li>Uputstva za Aktivaciju</li>}
+                          {editProductFormData.usageInstructionsKm && <li>Vodič za Početak</li>}
+                          {editProductFormData.systemRequirementsKm && <li>Sistemski Zahtjevi</li>}
+                          {editProductFormData.troubleshootingGuideKm && <li>Vodič za Rješavanje Problema</li>}
+                          {editProductFormData.supportContactsKm && <li>Informacije o Podršci</li>}
+                        </ul>
+                        {!editProductFormData.installationInstructionsKm && 
+                         !editProductFormData.activationInstructionsKm && 
+                         !editProductFormData.usageInstructionsKm && 
+                         !editProductFormData.systemRequirementsKm && 
+                         !editProductFormData.troubleshootingGuideKm && 
+                         !editProductFormData.supportContactsKm && (
+                          <p className="text-gray-500 italic mt-2">Bosanska uputstva još nisu konfigurirana.</p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>

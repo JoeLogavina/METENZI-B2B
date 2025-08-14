@@ -136,13 +136,20 @@ export const products = pgTable("products", {
   imageUrl: varchar("image_url"),
   warranty: text("warranty"), // Warranty information
   htmlDescription: text("html_description"), // Rich HTML description
-  // User Instructions Fields
+  // User Instructions Fields - English (EUR Shop)
   installationInstructions: text("installation_instructions"), // Installation guide
   activationInstructions: text("activation_instructions"), // Activation guide
   usageInstructions: text("usage_instructions"), // Usage guide
   systemRequirements: text("system_requirements"), // System requirements
   troubleshootingGuide: text("troubleshooting_guide"), // Troubleshooting information
   supportContacts: text("support_contacts"), // Support contact information
+  // User Instructions Fields - Bosnian (KM Shop)
+  installationInstructionsKm: text("installation_instructions_km"), // Uputstva za instalaciju
+  activationInstructionsKm: text("activation_instructions_km"), // Uputstva za aktivaciju
+  usageInstructionsKm: text("usage_instructions_km"), // Vodič za početak
+  systemRequirementsKm: text("system_requirements_km"), // Sistemski zahtjevi
+  troubleshootingGuideKm: text("troubleshooting_guide_km"), // Vodič za rješavanje problema
+  supportContactsKm: text("support_contacts_km"), // Informacije o podršci
   allowDuplicateKeys: boolean("allow_duplicate_keys").default(false).notNull(), // Allow duplicate license keys
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
