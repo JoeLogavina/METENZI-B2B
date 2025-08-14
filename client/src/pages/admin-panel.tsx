@@ -1535,6 +1535,14 @@ function EditProductIntegratedSection({
       // Handle both direct product data and wrapped in { data: product }
       const prod = editProductData.data || editProductData;
       console.log('Loading product data for edit:', prod);
+      console.log('KM fields from API response:', {
+        installationInstructionsKm: prod.installationInstructionsKm,
+        activationInstructionsKm: prod.activationInstructionsKm,
+        usageInstructionsKm: prod.usageInstructionsKm,
+        systemRequirementsKm: prod.systemRequirementsKm,
+        troubleshootingGuideKm: prod.troubleshootingGuideKm,
+        supportContactsKm: prod.supportContactsKm
+      });
       
       setEditProductFormData({
         name: prod.name || '',
