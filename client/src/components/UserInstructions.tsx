@@ -61,48 +61,56 @@ function UserInstructions({ product, tenantId, trigger }: UserInstructionsProps)
     }
   };
 
+  // Use KM-specific instructions if tenant is 'km' and they exist, otherwise fallback to English
+  const getLocalizedContent = (englishField: string | null, kmField: string | null) => {
+    if (tenantId === 'km' && kmField) {
+      return kmField;
+    }
+    return englishField;
+  };
+
   const instructionSections = [
     {
       id: "installation",
-      title: "Installation",
+      title: tenantId === 'km' ? "Instalacija" : "Installation",
       icon: Download,
-      content: product.installationInstructions,
-      description: "Step-by-step installation guide"
+      content: getLocalizedContent(product.installationInstructions, product.installationInstructionsKm),
+      description: tenantId === 'km' ? "Korak-po-korak vodič za instalaciju" : "Step-by-step installation guide"
     },
     {
       id: "activation",
-      title: "Activation",
+      title: tenantId === 'km' ? "Aktivacija" : "Activation",
       icon: Key,
-      content: product.activationInstructions,
-      description: "How to activate your license"
+      content: getLocalizedContent(product.activationInstructions, product.activationInstructionsKm),
+      description: tenantId === 'km' ? "Kako aktivirati vašu licencu" : "How to activate your license"
     },
     {
       id: "usage",
-      title: "Getting Started",
+      title: tenantId === 'km' ? "Početak rada" : "Getting Started",
       icon: Play,
-      content: product.usageInstructions,
-      description: "Basic usage instructions"
+      content: getLocalizedContent(product.usageInstructions, product.usageInstructionsKm),
+      description: tenantId === 'km' ? "Osnovna uputstva za korišćenje" : "Basic usage instructions"
     },
     {
       id: "requirements",
-      title: "System Requirements",
+      title: tenantId === 'km' ? "Sistemski zahtevi" : "System Requirements",
       icon: Monitor,
-      content: product.systemRequirements,
-      description: "Technical specifications needed"
+      content: getLocalizedContent(product.systemRequirements, product.systemRequirementsKm),
+      description: tenantId === 'km' ? "Potrebne tehničke specifikacije" : "Technical specifications needed"
     },
     {
       id: "troubleshooting",
-      title: "Troubleshooting",
+      title: tenantId === 'km' ? "Rešavanje problema" : "Troubleshooting",
       icon: AlertCircle,
-      content: product.troubleshootingGuide,
-      description: "Common issues and solutions"
+      content: getLocalizedContent(product.troubleshootingGuide, product.troubleshootingGuideKm),
+      description: tenantId === 'km' ? "Česti problemi i rešenja" : "Common issues and solutions"
     },
     {
       id: "support",
-      title: "Support",
+      title: tenantId === 'km' ? "Podrška" : "Support",
       icon: Phone,
-      content: product.supportContacts,
-      description: "Get help when you need it"
+      content: getLocalizedContent(product.supportContacts, product.supportContactsKm),
+      description: tenantId === 'km' ? "Pomoć kada vam je potrebna" : "Get help when you need it"
     }
   ];
 
@@ -119,7 +127,7 @@ function UserInstructions({ product, tenantId, trigger }: UserInstructionsProps)
       className="border-[#6E6F71] text-[#6E6F71] hover:bg-[#6E6F71] hover:text-white"
     >
       <BookOpen className="w-4 h-4 mr-2" />
-      User Guide
+      {tenantId === 'km' ? 'Korisnički vodič' : 'User Guide'}
     </Button>
   );
 
@@ -132,7 +140,7 @@ function UserInstructions({ product, tenantId, trigger }: UserInstructionsProps)
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3 text-xl">
             <BookOpen className="w-6 h-6 text-[#FFB20F]" />
-            User Instructions - {product.name}
+            {tenantId === 'km' ? 'Korisnička uputstva' : 'User Instructions'} - {product.name}
           </DialogTitle>
           <div className="flex items-center gap-2 mt-2">
             <Badge variant="outline" className="text-xs">
@@ -190,10 +198,16 @@ function UserInstructions({ product, tenantId, trigger }: UserInstructionsProps)
                       <div className="flex flex-col items-center justify-center py-8 text-center">
                         <Info className="w-12 h-12 text-gray-400 mb-3" />
                         <p className="text-gray-500 text-sm">
-                          No {section.title.toLowerCase()} instructions available for this product.
+                          {tenantId === 'km' 
+                            ? `Nema dostupnih uputstava za ${section.title.toLowerCase()} za ovaj proizvod.`
+                            : `No ${section.title.toLowerCase()} instructions available for this product.`
+                          }
                         </p>
                         <p className="text-gray-400 text-xs mt-1">
-                          Contact support if you need assistance with {section.title.toLowerCase()}.
+                          {tenantId === 'km' 
+                            ? `Kontaktirajte podršku ako vam je potrebna pomoć sa ${section.title.toLowerCase()}.`
+                            : `Contact support if you need assistance with ${section.title.toLowerCase()}.`
+                          }
                         </p>
                       </div>
                     )}
@@ -209,7 +223,12 @@ function UserInstructions({ product, tenantId, trigger }: UserInstructionsProps)
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <CheckCircle className="w-4 h-4 text-green-500" />
-              <span>Complete user guide for {product.name}</span>
+              <span>
+                {tenantId === 'km' 
+                  ? `Kompletan korisnički vodič za ${product.name}` 
+                  : `Complete user guide for ${product.name}`
+                }
+              </span>
             </div>
             <div className="flex items-center gap-2">
               {product.supportContacts && (
@@ -220,7 +239,7 @@ function UserInstructions({ product, tenantId, trigger }: UserInstructionsProps)
                   className="border-[#6E6F71] text-[#6E6F71] hover:bg-[#6E6F71] hover:text-white"
                 >
                   <Phone className="w-4 h-4 mr-2" />
-                  Get Support
+                  {tenantId === 'km' ? 'Kontaktiraj podršku' : 'Get Support'}
                 </Button>
               )}
               <Button
@@ -232,12 +251,12 @@ function UserInstructions({ product, tenantId, trigger }: UserInstructionsProps)
                 {copiedText === 'url' ? (
                   <>
                     <Check className="w-4 h-4 mr-2" />
-                    Copied!
+                    {tenantId === 'km' ? 'Kopirano!' : 'Copied!'}
                   </>
                 ) : (
                   <>
                     <Copy className="w-4 h-4 mr-2" />
-                    Share Guide
+                    {tenantId === 'km' ? 'Podeli vodič' : 'Share Guide'}
                   </>
                 )}
               </Button>
