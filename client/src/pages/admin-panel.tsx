@@ -34,7 +34,13 @@ import {
   TreePine,
   Activity,
   AlertTriangle,
-  MessageCircle
+  MessageCircle,
+  Download,
+  Play,
+  Monitor,
+  AlertCircle,
+  Phone,
+  BookOpen
 } from "lucide-react";
 import WalletManagement from "@/components/wallet-management";
 import UserForm from "@/components/user-form";
@@ -1526,7 +1532,14 @@ function EditProductIntegratedSection({
         region: prod.region || '',
         imageUrl: prod.imageUrl || '',
         isActive: prod.isActive ?? true,
-        allowDuplicateKeys: prod.allowDuplicateKeys ?? false
+        allowDuplicateKeys: prod.allowDuplicateKeys ?? false,
+        // User Instructions
+        installationInstructions: prod.installationInstructions || '',
+        activationInstructions: prod.activationInstructions || '',
+        usageInstructions: prod.usageInstructions || '',
+        systemRequirements: prod.systemRequirements || '',
+        troubleshootingGuide: prod.troubleshootingGuide || '',
+        supportContacts: prod.supportContacts || ''
       });
 
       setEditEurPricing({
@@ -1823,6 +1836,17 @@ function EditProductIntegratedSection({
                 }`}
               >
                 EUR Pricing
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditActiveTab('user-instructions')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm uppercase tracking-[0.5px] ${
+                  editActiveTab === "user-instructions"
+                    ? "border-[#FFB20F] text-[#FFB20F]"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                User Instructions
               </button>
               <button
                 type="button"
@@ -2331,6 +2355,204 @@ XYZ12-ABC34-DEF56-GHI78-JKL90
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* User Instructions Tab */}
+          {editActiveTab === "user-instructions" && (
+            <div className="space-y-6">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <h4 className="text-sm font-medium text-blue-800 mb-1">User Instructions & Documentation</h4>
+                <p className="text-sm text-blue-600">
+                  Create comprehensive user guides for both EUR and KM shop customers. 
+                  These instructions will be displayed to B2B users when they view products.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Installation Instructions */}
+                <div>
+                  <Label htmlFor="installationInstructions" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px] flex items-center gap-2">
+                    <Download className="w-4 h-4 text-[#FFB20F]" />
+                    Installation Instructions
+                  </Label>
+                  <Textarea
+                    id="installationInstructions"
+                    value={editProductFormData.installationInstructions}
+                    onChange={(e) => {
+                      setEditProductFormData({ ...editProductFormData, installationInstructions: e.target.value });
+                      setEditUnsavedChanges(true);
+                    }}
+                    className="mt-1"
+                    rows={6}
+                    placeholder="<h3>Installation Steps</h3>
+<ol>
+<li>Download the installer from your order confirmation email</li>
+<li>Run the installer as administrator</li>
+<li>Follow the setup wizard</li>
+<li>Enter your license key when prompted</li>
+</ol>"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Supports HTML formatting (h3, ol, ul, li, p, strong, em)</p>
+                </div>
+
+                {/* Activation Instructions */}
+                <div>
+                  <Label htmlFor="activationInstructions" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px] flex items-center gap-2">
+                    <Key className="w-4 h-4 text-[#FFB20F]" />
+                    Activation Instructions
+                  </Label>
+                  <Textarea
+                    id="activationInstructions"
+                    value={editProductFormData.activationInstructions}
+                    onChange={(e) => {
+                      setEditProductFormData({ ...editProductFormData, activationInstructions: e.target.value });
+                      setEditUnsavedChanges(true);
+                    }}
+                    className="mt-1"
+                    rows={6}
+                    placeholder="<h3>Activation Process</h3>
+<ol>
+<li>Open the software after installation</li>
+<li>Navigate to Help → License Activation</li>
+<li>Enter your license key</li>
+<li>Click 'Activate Online' for instant activation</li>
+</ol>"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Step-by-step license activation guide</p>
+                </div>
+
+                {/* Usage Instructions */}
+                <div>
+                  <Label htmlFor="usageInstructions" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px] flex items-center gap-2">
+                    <Play className="w-4 h-4 text-[#FFB20F]" />
+                    Getting Started Guide
+                  </Label>
+                  <Textarea
+                    id="usageInstructions"
+                    value={editProductFormData.usageInstructions}
+                    onChange={(e) => {
+                      setEditProductFormData({ ...editProductFormData, usageInstructions: e.target.value });
+                      setEditUnsavedChanges(true);
+                    }}
+                    className="mt-1"
+                    rows={6}
+                    placeholder="<h3>Getting Started</h3>
+<p>After activation, you can access all features from the main dashboard. For detailed tutorials, visit our knowledge base.</p>
+<p><strong>Quick Start:</strong> Open the application and follow the welcome tutorial.</p>"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Basic usage instructions and tips</p>
+                </div>
+
+                {/* System Requirements */}
+                <div>
+                  <Label htmlFor="systemRequirements" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px] flex items-center gap-2">
+                    <Monitor className="w-4 h-4 text-[#FFB20F]" />
+                    System Requirements
+                  </Label>
+                  <Textarea
+                    id="systemRequirements"
+                    value={editProductFormData.systemRequirements}
+                    onChange={(e) => {
+                      setEditProductFormData({ ...editProductFormData, systemRequirements: e.target.value });
+                      setEditUnsavedChanges(true);
+                    }}
+                    className="mt-1"
+                    rows={6}
+                    placeholder="<h3>Minimum Requirements</h3>
+<ul>
+<li>Windows 10 or later / macOS 10.14+</li>
+<li>4GB RAM minimum, 8GB recommended</li>
+<li>2GB free disk space</li>
+<li>Internet connection for activation</li>
+</ul>"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Technical specifications needed</p>
+                </div>
+
+                {/* Troubleshooting Guide */}
+                <div>
+                  <Label htmlFor="troubleshootingGuide" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px] flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-[#FFB20F]" />
+                    Troubleshooting Guide
+                  </Label>
+                  <Textarea
+                    id="troubleshootingGuide"
+                    value={editProductFormData.troubleshootingGuide}
+                    onChange={(e) => {
+                      setEditProductFormData({ ...editProductFormData, troubleshootingGuide: e.target.value });
+                      setEditUnsavedChanges(true);
+                    }}
+                    className="mt-1"
+                    rows={6}
+                    placeholder="<h3>Common Issues</h3>
+<p><strong>License not activating?</strong> Check your internet connection and ensure the key is entered correctly.</p>
+<p><strong>Software won't start?</strong> Try running as administrator or check system requirements.</p>"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Common problems and solutions</p>
+                </div>
+
+                {/* Support Contacts */}
+                <div>
+                  <Label htmlFor="supportContacts" className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px] flex items-center gap-2">
+                    <Phone className="w-4 h-4 text-[#FFB20F]" />
+                    Support Information
+                  </Label>
+                  <Textarea
+                    id="supportContacts"
+                    value={editProductFormData.supportContacts}
+                    onChange={(e) => {
+                      setEditProductFormData({ ...editProductFormData, supportContacts: e.target.value });
+                      setEditUnsavedChanges(true);
+                    }}
+                    className="mt-1"
+                    rows={6}
+                    placeholder="<h3>Support Information</h3>
+<p>Email: support@b2bplatform.com</p>
+<p>Phone: +1-800-SUPPORT</p>
+<p>Live Chat: Available 24/7 through your dashboard</p>"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Contact information for customer support</p>
+                </div>
+              </div>
+
+              {/* Preview Section */}
+              <div className="border-t pt-6">
+                <h5 className="text-sm font-medium text-gray-700 uppercase tracking-[0.5px] mb-3 flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-[#FFB20F]" />
+                  Preview: User Instructions
+                </h5>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-sm text-gray-600 mb-4">
+                    This preview shows how the instructions will appear to B2B users in both EUR and KM shops.
+                  </p>
+                  <div className="bg-white rounded-lg p-4 border">
+                    <div className="flex items-center gap-2 mb-4">
+                      <BookOpen className="w-5 h-5 text-[#FFB20F]" />
+                      <span className="font-medium">User Instructions - {editProductData?.data?.name || editProductData?.name}</span>
+                    </div>
+                    <div className="text-sm">
+                      <strong>Available Sections:</strong>
+                      <ul className="list-disc list-inside mt-2 space-y-1">
+                        {editProductFormData.installationInstructions && <li>Installation Instructions</li>}
+                        {editProductFormData.activationInstructions && <li>Activation Instructions</li>}
+                        {editProductFormData.usageInstructions && <li>Getting Started Guide</li>}
+                        {editProductFormData.systemRequirements && <li>System Requirements</li>}
+                        {editProductFormData.troubleshootingGuide && <li>Troubleshooting Guide</li>}
+                        {editProductFormData.supportContacts && <li>Support Information</li>}
+                      </ul>
+                      {!editProductFormData.installationInstructions && 
+                       !editProductFormData.activationInstructions && 
+                       !editProductFormData.usageInstructions && 
+                       !editProductFormData.systemRequirements && 
+                       !editProductFormData.troubleshootingGuide && 
+                       !editProductFormData.supportContacts && (
+                        <p className="text-gray-500 italic">No instructions configured yet. Fill in the fields above to create user documentation.</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </CardContent>
