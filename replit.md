@@ -1,7 +1,7 @@
 # B2B Software License Management Portal
 
 ## Overview
-This project is a full-stack B2B software license management platform. Its purpose is to provide enterprise customers with an interface to browse, purchase, and manage software licenses, while offering administrators tools for inventory and user management. Key capabilities include a 3-level hierarchical category system, comprehensive B2B client management with custom pricing, and robust order processing with sequential numbering and shared license key pools. The platform aims to be a streamlined, high-performance, and secure solution for B2B software distribution, using custom username/password authentication and displaying all prices in EUR.
+This project is a full-stack B2B software license management platform. Its purpose is to provide enterprise customers with an interface to browse, purchase, and manage software licenses, while offering administrators tools for inventory and user management. Key capabilities include a 3-level hierarchical category system, comprehensive B2B client management with custom pricing, and robust order processing with sequential numbering and shared license key pools. The platform features complete dual-tenant architecture with EUR and KM shops, each with currency-specific pricing and native language user instructions. The platform aims to be a streamlined, high-performance, and secure solution for B2B software distribution, using custom username/password authentication.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
@@ -21,7 +21,7 @@ Core features include:
 - **Wallet Payment System**: Fully functional wallet deduction logic, prioritizing deposit balance before credit limits, and detailed transaction history.
 - **Authentication**: Custom username/password authentication with Passport.js, PostgreSQL-backed sessions, and role-based access control.
 - **Support System**: Complete support system with database foundation, REST API, and frontend components for ticket management, chat, knowledge base, and FAQs, supporting multi-tenant architecture and role-based access control. Includes full threaded conversation interface.
-- **Multi-Language System**: Full dual-language implementation for user instructions, supporting tenant-specific content (e.g., Bosnian for KM tenant) with intelligent fallback to English.
+- **Multi-Language System**: Complete dual-language implementation for user instructions, successfully supporting tenant-specific content with Bosnian for KM shop and English for EUR shop, including proper schema validation and database persistence.
 - **"Allow Duplicate Keys" Feature**: Database schema, backend logic, and frontend UI to allow/disallow duplicate license keys per product.
 
 Advanced security framework features:
