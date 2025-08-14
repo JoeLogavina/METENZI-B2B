@@ -194,7 +194,21 @@ export default function AdminPanel() {
     region: '',
     imageUrl: '',
     isActive: true,
-    allowDuplicateKeys: false
+    allowDuplicateKeys: false,
+    // English User Instructions
+    installationInstructions: '',
+    activationInstructions: '',
+    usageInstructions: '',
+    systemRequirements: '',
+    troubleshootingGuide: '',
+    supportContacts: '',
+    // KM User Instructions
+    installationInstructionsKm: '',
+    activationInstructionsKm: '',
+    usageInstructionsKm: '',
+    systemRequirementsKm: '',
+    troubleshootingGuideKm: '',
+    supportContactsKm: ''
   });
   const [editEurPricing, setEditEurPricing] = useState({
     price: '',
