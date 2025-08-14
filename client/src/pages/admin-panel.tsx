@@ -1692,6 +1692,14 @@ function EditProductIntegratedSection({
 
       console.log('Debug submitData after construction:', submitData);
       console.log('Debug allowDuplicateKeys in submitData:', submitData.allowDuplicateKeys);
+      console.log('Debug KM fields in submitData:', {
+        installationInstructionsKm: submitData.installationInstructionsKm,
+        activationInstructionsKm: submitData.activationInstructionsKm,
+        usageInstructionsKm: submitData.usageInstructionsKm,
+        systemRequirementsKm: submitData.systemRequirementsKm,
+        troubleshootingGuideKm: submitData.troubleshootingGuideKm,
+        supportContactsKm: submitData.supportContactsKm
+      });
 
       const response = await fetch(`/api/admin/products/${editProductId}`, {
         method: 'PUT',
