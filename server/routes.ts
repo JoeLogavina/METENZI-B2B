@@ -941,6 +941,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Product routes with tenant-aware pricing and user-specific visibility
   app.get('/api/products', 
     isAuthenticated,
+    // Add debugging middleware before requireTenantType
+    (req: any, res, next) => {
+      console.log('🔍 PRODUCTS DEBUG - Tenant info:', {
+        path: req.path,
+        originalUrl: req.originalUrl,
+        tenantType: req.tenant?.type,
+        tenantCurrency: req.tenant?.currency,
+        userId: req.user?.id,
+        userRole: req.user?.role,
+        userTenantId: req.user?.tenantId
+      });
+      next();
+    },
     requireTenantType(['eur-shop', 'km-shop', 'admin']),
     productsCacheMiddleware,
     async (req: any, res) => {
