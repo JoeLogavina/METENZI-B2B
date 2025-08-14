@@ -96,6 +96,20 @@ const updateProductSchema = z.object({
   purchasePriceKm: z.union([z.string(), z.number(), z.literal("")]).transform(val => val === "" ? null : String(val)).optional(),
   retailPriceKm: z.union([z.string(), z.number(), z.literal("")]).transform(val => val === "" ? null : String(val)).optional(),
   stock: z.union([z.string(), z.number()]).transform(val => Number(val)).optional(),
+  // KM instruction fields for dual-language support
+  installationInstructionsKm: z.string().optional(),
+  activationInstructionsKm: z.string().optional(),
+  usageInstructionsKm: z.string().optional(),
+  systemRequirementsKm: z.string().optional(),
+  troubleshootingGuideKm: z.string().optional(),
+  supportContactsKm: z.string().optional(),
+  // English instruction fields
+  installationInstructions: z.string().optional(),
+  activationInstructions: z.string().optional(),
+  usageInstructions: z.string().optional(),
+  systemRequirements: z.string().optional(),
+  troubleshootingGuide: z.string().optional(),
+  supportContacts: z.string().optional(),
 }).partial();
 
 // PUT /api/admin/products/:id - Update product
