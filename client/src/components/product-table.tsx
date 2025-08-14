@@ -2,8 +2,10 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Minus, Grid3X3, List, Loader2 } from "lucide-react";
+import { Plus, Minus, Grid3X3, List, Loader2, BookOpen } from "lucide-react";
 import { type ProductWithStock } from "@shared/schema";
+import UserInstructions from '@/components/UserInstructions';
+import { useTenant } from '@/contexts/TenantContext';
 
 interface ProductTableProps {
   products: ProductWithStock[];
@@ -20,6 +22,7 @@ export default function ProductTable({
 }: ProductTableProps) {
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const { tenant } = useTenant();
 
   const updateQuantity = (productId: string, delta: number) => {
     setQuantities(prev => ({
@@ -230,19 +233,38 @@ export default function ProductTable({
                     </div>
                   </td>
                   <td className="py-4 px-6">
-                    <Button
-                      onClick={() => onAddToCart(product, getQuantity(product.id))}
-                      disabled={product.stockCount === 0 || isAddingToCart}
-                      size="sm"
-                      className="bg-primary hover:bg-primary/90"
-                    >
-                      {isAddingToCart ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                      ) : (
-                        <Plus className="h-4 w-4 mr-1" />
-                      )}
-                      ADD
-                    </Button>
+                    <div className="flex space-x-2">
+                      {/* User Instructions Button */}
+                      <UserInstructions 
+                        product={product} 
+                        tenantId={tenant.currency === 'KM' ? 'km' : 'eur'}
+                        trigger={
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-[#6E6F71] text-[#6E6F71] hover:bg-[#6E6F71] hover:text-white"
+                          >
+                            <BookOpen className="h-4 w-4 mr-1" />
+                            Guide
+                          </Button>
+                        }
+                      />
+                      
+                      {/* Add to Cart Button */}
+                      <Button
+                        onClick={() => onAddToCart(product, getQuantity(product.id))}
+                        disabled={product.stockCount === 0 || isAddingToCart}
+                        size="sm"
+                        className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white"
+                      >
+                        {isAddingToCart ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                        ) : (
+                          <Plus className="h-4 w-4 mr-1" />
+                        )}
+                        ADD
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}
