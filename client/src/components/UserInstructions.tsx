@@ -51,6 +51,15 @@ function UserInstructions({ product, tenantId, trigger }: UserInstructionsProps)
   const [activeTab, setActiveTab] = useState("installation");
   const [copiedText, setCopiedText] = useState<string | null>(null);
 
+  // Debug: Log product data to see if it's fresh
+  if (product.name === "Antivirus Pro Security") {
+    console.log("🔧 Antivirus Pro Security KM content:", {
+      installationKm: product.installationInstructionsKm?.substring(0, 100) + "...",
+      activationKm: product.activationInstructionsKm?.substring(0, 100) + "...",
+      updatedAt: product.updatedAt
+    });
+  }
+
 
 
   const handleCopy = async (text: string, label: string) => {
