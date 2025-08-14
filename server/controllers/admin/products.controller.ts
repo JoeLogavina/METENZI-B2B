@@ -123,6 +123,14 @@ export class AdminProductsController {
       troubleshootingGuideKm: updateData.troubleshootingGuideKm,
       supportContactsKm: updateData.supportContactsKm
     });
+    console.log('English instruction fields received:', {
+      installationInstructions: updateData.installationInstructions,
+      activationInstructions: updateData.activationInstructions,
+      usageInstructions: updateData.usageInstructions,
+      systemRequirements: updateData.systemRequirements,
+      troubleshootingGuide: updateData.troubleshootingGuide,
+      supportContacts: updateData.supportContacts
+    });
       console.log('allowDuplicateKeys field value:', updateData.allowDuplicateKeys, 'type:', typeof updateData.allowDuplicateKeys);
 
       const product = await productService.updateProduct(id, updateData);
