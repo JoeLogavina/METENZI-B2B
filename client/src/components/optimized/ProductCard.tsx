@@ -5,12 +5,13 @@ import { memo, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Check } from "lucide-react";
+import { ShoppingCart, Check, BookOpen } from "lucide-react";
 import type { ProductWithStock } from "@shared/schema";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useTenant } from '@/contexts/TenantContext';
+import UserInstructions from '@/components/UserInstructions';
 
 interface ProductCardProps {
   product: ProductWithStock;
@@ -212,11 +213,28 @@ const ProductCard = memo(function ProductCard({
         </div>
       </CardContent>
       
-      <CardFooter>
+      <CardFooter className="flex flex-col gap-2">
+        {/* User Instructions Button */}
+        <UserInstructions 
+          product={product} 
+          tenantId={tenant.id as 'eur' | 'km'}
+          trigger={
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full border-[#6E6F71] text-[#6E6F71] hover:bg-[#6E6F71] hover:text-white"
+            >
+              <BookOpen className="w-4 h-4 mr-2" />
+              User Guide
+            </Button>
+          }
+        />
+        
+        {/* Add to Cart Button */}
         <Button
           onClick={handleAddToCart}
           disabled={product.stockCount === 0 || isInCart || addToCartMutation.isPending}
-          className="w-full"
+          className="w-full bg-[#FFB20F] hover:bg-[#e6a00e] text-white"
           variant={isInCart ? "secondary" : "default"}
         >
           {buttonContent}

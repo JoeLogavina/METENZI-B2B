@@ -136,6 +136,13 @@ export const products = pgTable("products", {
   imageUrl: varchar("image_url"),
   warranty: text("warranty"), // Warranty information
   htmlDescription: text("html_description"), // Rich HTML description
+  // User Instructions Fields
+  installationInstructions: text("installation_instructions"), // Installation guide
+  activationInstructions: text("activation_instructions"), // Activation guide
+  usageInstructions: text("usage_instructions"), // Usage guide
+  systemRequirements: text("system_requirements"), // System requirements
+  troubleshootingGuide: text("troubleshooting_guide"), // Troubleshooting information
+  supportContacts: text("support_contacts"), // Support contact information
   allowDuplicateKeys: boolean("allow_duplicate_keys").default(false).notNull(), // Allow duplicate license keys
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
