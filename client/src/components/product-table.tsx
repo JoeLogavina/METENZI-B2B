@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Minus, Grid3X3, List, Loader2, BookOpen } from "lucide-react";
 import { type ProductWithStock } from "@shared/schema";
-import UserInstructions from '@/components/UserInstructions';
+import { UserInstructions } from '@/components/UserInstructions';
 import { useTenant } from '@/contexts/TenantContext';
 
 interface ProductTableProps {
