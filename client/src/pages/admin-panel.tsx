@@ -1680,7 +1680,14 @@ function EditProductIntegratedSection({
         stock: editEurPricing.stock ? parseInt(editEurPricing.stock) : undefined,
         // Explicitly preserve critical fields that might be overwritten
         allowDuplicateKeys: editProductFormData.allowDuplicateKeys,
-        isActive: editProductFormData.isActive
+        isActive: editProductFormData.isActive,
+        // Explicitly preserve KM instruction fields (they might be overwritten by pricing objects)
+        installationInstructionsKm: editProductFormData.installationInstructionsKm,
+        activationInstructionsKm: editProductFormData.activationInstructionsKm,
+        usageInstructionsKm: editProductFormData.usageInstructionsKm,
+        systemRequirementsKm: editProductFormData.systemRequirementsKm,
+        troubleshootingGuideKm: editProductFormData.troubleshootingGuideKm,
+        supportContactsKm: editProductFormData.supportContactsKm
       };
 
       console.log('Debug submitData after construction:', submitData);
