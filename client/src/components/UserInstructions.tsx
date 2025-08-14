@@ -51,14 +51,7 @@ function UserInstructions({ product, tenantId, trigger }: UserInstructionsProps)
   const [activeTab, setActiveTab] = useState("installation");
   const [copiedText, setCopiedText] = useState<string | null>(null);
 
-  // Debug logging to check what content is available
-  console.log("🔧 UserInstructions Debug:", {
-    tenantId,
-    productName: product.name,
-    englishInstallation: !!product.installationInstructions,
-    kmInstallation: !!product.installationInstructionsKm,
-    kmInstallationContent: product.installationInstructionsKm?.substring(0, 50) + "...",
-  });
+
 
   const handleCopy = async (text: string, label: string) => {
     try {
@@ -80,7 +73,7 @@ function UserInstructions({ product, tenantId, trigger }: UserInstructionsProps)
 
   const instructionSections = [
     {
-      id: "installation",
+      id: "installation", 
       title: tenantId === 'km' ? "Instalacija" : "Installation",
       icon: Download,
       content: getLocalizedContent(product.installationInstructions, product.installationInstructionsKm),
