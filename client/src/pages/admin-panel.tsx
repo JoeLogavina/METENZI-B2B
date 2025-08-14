@@ -1669,6 +1669,8 @@ function EditProductIntegratedSection({
         troubleshootingGuideKm: editProductFormData.troubleshootingGuideKm,
         supportContactsKm: editProductFormData.supportContactsKm
       });
+      console.log('Debug editEurPricing:', editEurPricing);
+      console.log('Debug editKmPricing:', editKmPricing);
       
       const submitData = {
         ...editProductFormData,
