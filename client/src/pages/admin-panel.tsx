@@ -41,7 +41,8 @@ import {
   AlertCircle,
   Phone,
   BookOpen,
-  Mail
+  Mail,
+  Bot
 } from "lucide-react";
 import WalletManagement from "@/components/wallet-management";
 import UserForm from "@/components/user-form";
@@ -58,6 +59,7 @@ import { UserDetailView } from "@/components/admin/UserDetailView";
 import { AdminSupportManagement } from "@/components/admin/AdminSupportManagement";
 import { BrevoNotificationPanel } from "@/components/admin/BrevoNotificationPanel";
 import { NotificationAnalyticsDashboard } from "@/components/admin/NotificationAnalyticsDashboard";
+import { SmartNotificationsPanel } from "@/components/admin/SmartNotificationsPanel";
 
 interface DashboardStats {
   totalUsers: number;
@@ -83,7 +85,8 @@ type AdminView =
   | 'security'
   | 'support'
   | 'notifications'
-  | 'analytics';
+  | 'analytics'
+  | 'smart-notifications';
 
 interface AdminState {
   currentView: AdminView;
@@ -417,6 +420,7 @@ export default function AdminPanel() {
     { id: 'support', icon: MessageCircle, label: 'Support Management', allowed: true },
     { id: 'notifications', icon: Mail, label: 'Email Notifications', allowed: true },
     { id: 'analytics', icon: BarChart3, label: 'Notification Analytics', allowed: true },
+    { id: 'smart-notifications', icon: Bot, label: 'Smart Notifications', allowed: true },
     { id: 'monitoring', icon: Activity, label: 'Monitoring', allowed: true },
     { id: 'alerts', icon: AlertTriangle, label: 'Alerts', allowed: true },
     { id: 'reports', icon: FileText, label: 'Reports', allowed: true },
@@ -1065,6 +1069,10 @@ export default function AdminPanel() {
 
             {activeSection === 'analytics' && (
               <NotificationAnalyticsDashboard />
+            )}
+
+            {activeSection === 'smart-notifications' && (
+              <SmartNotificationsPanel />
             )}
 
             {(activeSection === 'permissions' || activeSection === 'reports') && (

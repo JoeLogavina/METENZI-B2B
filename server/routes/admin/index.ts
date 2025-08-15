@@ -4,6 +4,7 @@ import { adminUsersRouter } from './users.routes';
 import { userEditRouter } from './user-edit.routes';
 import licenseKeysRoutes from './license-keys.routes';
 import walletRoutes from './wallet.routes';
+import smartNotifications from './smartNotifications';
 import { authenticate, requireRole, rateLimit } from '../../middleware/auth.middleware';
 import { uploadMiddleware } from '../../middleware/upload.middleware';
 import multer from 'multer';
@@ -112,5 +113,6 @@ router.use('/products', adminProductsRouter);
 router.use('/users', adminUsersRouter, userEditRouter);
 router.use('/license-keys', licenseKeysRoutes);
 router.use('/wallets', walletRoutes);
+router.use('/smart-notifications', smartNotifications);
 
 export { router as adminRouter };
