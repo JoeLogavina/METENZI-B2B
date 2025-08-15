@@ -67,6 +67,7 @@ if (isBuildOnly) {
   
   // Look for the production server in multiple locations
   const possiblePaths = [
+    path.join(process.cwd(), 'server', 'production-server.cjs'), // Working server file first
     path.join(process.cwd(), 'index.cjs'),
     path.join(process.cwd(), 'dist', 'index.cjs'),
     path.join(process.cwd(), 'server', 'index.cjs')

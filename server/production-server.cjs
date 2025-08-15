@@ -85,6 +85,33 @@ app.use((req, res, next) => {
 const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
 let sessionStore;
 
+// Configure session store with better fallback logic
+async function setupSessionStore() {
+  if (db) {
+    try {
+      // Test the database connection first
+      await db.query('SELECT NOW()');
+      
+      // Use PostgreSQL session store
+      const pgSession = connectPg(session);
+      sessionStore = new pgSession({
+        pool: db,
+        tableName: 'session',
+        createTableIfMissing: true,
+        ttl: sessionTtl / 1000 // TTL in seconds
+      });
+      console.log('✅ PostgreSQL session store configured');
+      return;
+    } catch (error) {
+      console.log('⚠️ PostgreSQL connection failed, using memory store fallback:', error.message);
+    }
+  }
+  
+  // Fallback to memory store
+  console.log('🔧 Using memory store for production stability');
+  sessionStore = new session.MemoryStore();
+}
+
 // Configure session store based on database availability
 if (db) {
   // Use PostgreSQL session store
