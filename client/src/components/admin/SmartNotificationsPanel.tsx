@@ -131,6 +131,10 @@ export function SmartNotificationsPanel() {
     abTests: []
   };
 
+  // Debug log to check data
+  console.log('Dashboard data received:', dashboard?.data);
+  console.log('Templates data:', dashboardData.templates);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -284,38 +288,42 @@ export function SmartNotificationsPanel() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {dashboardData.templates.map((template) => (
-                    <div key={template.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div>
-                        <p className="font-medium">{template.name}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge variant="secondary" className="text-xs">
-                            {template.type}
-                          </Badge>
-                          {template.tenant && (
-                            <Badge variant="outline" className="text-xs">
-                              {template.tenant}
+                  {(dashboardData.templates && dashboardData.templates.length > 0) ? (
+                    dashboardData.templates.map((template) => (
+                      <div key={template.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div>
+                          <p className="font-medium">{template.name}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge variant="secondary" className="text-xs">
+                              {template.type}
                             </Badge>
-                          )}
-                          <Badge variant="outline" className="text-xs">
-                            {template.language}
-                          </Badge>
-                          {template.variants > 0 && (
+                            {template.tenant && (
+                              <Badge variant="outline" className="text-xs">
+                                {template.tenant}
+                              </Badge>
+                            )}
                             <Badge variant="outline" className="text-xs">
-                              {template.variants} variants
+                              {template.language}
                             </Badge>
-                          )}
+                            {template.variants > 0 && (
+                              <Badge variant="outline" className="text-xs">
+                                {template.variants} variants
+                              </Badge>
+                            )}
+                          </div>
                         </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handlePreviewTemplate(template.id)}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handlePreviewTemplate(template.id)}
-                      >
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ))}
+                    ))
+                  ) : (
+                    <p className="text-center text-gray-500 py-8">No templates available</p>
+                  )}
                 </div>
               </CardContent>
             </Card>

@@ -89,7 +89,7 @@ router.get('/templates', isAuthenticated, async (req, res) => {
         tenant: template.tenant,
         language: template.language,
         variables: template.variables,
-        variants: template.variants ? Object.keys(template.variants) : [],
+        variants: template.variants ? Object.keys(template.variants).length : 0,
         metadata: template.metadata
       }))
     });
