@@ -290,49 +290,89 @@ export function SmartNotificationsPanel() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <p className="text-xs text-gray-400 mb-2">Debug: Found {dashboardData.templates?.length || 0} templates</p>
-                  {(dashboardData.templates && dashboardData.templates.length > 0) ? (
-                    dashboardData.templates.map((template) => (
-                      <div key={template.id} className="flex items-center justify-between p-4 border rounded-lg hover:shadow-md transition-shadow bg-white">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <p className="font-medium text-lg">{template.name}</p>
-                            <Mail className="w-4 h-4 text-primary" />
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="secondary" className="text-xs">
-                              {template.type.replace('_', ' ')}
-                            </Badge>
-                            {template.tenant && (
-                              <Badge variant={template.tenant === 'EUR' ? 'default' : 'outline'} className="text-xs">
-                                {template.tenant} Shop
-                              </Badge>
-                            )}
-                            <Badge variant="outline" className="text-xs">
-                              {template.language === 'en' ? 'English' : 'Bosnian'}
-                            </Badge>
-                            {template.variants > 0 && (
-                              <Badge variant="outline" className="text-xs text-green-600">
-                                {template.variants} variants
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handlePreviewTemplate(template.id)}
-                          className="ml-4"
-                        >
-                          <Eye className="w-4 h-4 mr-1" />
-                          Preview
-                        </Button>
+                  <div className="bg-yellow-100 p-2 rounded mb-2 text-sm">
+                    <strong>Debug Info:</strong> Found {dashboardData.templates?.length || 0} templates
+                    {dashboardData.templates?.length > 0 && (
+                      <div className="mt-1 text-xs">
+                        Templates: {dashboardData.templates.map(t => t.name).join(', ')}
                       </div>
-                    ))
+                    )}
+                  </div>
+
+                  {/* Force render templates for testing */}
+                  <div className="space-y-2">
+                    <div className="p-4 bg-green-100 border-2 border-green-400 rounded">
+                      <h3 className="font-bold text-green-800">🟢 Order Confirmation - EUR</h3>
+                      <p className="text-sm text-green-600">English • EUR Shop • 2 variants</p>
+                      <Button size="sm" className="mt-2" onClick={() => handlePreviewTemplate('order-confirmation-eur')}>
+                        Preview EUR Template
+                      </Button>
+                    </div>
+                    <div className="p-4 bg-blue-100 border-2 border-blue-400 rounded">
+                      <h3 className="font-bold text-blue-800">🔵 Potvrda Narudžbe - KM</h3>
+                      <p className="text-sm text-blue-600">Bosnian • KM Shop • 0 variants</p>
+                      <Button size="sm" className="mt-2" onClick={() => handlePreviewTemplate('order-confirmation-km')}>
+                        Preview KM Template
+                      </Button>
+                    </div>
+                    <div className="p-4 bg-red-100 border-2 border-red-400 rounded">
+                      <h3 className="font-bold text-red-800">🔴 Payment Failed - EUR</h3>
+                      <p className="text-sm text-red-600">English • EUR Shop • 0 variants</p>
+                      <Button size="sm" className="mt-2" onClick={() => handlePreviewTemplate('payment-failed-eur')}>
+                        Preview Payment Failed
+                      </Button>
+                    </div>
+                  </div>
+
+                  <hr className="my-4" />
+                  
+                  {/* Original dynamic rendering */}
+                  {(dashboardData.templates && dashboardData.templates.length > 0) ? (
+                    <div className="space-y-2">
+                      <p className="text-sm font-semibold">Dynamic Templates:</p>
+                      {dashboardData.templates.map((template) => (
+                        <div key={template.id} className="flex items-center justify-between p-4 border-2 border-purple-200 rounded-lg bg-purple-50">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <p className="font-medium text-lg">{template.name}</p>
+                              <Mail className="w-4 h-4 text-primary" />
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="secondary" className="text-xs">
+                                {template.type.replace('_', ' ')}
+                              </Badge>
+                              {template.tenant && (
+                                <Badge variant={template.tenant === 'EUR' ? 'default' : 'outline'} className="text-xs">
+                                  {template.tenant} Shop
+                                </Badge>
+                              )}
+                              <Badge variant="outline" className="text-xs">
+                                {template.language === 'en' ? 'English' : 'Bosnian'}
+                              </Badge>
+                              {template.variants > 0 && (
+                                <Badge variant="outline" className="text-xs text-green-600">
+                                  {template.variants} variants
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handlePreviewTemplate(template.id)}
+                            className="ml-4"
+                          >
+                            <Eye className="w-4 h-4 mr-1" />
+                            Preview
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
                   ) : (
-                    <div className="text-center text-gray-500 py-8">
-                      <Mail className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                      <p>No templates available</p>
+                    <div className="text-center text-red-500 py-8 bg-red-50 border border-red-200 rounded">
+                      <Mail className="w-12 h-12 mx-auto mb-4 text-red-400" />
+                      <p><strong>No templates found!</strong></p>
+                      <p className="text-xs mt-2">Data: {JSON.stringify(dashboardData.templates)}</p>
                     </div>
                   )}
                 </div>
