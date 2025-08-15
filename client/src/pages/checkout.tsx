@@ -154,6 +154,17 @@ export default function CheckoutPage() {
 
   // Use unified wallet system
   const { balance, formatCurrency, hasInsufficientBalance, isLoading: walletLoading } = useWallet();
+  
+  // Debug wallet state
+  useEffect(() => {
+    console.log('🛒 Checkout wallet state:', {
+      walletLoading,
+      hasBalance: !!balance,
+      balance: balance,
+      isAuthenticated,
+      userId: user?.id
+    });
+  }, [walletLoading, balance, isAuthenticated, user?.id]);
 
   // Place order mutation
   const placeOrderMutation = useMutation({
@@ -796,7 +807,12 @@ export default function CheckoutPage() {
                           <Wallet className="w-5 h-5 text-[#FFB20F] mr-2" />
                           <strong className="text-sm text-gray-800">Wallet Payment Details:</strong>
                         </div>
-                        {balance ? (
+                        {walletLoading ? (
+                          <div className="flex items-center space-x-2">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#FFB20F]"></div>
+                            <p className="text-sm text-gray-600">Loading wallet information...</p>
+                          </div>
+                        ) : balance ? (
                           <div className="space-y-2">
                             <div className="flex justify-between text-sm">
                               <span className="text-gray-600">Deposit Balance:</span>
@@ -823,7 +839,11 @@ export default function CheckoutPage() {
                             )}
                           </div>
                         ) : (
-                          <p className="text-sm text-gray-600">Loading wallet information...</p>
+                          <div className="bg-yellow-50 border border-yellow-200 rounded p-2">
+                            <p className="text-sm text-yellow-700">
+                              Wallet data unavailable. Please refresh the page or try again.
+                            </p>
+                          </div>
                         )}
                       </div>
                     )}

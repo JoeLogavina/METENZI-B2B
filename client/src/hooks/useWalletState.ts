@@ -86,8 +86,8 @@ export function useWalletState() {
       return await response.json();
     },
     enabled: !!user?.id,
-    staleTime: 30000, // 30 seconds
-    gcTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 0, // Always consider data stale to force fresh requests
+    gcTime: 1 * 60 * 1000, // 1 minute (reduced for quicker cleanup)
     retry: (failureCount, error) => {
       // Don't retry on 401 errors to prevent infinite loops
       if (error instanceof Error && error.message?.includes('401')) {
@@ -111,7 +111,7 @@ export function useWalletState() {
       return data.data || [];
     },
     enabled: !!user?.id,
-    staleTime: 60000, // 1 minute
+    staleTime: 0, // Always consider data stale
     retry: (failureCount, error) => {
       // Don't retry on 401 errors to prevent infinite loops
       if (error instanceof Error && error.message?.includes('401')) {
@@ -125,15 +125,21 @@ export function useWalletState() {
   // Cache invalidation helper with throttling to prevent infinite loops
   const invalidateWalletCache = React.useCallback(() => {
     console.log('🧹 Invalidating wallet cache for user:', user?.id);
+    
+    // Remove all wallet-related cached data
+    queryClient.removeQueries({ queryKey: WALLET_QUERY_KEYS.all() });
     queryClient.invalidateQueries({ queryKey: WALLET_QUERY_KEYS.all() });
     
-    // Also invalidate the old checkout query key format for compatibility
+    // Also remove the old checkout query key format for compatibility
     if (user?.id) {
+      queryClient.removeQueries({ queryKey: ["/api/wallet-balance", user.id] });
       queryClient.invalidateQueries({ queryKey: ["/api/wallet-balance", user.id] });
     }
     
     // Force immediate refetch of wallet data
-    refetch();
+    setTimeout(() => {
+      refetch();
+    }, 100);
   }, [user?.id, queryClient, refetch]);
 
   // Optimistic update helper
@@ -239,10 +245,26 @@ export function useWalletState() {
     },
   });
 
+  // Debug logging for wallet data
+  React.useEffect(() => {
+    console.log('💰 Wallet query state update:', {
+      hasRawData: !!walletData,
+      rawData: walletData,
+      isLoading,
+      error: error?.message,
+      userId: user?.id,
+      queryEnabled: !!user?.id
+    });
+  }, [walletData, isLoading, error, user?.id]);
+
+  // Extract balance data properly
+  const extractedBalance = walletData?.data?.balance;
+  const extractedWalletData = walletData?.data;
+
   return {
     // Data
-    walletData: walletData?.data,
-    balance: walletData?.data?.balance,
+    walletData: extractedWalletData,
+    balance: extractedBalance,
     transactions,
     
     // Loading states
