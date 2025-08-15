@@ -56,11 +56,12 @@ router.get('/test-connection', async (req, res) => {
     });
 
   } catch (error) {
-    logger.error('❌ Brevo connection test failed', { error: error.message });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    logger.error('❌ Brevo connection test failed', { error: errorMessage });
     res.status(500).json({
       success: false,
       message: 'Failed to test Brevo connection',
-      error: error.message
+      error: errorMessage
     });
   }
 });
@@ -83,11 +84,12 @@ router.get('/test-system', async (req, res) => {
     });
 
   } catch (error) {
-    logger.error('❌ System test failed', { error: error.message });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    logger.error('❌ System test failed', { error: errorMessage });
     res.status(500).json({
       success: false,
       message: 'System test failed',
-      error: error.message
+      error: errorMessage
     });
   }
 });
@@ -125,11 +127,12 @@ router.post('/send-test', async (req, res) => {
       });
     }
 
-    logger.error('❌ Failed to send test email', { error: error.message });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    logger.error('❌ Failed to send test email', { error: errorMessage });
     res.status(500).json({
       success: false,
       message: 'Failed to send test email',
-      error: error.message
+      error: errorMessage
     });
   }
 });
@@ -165,11 +168,12 @@ router.post('/queue', async (req, res) => {
       });
     }
 
-    logger.error('❌ Failed to queue notification', { error: error.message });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    logger.error('❌ Failed to queue notification', { error: errorMessage });
     res.status(500).json({
       success: false,
       message: 'Failed to queue notification',
-      error: error.message
+      error: errorMessage
     });
   }
 });
@@ -191,11 +195,12 @@ router.get('/queue/status', async (req, res) => {
     });
 
   } catch (error) {
-    logger.error('❌ Failed to get queue status', { error: error.message });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    logger.error('❌ Failed to get queue status', { error: errorMessage });
     res.status(500).json({
       success: false,
       message: 'Failed to get queue status',
-      error: error.message
+      error: errorMessage
     });
   }
 });
@@ -227,14 +232,15 @@ router.post('/retry/:id', async (req, res) => {
     });
 
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     logger.error('❌ Failed to retry notification', { 
       notificationId: req.params.id,
-      error: error.message 
+      error: errorMessage 
     });
     res.status(500).json({
       success: false,
       message: 'Failed to retry notification',
-      error: error.message
+      error: errorMessage
     });
   }
 });
@@ -270,11 +276,12 @@ router.get('/delivery-stats', async (req, res) => {
     });
 
   } catch (error) {
-    logger.error('❌ Failed to get delivery statistics', { error: error.message });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    logger.error('❌ Failed to get delivery statistics', { error: errorMessage });
     res.status(500).json({
       success: false,
       message: 'Failed to get delivery statistics',
-      error: error.message
+      error: errorMessage
     });
   }
 });
@@ -317,8 +324,9 @@ router.post('/webhook', async (req, res) => {
     });
 
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     logger.error('❌ Failed to process webhook', { 
-      error: error.message,
+      error: errorMessage,
       body: req.body 
     });
     
@@ -326,7 +334,7 @@ router.post('/webhook', async (req, res) => {
     res.status(200).json({
       success: false,
       message: 'Webhook processing failed',
-      error: error.message
+      error: errorMessage
     });
   }
 });
@@ -370,14 +378,15 @@ router.post('/send-order-confirmation', async (req, res) => {
     });
 
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     logger.error('❌ Failed to send order confirmation', { 
       orderId: req.body.orderId,
-      error: error.message 
+      error: errorMessage 
     });
     res.status(500).json({
       success: false,
       message: 'Failed to send order confirmation',
-      error: error.message
+      error: errorMessage
     });
   }
 });
@@ -410,11 +419,12 @@ router.get('/debug/:id', async (req, res) => {
     });
 
   } catch (error) {
-    logger.error('❌ Failed to get debug info', { error: error.message });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    logger.error('❌ Failed to get debug info', { error: errorMessage });
     res.status(500).json({
       success: false,
       message: 'Failed to get debug information',
-      error: error.message
+      error: errorMessage
     });
   }
 });
@@ -460,12 +470,13 @@ router.get('/health', async (req, res) => {
     res.status(allHealthy ? 200 : 503).json(healthStatus);
 
   } catch (error) {
-    logger.error('❌ Health check failed', { error: error.message });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    logger.error('❌ Health check failed', { error: errorMessage });
     res.status(503).json({
       service: 'Brevo Notification System',
       status: 'unhealthy',
       timestamp: new Date().toISOString(),
-      error: error.message
+      error: errorMessage
     });
   }
 });

@@ -23,6 +23,7 @@ Core features include:
 - **Support System**: Complete support system with database foundation, REST API, and frontend components for ticket management, chat, knowledge base, and FAQs, supporting multi-tenant architecture and role-based access control. Includes full threaded conversation interface.
 - **Multi-Language System**: Complete dual-language implementation for user instructions, successfully supporting tenant-specific content with Bosnian for KM shop and English for EUR shop, including proper schema validation and database persistence.
 - **"Allow Duplicate Keys" Feature**: Database schema, backend logic, and frontend UI to allow/disallow duplicate license keys per product.
+- **Brevo Email Notification System**: Fully operational email service with API integration, automated queue processing, order confirmations, license key delivery, webhook handling, and comprehensive admin management tools. All database tables synchronized and email delivery confirmed working.
 
 Advanced security framework features:
 - **Enhanced Key Management**: Enterprise-grade encryption key derivation and management using PBKDF2 with AES-256-GCM for license keys.
