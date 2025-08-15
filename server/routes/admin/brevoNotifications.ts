@@ -392,6 +392,32 @@ router.post('/send-order-confirmation', async (req, res) => {
 });
 
 /**
+ * Get queue status endpoint
+ * GET /api/admin/brevo-notifications/queue/status
+ */
+router.get('/queue/status', async (req, res) => {
+  try {
+    const queueStatus = await notificationQueue.getQueueStatus();
+    
+    res.json({
+      success: true,
+      message: 'Queue status retrieved successfully',
+      queueStatus,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    logger.error('❌ Failed to get queue status', { error: errorMessage });
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get queue status',
+      error: errorMessage
+    });
+  }
+});
+
+/**
  * Debug endpoint - get notification details
  * GET /api/admin/brevo-notifications/debug/:id
  */

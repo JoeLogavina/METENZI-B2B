@@ -79,7 +79,7 @@ export function BrevoNotificationPanel() {
 
   // Test connection mutation
   const testConnectionMutation = useMutation({
-    mutationFn: () => apiRequest('/api/admin/brevo-notifications/test-connection'),
+    mutationFn: () => apiRequest('/api/admin/brevo-notifications/test-connection', 'GET'),
     onSuccess: (data) => {
       toast({
         title: data.success ? "Connection Successful" : "Connection Failed",

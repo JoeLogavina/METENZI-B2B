@@ -425,14 +425,14 @@ export class BrevoNotificationQueue {
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
       
       const result = await db
-        .delete(notifications)
+        .delete(brevoNotifications)
         .where(
           and(
-            lte(notifications.createdAt, thirtyDaysAgo),
+            lte(brevoNotifications.createdAt, thirtyDaysAgo),
             or(
-              eq(notifications.status, 'sent'),
-              eq(notifications.status, 'delivered'),
-              eq(notifications.status, 'permanently_failed')
+              eq(brevoNotifications.status, 'sent'),
+              eq(brevoNotifications.status, 'delivered'),
+              eq(brevoNotifications.status, 'permanently_failed')
             )
           )
         );
@@ -456,12 +456,12 @@ export class BrevoNotificationQueue {
     try {
       const results = await db
         .select({
-          status: notifications.status,
+          status: brevoNotifications.status,
           count: sql`COUNT(*)`
         })
-        .from(notifications)
-        .where(gte(notifications.createdAt, sql`NOW() - INTERVAL '24 hours'`))
-        .groupBy(notifications.status);
+        .from(brevoNotifications)
+        .where(gte(brevoNotifications.createdAt, sql`NOW() - INTERVAL '24 hours'`))
+        .groupBy(brevoNotifications.status);
 
       const status: NotificationQueueStatus = { 
         pending: 0, 
@@ -517,14 +517,14 @@ export class BrevoNotificationQueue {
       logger.info('🔄 Manually retrying notification', { notificationId });
 
       await db
-        .update(notifications)
+        .update(brevoNotifications)
         .set({
           status: 'pending',
           nextRetryAt: null,
           failureReason: null,
           updatedAt: new Date()
         })
-        .where(eq(notifications.id, notificationId));
+        .where(eq(brevoNotifications.id, notificationId));
 
       logger.info('✅ Notification queued for retry', { notificationId });
       return true;
@@ -563,7 +563,7 @@ export class BrevoNotificationQueue {
       }
 
       await db
-        .update(notifications)
+        .update(brevoNotifications)
         .set(updateData)
         .where(sql`metadata->>'brevoMessageId' = ${messageId}`);
 
@@ -674,13 +674,13 @@ export class BrevoNotificationQueue {
       const stats = await db
         .select({
           date: sql`DATE(created_at)`,
-          status: notifications.status,
-          type: notifications.type,
+          status: brevoNotifications.status,
+          type: brevoNotifications.type,
           count: sql`COUNT(*)`
         })
-        .from(notifications)
-        .where(gte(notifications.createdAt, daysAgo))
-        .groupBy(sql`DATE(created_at)`, notifications.status, notifications.type)
+        .from(brevoNotifications)
+        .where(gte(brevoNotifications.createdAt, daysAgo))
+        .groupBy(sql`DATE(created_at)`, brevoNotifications.status, brevoNotifications.type)
         .orderBy(sql`DATE(created_at) DESC`);
 
       return stats;
