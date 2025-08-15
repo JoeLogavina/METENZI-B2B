@@ -723,6 +723,85 @@ export const insertTicketResponseSchema = createInsertSchema(ticketResponses).om
   createdAt: true,
 });
 
+// Advanced notification analytics table for Step 4 implementation
+export const notificationAnalytics = pgTable("notification_analytics", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  date: varchar("date", { length: 10 }).notNull(), // YYYY-MM-DD format
+  type: varchar("type", { length: 50 }).notNull(),
+  tenantId: varchar("tenant_id").notNull(),
+  totalSent: integer("total_sent").default(0),
+  totalDelivered: integer("total_delivered").default(0),
+  totalBounced: integer("total_bounced").default(0),
+  totalFailed: integer("total_failed").default(0),
+  avgProcessingTime: integer("avg_processing_time").default(0), // in milliseconds
+  deliveryRate: decimal("delivery_rate", { precision: 5, scale: 2 }).default("0"), // percentage
+  bounceRate: decimal("bounce_rate", { precision: 5, scale: 2 }).default("0"), // percentage
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+}, (table) => [
+  index("notification_analytics_date_idx").on(table.date),
+  index("notification_analytics_type_idx").on(table.type),
+  index("notification_analytics_tenant_idx").on(table.tenantId),
+  index("notification_analytics_date_type_tenant_idx").on(table.date, table.type, table.tenantId)
+]);
+
+// Email template performance metrics for advanced monitoring
+export const emailTemplateMetrics = pgTable("email_template_metrics", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  templateName: varchar("template_name", { length: 100 }).notNull(),
+  tenantId: varchar("tenant_id").notNull(),
+  language: varchar("language", { length: 5 }).notNull(),
+  totalSent: integer("total_sent").default(0),
+  totalOpened: integer("total_opened").default(0),
+  totalClicked: integer("total_clicked").default(0),
+  totalBounced: integer("total_bounced").default(0),
+  openRate: decimal("open_rate", { precision: 5, scale: 2 }).default("0"),
+  clickRate: decimal("click_rate", { precision: 5, scale: 2 }).default("0"),
+  bounceRate: decimal("bounce_rate", { precision: 5, scale: 2 }).default("0"),
+  lastSentAt: timestamp("last_sent_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
+}, (table) => [
+  index("email_template_metrics_name_idx").on(table.templateName),
+  index("email_template_metrics_tenant_idx").on(table.tenantId),
+  index("email_template_metrics_language_idx").on(table.language),
+]);
+
+// Real-time notification events for live monitoring dashboard
+export const notificationEvents = pgTable("notification_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  notificationId: varchar("notification_id").notNull(), // References brevoNotifications.id but loosely coupled
+  eventType: varchar("event_type", { length: 50 }).notNull(), // 'queued', 'sent', 'delivered', 'bounced', 'clicked', 'opened'
+  eventData: jsonb("event_data"),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  source: varchar("source", { length: 50 }).default("system"), // 'system', 'brevo_webhook', 'manual'
+  tenantId: varchar("tenant_id").notNull(),
+}, (table) => [
+  index("notification_events_notification_idx").on(table.notificationId),
+  index("notification_events_type_idx").on(table.eventType),
+  index("notification_events_timestamp_idx").on(table.timestamp),
+  index("notification_events_source_idx").on(table.source),
+  index("notification_events_tenant_idx").on(table.tenantId),
+]);
+
+// Insert schemas for new analytics tables
+export const insertNotificationAnalyticsSchema = createInsertSchema(notificationAnalytics).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertEmailTemplateMetricsSchema = createInsertSchema(emailTemplateMetrics).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertNotificationEventsSchema = createInsertSchema(notificationEvents).omit({
+  id: true,
+  timestamp: true,
+});
+
 export const insertChatSessionSchema = createInsertSchema(chatSessions).omit({
   id: true,
   createdAt: true,

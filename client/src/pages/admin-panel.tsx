@@ -57,6 +57,7 @@ import { BranchManagement } from "@/components/admin/BranchManagement";
 import { UserDetailView } from "@/components/admin/UserDetailView";
 import { AdminSupportManagement } from "@/components/admin/AdminSupportManagement";
 import { BrevoNotificationPanel } from "@/components/admin/BrevoNotificationPanel";
+import { NotificationAnalyticsDashboard } from "@/components/admin/NotificationAnalyticsDashboard";
 
 interface DashboardStats {
   totalUsers: number;
@@ -81,7 +82,8 @@ type AdminView =
   | 'settings'
   | 'security'
   | 'support'
-  | 'notifications';
+  | 'notifications'
+  | 'analytics';
 
 interface AdminState {
   currentView: AdminView;
@@ -414,6 +416,7 @@ export default function AdminPanel() {
     { id: 'permissions', icon: Shield, label: 'Permissions', allowed: (user as any)?.role === 'super_admin' },
     { id: 'support', icon: MessageCircle, label: 'Support Management', allowed: true },
     { id: 'notifications', icon: Mail, label: 'Email Notifications', allowed: true },
+    { id: 'analytics', icon: BarChart3, label: 'Notification Analytics', allowed: true },
     { id: 'monitoring', icon: Activity, label: 'Monitoring', allowed: true },
     { id: 'alerts', icon: AlertTriangle, label: 'Alerts', allowed: true },
     { id: 'reports', icon: FileText, label: 'Reports', allowed: true },
@@ -1058,6 +1061,10 @@ export default function AdminPanel() {
 
             {activeSection === 'notifications' && (
               <BrevoNotificationPanel />
+            )}
+
+            {activeSection === 'analytics' && (
+              <NotificationAnalyticsDashboard />
             )}
 
             {(activeSection === 'permissions' || activeSection === 'reports') && (

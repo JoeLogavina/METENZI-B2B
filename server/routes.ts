@@ -527,6 +527,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Brevo notification system routes
   app.use('/api/admin/brevo-notifications', brevoNotificationRoutes);
   
+  // Advanced notification analytics routes (Step 4)
+  const notificationAnalyticsRouter = (await import('./routes/admin/notificationAnalytics')).default;
+  app.use('/api/admin/notification-analytics', notificationAnalyticsRouter);
+  
   // Register admin security routes
   const adminSecurityRoutes = await import('./routes/admin-security');
   app.use('/api/admin/security', adminSecurityRoutes.default);
