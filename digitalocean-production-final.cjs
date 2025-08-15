@@ -40,20 +40,25 @@ if (isBuildOnly) {
     fs.mkdirSync(distPath, { recursive: true });
   }
 
-  // Check if index.cjs exists
-  const sourcePath = path.join(process.cwd(), 'index.cjs');
+  // Check if dist/index.cjs already exists
   const targetPath = path.join(distPath, 'index.cjs');
-  
-  if (fs.existsSync(sourcePath)) {
-    console.log('✅ index.cjs found - copying to dist...');
-    fs.copyFileSync(sourcePath, targetPath);
-    console.log('✅ dist/index.cjs created successfully');
+  if (fs.existsSync(targetPath)) {
+    console.log('✅ dist/index.cjs already exists');
   } else {
-    console.log('❌ Error: index.cjs source file not found');
-    process.exit(1);
+    // Check if index.cjs exists
+    const sourcePath = path.join(process.cwd(), 'index.cjs');
+    
+    if (fs.existsSync(sourcePath)) {
+      console.log('✅ index.cjs found - copying to dist...');
+      fs.copyFileSync(sourcePath, targetPath);
+      console.log('✅ dist/index.cjs created successfully');
+    } else {
+      console.log('❌ Error: index.cjs source file not found');
+      process.exit(1);
+    }
   }
 
-  console.log('✅ Build phase completed successfully');
+  console.log('✅ Ready for CommonJS deployment');
   process.exit(0);
   
 } else {

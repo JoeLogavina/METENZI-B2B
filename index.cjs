@@ -226,15 +226,29 @@ app.get('/ready', (req, res) => {
 });
 
 // Static file serving configuration  
-const publicDir = path.join(__dirname, '..', 'dist', 'public');
+// Determine correct path based on current working directory
+const possiblePublicPaths = [
+  path.join(process.cwd(), 'dist', 'public'),  // Standard build location
+  path.join(__dirname, 'public'),              // Same directory as server
+  path.join(__dirname, '..', 'public'),        // Parent directory
+  path.join(process.cwd(), 'public'),          // Root public directory
+  path.join(__dirname, '..', 'dist', 'public') // Legacy path
+];
+
+let publicDir = null;
+for (const testPath of possiblePublicPaths) {
+  if (fs.existsSync(testPath)) {
+    publicDir = testPath;
+    break;
+  }
+}
 
 // Check if static directory exists
-if (!fs.existsSync(publicDir)) {
-  console.error(`❌ Static directory not found: ${publicDir}`);
-  const parentDir = path.join(__dirname, '..');
-  console.log('Available directories:', fs.readdirSync(parentDir));
+if (!publicDir) {
+  console.error(`❌ Static directory not found in any of these locations:`);
+  possiblePublicPaths.forEach(path => console.log(`  - ${path}`));
   
-  // Try alternative paths
+  // Try alternative paths for fallback
   const altPaths = [
     path.join(__dirname, 'public'),
     path.join(__dirname, '..', 'public'),
