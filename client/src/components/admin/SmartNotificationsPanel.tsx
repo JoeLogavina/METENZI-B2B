@@ -68,18 +68,18 @@ export function SmartNotificationsPanel() {
   const [previewContent, setPreviewContent] = useState<any>(null);
 
   // Fetch dashboard data
-  const { data: dashboard, isLoading } = useQuery({
+  const { data: dashboard, isLoading } = useQuery<{ data: SmartNotificationsDashboard }>({
     queryKey: ['/api/admin/smart-notifications/dashboard'],
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
   // Fetch templates
-  const { data: templates } = useQuery({
+  const { data: templates } = useQuery<{ data: any[] }>({
     queryKey: ['/api/admin/smart-notifications/templates'],
   });
 
   // Fetch routing analytics
-  const { data: routingAnalytics } = useQuery({
+  const { data: routingAnalytics } = useQuery<{ data: any }>({
     queryKey: ['/api/admin/smart-notifications/routing/analytics'],
   });
 
@@ -131,7 +131,11 @@ export function SmartNotificationsPanel() {
     abTests: []
   };
 
-  // Templates are now loading correctly!
+  // Templates debugging
+  console.log('🔍 Dashboard data:', dashboard);
+  console.log('🔍 Dashboard?.data:', dashboard?.data);
+  console.log('🔍 Templates from dashboardData:', dashboardData.templates);
+  console.log('🔍 Templates length:', dashboardData.templates?.length);
 
   return (
     <div className="space-y-6">
@@ -286,6 +290,7 @@ export function SmartNotificationsPanel() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
+                  <p className="text-xs text-gray-400 mb-2">Debug: Found {dashboardData.templates?.length || 0} templates</p>
                   {(dashboardData.templates && dashboardData.templates.length > 0) ? (
                     dashboardData.templates.map((template) => (
                       <div key={template.id} className="flex items-center justify-between p-4 border rounded-lg hover:shadow-md transition-shadow bg-white">
