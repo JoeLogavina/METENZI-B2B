@@ -85,9 +85,22 @@ app.use((req, res, next) => {
 const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
 let sessionStore;
 
-// Use memory store for production stability - eliminates all SSL certificate issues
-console.log('🔧 Using memory store for production stability');
-sessionStore = new session.MemoryStore();
+  // Configure session store based on database availability
+  if (db) {
+    // Use PostgreSQL session store
+    const pgSession = connectPg(session);
+    sessionStore = new pgSession({
+      pool: db,
+      tableName: 'session',
+      createTableIfMissing: true,
+      ttl: sessionTtl / 1000 // TTL in seconds
+    });
+    console.log('✅ PostgreSQL session store configured');
+  } else {
+    // Fallback to memory store
+    console.log('🔧 Using memory store for production stability');
+    sessionStore = new session.MemoryStore();
+  }
 
 app.use(session({
   secret: process.env.SESSION_SECRET || 'b2b-production-secret-key-2025',
