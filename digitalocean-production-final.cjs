@@ -65,27 +65,17 @@ if (isBuildOnly) {
   console.log('🚀 RUNTIME PHASE: Starting B2B License Platform...');
   console.log(`📍 Target port: ${process.env.PORT || '8080'}`);
   
-  // Look for the production server in multiple locations
-  const possiblePaths = [
-    path.join(process.cwd(), 'server', 'production-server.cjs'), // Working server file first
-    path.join(process.cwd(), 'index.cjs'),
-    path.join(process.cwd(), 'dist', 'index.cjs'),
-    path.join(process.cwd(), 'server', 'index.cjs')
-  ];
+  // Use the working production server file only
+  const workingServerPath = path.join(process.cwd(), 'server', 'production-server.cjs');
   
-  let serverPath = null;
-  for (const testPath of possiblePaths) {
-    if (fs.existsSync(testPath)) {
-      serverPath = testPath;
-      break;
-    }
-  }
-  
-  if (!serverPath) {
-    console.error('❌ No production server found in expected locations');
-    console.log('Searched paths:', possiblePaths);
+  if (!fs.existsSync(workingServerPath)) {
+    console.error('❌ Working production server not found at:', workingServerPath);
+    console.log('This deployment requires the server/production-server.cjs file from the August 7th working version');
     process.exit(1);
   }
+  
+  const serverPath = workingServerPath;
+  console.log('✅ Using working production server:', serverPath);
   
   console.log('📂 Loading production server module...');
   try {
