@@ -88,6 +88,15 @@ export function useWalletState() {
     enabled: !!user?.id,
     staleTime: 30000, // 30 seconds
     gcTime: 5 * 60 * 1000, // 5 minutes
+    retry: (failureCount, error) => {
+      // Don't retry on 401 errors to prevent infinite loops
+      if (error instanceof Error && error.message?.includes('401')) {
+        return false;
+      }
+      return failureCount < 2;
+    },
+    refetchOnMount: true, // Always refetch on mount to get fresh data
+    refetchOnWindowFocus: false, // Prevent excessive requests
   });
 
   // Transaction history query
@@ -103,18 +112,29 @@ export function useWalletState() {
     },
     enabled: !!user?.id,
     staleTime: 60000, // 1 minute
+    retry: (failureCount, error) => {
+      // Don't retry on 401 errors to prevent infinite loops
+      if (error instanceof Error && error.message?.includes('401')) {
+        return false;
+      }
+      return failureCount < 2;
+    },
+    refetchOnMount: true, // Always refetch on mount to get fresh data
   });
 
   // Cache invalidation helper with throttling to prevent infinite loops
   const invalidateWalletCache = React.useCallback(() => {
-    console.log('Invalidating wallet cache for user:', user?.id);
+    console.log('🧹 Invalidating wallet cache for user:', user?.id);
     queryClient.invalidateQueries({ queryKey: WALLET_QUERY_KEYS.all() });
     
     // Also invalidate the old checkout query key format for compatibility
     if (user?.id) {
       queryClient.invalidateQueries({ queryKey: ["/api/wallet-balance", user.id] });
     }
-  }, [user?.id, queryClient]);
+    
+    // Force immediate refetch of wallet data
+    refetch();
+  }, [user?.id, queryClient, refetch]);
 
   // Optimistic update helper
   const updateWalletOptimistically = (newBalance: Partial<WalletBalance>) => {
