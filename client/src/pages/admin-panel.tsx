@@ -40,7 +40,8 @@ import {
   Monitor,
   AlertCircle,
   Phone,
-  BookOpen
+  BookOpen,
+  Mail
 } from "lucide-react";
 import WalletManagement from "@/components/wallet-management";
 import UserForm from "@/components/user-form";
@@ -55,6 +56,7 @@ import { ComprehensiveProductForm } from "@/components/admin/ComprehensiveProduc
 import { BranchManagement } from "@/components/admin/BranchManagement";
 import { UserDetailView } from "@/components/admin/UserDetailView";
 import { AdminSupportManagement } from "@/components/admin/AdminSupportManagement";
+import { BrevoNotificationPanel } from "@/components/admin/BrevoNotificationPanel";
 
 interface DashboardStats {
   totalUsers: number;
@@ -78,7 +80,8 @@ type AdminView =
   | 'reports'
   | 'settings'
   | 'security'
-  | 'support';
+  | 'support'
+  | 'notifications';
 
 interface AdminState {
   currentView: AdminView;
@@ -410,6 +413,7 @@ export default function AdminPanel() {
     { id: 'wallets', icon: Wallet, label: 'Wallet Management', allowed: true },
     { id: 'permissions', icon: Shield, label: 'Permissions', allowed: (user as any)?.role === 'super_admin' },
     { id: 'support', icon: MessageCircle, label: 'Support Management', allowed: true },
+    { id: 'notifications', icon: Mail, label: 'Email Notifications', allowed: true },
     { id: 'monitoring', icon: Activity, label: 'Monitoring', allowed: true },
     { id: 'alerts', icon: AlertTriangle, label: 'Alerts', allowed: true },
     { id: 'reports', icon: FileText, label: 'Reports', allowed: true },
@@ -1050,6 +1054,10 @@ export default function AdminPanel() {
 
             {activeSection === 'support' && (
               <AdminSupportManagement />
+            )}
+
+            {activeSection === 'notifications' && (
+              <BrevoNotificationPanel />
             )}
 
             {(activeSection === 'permissions' || activeSection === 'reports') && (
