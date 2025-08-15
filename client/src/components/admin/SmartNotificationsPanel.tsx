@@ -131,9 +131,7 @@ export function SmartNotificationsPanel() {
     abTests: []
   };
 
-  // Debug log to check data
-  console.log('Dashboard data received:', dashboard?.data);
-  console.log('Templates data:', dashboardData.templates);
+  // Templates are now loading correctly!
 
   return (
     <div className="space-y-6">
@@ -290,23 +288,26 @@ export function SmartNotificationsPanel() {
                 <div className="space-y-3">
                   {(dashboardData.templates && dashboardData.templates.length > 0) ? (
                     dashboardData.templates.map((template) => (
-                      <div key={template.id} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div>
-                          <p className="font-medium">{template.name}</p>
-                          <div className="flex items-center gap-2 mt-1">
+                      <div key={template.id} className="flex items-center justify-between p-4 border rounded-lg hover:shadow-md transition-shadow bg-white">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <p className="font-medium text-lg">{template.name}</p>
+                            <Mail className="w-4 h-4 text-primary" />
+                          </div>
+                          <div className="flex items-center gap-2">
                             <Badge variant="secondary" className="text-xs">
-                              {template.type}
+                              {template.type.replace('_', ' ')}
                             </Badge>
                             {template.tenant && (
-                              <Badge variant="outline" className="text-xs">
-                                {template.tenant}
+                              <Badge variant={template.tenant === 'EUR' ? 'default' : 'outline'} className="text-xs">
+                                {template.tenant} Shop
                               </Badge>
                             )}
                             <Badge variant="outline" className="text-xs">
-                              {template.language}
+                              {template.language === 'en' ? 'English' : 'Bosnian'}
                             </Badge>
                             {template.variants > 0 && (
-                              <Badge variant="outline" className="text-xs">
+                              <Badge variant="outline" className="text-xs text-green-600">
                                 {template.variants} variants
                               </Badge>
                             )}
@@ -316,13 +317,18 @@ export function SmartNotificationsPanel() {
                           size="sm"
                           variant="outline"
                           onClick={() => handlePreviewTemplate(template.id)}
+                          className="ml-4"
                         >
-                          <Eye className="w-4 h-4" />
+                          <Eye className="w-4 h-4 mr-1" />
+                          Preview
                         </Button>
                       </div>
                     ))
                   ) : (
-                    <p className="text-center text-gray-500 py-8">No templates available</p>
+                    <div className="text-center text-gray-500 py-8">
+                      <Mail className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                      <p>No templates available</p>
+                    </div>
                   )}
                 </div>
               </CardContent>
