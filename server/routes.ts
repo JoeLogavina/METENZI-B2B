@@ -1315,7 +1315,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const taxAmount = subtotal * taxRate;
       const finalAmount = subtotal + taxAmount;
 
-      // For wallet payments, we'll check balance during payment processing
+      // For wallet payments, check balance BEFORE creating order
+      if (paymentMethod === 'wallet') {
+        const { WalletService } = await import('./services/wallet.service');
+        const walletService = new WalletService();
+        const walletData = await walletService.getWallet(userId, tenantId);
+        const totalAvailable = parseFloat(walletData.balance.totalAvailable);
+        
+        if (finalAmount > totalAvailable) {
+          return res.status(400).json({ 
+            message: `Insufficient wallet funds. Required: €${finalAmount.toFixed(2)}, Available: €${totalAvailable.toFixed(2)}`,
+            requiredAmount: finalAmount.toFixed(2),
+            availableAmount: totalAvailable.toFixed(2)
+          });
+        }
+        
+        console.log('✅ Wallet balance check passed:', {
+          userId,
+          tenantId,
+          required: finalAmount.toFixed(2),
+          available: totalAvailable.toFixed(2)
+        });
+      }
 
       // Generate sequential order number  
       const { generateNextOrderNumber } = await import('./utils/order-number');
@@ -1409,13 +1430,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         );
 
         if (!paymentResult.success) {
-          // Order created but payment failed - this is a critical state
-          console.error('Order created but wallet payment failed:', paymentResult.error);
+          // This should not happen since we check balance upfront, but handle it as a safety net
+          console.error('CRITICAL: Order created but wallet payment failed after balance check:', {
+            userId,
+            tenantId,
+            orderId: order.id,
+            error: paymentResult.error,
+            amount: finalAmount
+          });
           return res.status(500).json({ 
-            message: 'Order created but payment processing failed. Please contact support.',
-            orderId: order.id
+            message: 'Payment processing failed unexpectedly. Please contact support.',
+            orderId: order.id,
+            error: paymentResult.error
           });
         }
+        
+        console.log('✅ Wallet payment processed successfully:', {
+          userId,
+          tenantId,
+          orderId: order.id,
+          amount: finalAmount.toFixed(2),
+          newBalance: paymentResult.newBalance
+        });
       }
 
       // Clear cart after successful payment
