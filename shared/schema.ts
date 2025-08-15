@@ -18,6 +18,9 @@ import { z } from "zod";
 // Import image schemas
 export * from './image-schema';
 
+// Import Brevo notification schemas
+export * from '../server/db/schema/brevoNotifications';
+
 // Session storage table (mandatory for Replit Auth)
 export const sessions = pgTable(
   "sessions",

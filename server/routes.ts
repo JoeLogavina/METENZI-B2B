@@ -15,6 +15,7 @@ import { errorHandler } from "./middleware/auth.middleware";
 import { securityTestRoutes } from "./routes/security-test.routes";
 import imageRoutes from "./routes/images.routes";
 import monitoringRoutes from "./routes/monitoring.routes";
+import brevoNotificationRoutes from "./routes/admin/brevoNotifications";
 import { 
   productsCacheMiddleware, 
   walletCacheMiddleware, 
@@ -522,6 +523,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Admin support routes (registered under the admin namespace)
   app.use('/api/admin/support', adminSupportRouter);
+  
+  // Brevo notification system routes
+  app.use('/api/admin/brevo-notifications', brevoNotificationRoutes);
   
   // Register admin security routes
   const adminSecurityRoutes = await import('./routes/admin-security');
