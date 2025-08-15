@@ -53,14 +53,15 @@ export function setupAuth(app: Express) {
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
     saveUninitialized: false,
+    name: 'connect.sid', // Ensure consistent session name
     store: new PostgresSessionStore({
       conString: process.env.DATABASE_URL,
       createTableIfMissing: true,
     }),
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // Enable secure cookies in production
-      sameSite: 'strict', // CSRF protection
+      secure: false, // Disable secure in development to work with Vite proxy
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax', // Relax for development
       maxAge: 7 * 24 * 60 * 60 * 1000, // 1 week
     },
   };
@@ -178,8 +179,20 @@ export function setupAuth(app: Express) {
   });
 
   app.get("/api/user", (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    console.log("User data returned:", req.user);
+    console.log("🔍 /api/user endpoint hit:", {
+      isAuthenticated: req.isAuthenticated(),
+      hasUser: !!req.user,
+      sessionId: req.sessionID,
+      userId: req.user?.id,
+      username: req.user?.username
+    });
+    
+    if (!req.isAuthenticated()) {
+      console.log("❌ Authentication failed for /api/user");
+      return res.sendStatus(401);
+    }
+    
+    console.log("✅ User data returned:", req.user);
     res.json(req.user);
   });
 }

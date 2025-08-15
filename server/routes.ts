@@ -540,8 +540,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/secure-download', secureDownloadRoutes.default);
   
   // Register advanced authentication routes
-  const advancedAuthRoutes = await import('./routes/advanced-auth');
-  app.use('/api/auth', advancedAuthRoutes.default);
+  // Temporarily disabled to fix session cookie conflict
+  // const advancedAuthRoutes = await import('./routes/advanced-auth');
+  // app.use('/api/auth', advancedAuthRoutes.default);
   
   // Register API security routes (temporarily disabled to resolve loading issue)
   try {
