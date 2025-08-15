@@ -33,32 +33,31 @@ console.log(`  - Build context detected: ${isBuildContext}`);
 if (isBuildOnly) {
   console.log('📦 BUILD PHASE: Creating production assets...');
   
-  // Create dist directory
+  // Build frontend and backend assets using npm run build
+  console.log('🔨 Running npm run build to create frontend and backend assets...');
+  const { execSync } = require('child_process');
+  
+  try {
+    execSync('npm run build', { stdio: 'inherit' });
+    console.log('✅ Build completed successfully');
+  } catch (error) {
+    console.error('❌ Build failed:', error.message);
+    process.exit(1);
+  }
+  
+  // Verify that the build created the necessary files
   const distPath = path.join(process.cwd(), 'dist');
-  console.log('📁 Creating dist directory...');
-  if (!fs.existsSync(distPath)) {
-    fs.mkdirSync(distPath, { recursive: true });
+  const publicPath = path.join(distPath, 'public');
+  const indexHtmlPath = path.join(publicPath, 'index.html');
+  
+  if (!fs.existsSync(indexHtmlPath)) {
+    console.error('❌ Build failed: index.html not found at', indexHtmlPath);
+    process.exit(1);
   }
-
-  // Check if dist/index.cjs already exists
-  const targetPath = path.join(distPath, 'index.cjs');
-  if (fs.existsSync(targetPath)) {
-    console.log('✅ dist/index.cjs already exists');
-  } else {
-    // Check if index.cjs exists
-    const sourcePath = path.join(process.cwd(), 'index.cjs');
-    
-    if (fs.existsSync(sourcePath)) {
-      console.log('✅ index.cjs found - copying to dist...');
-      fs.copyFileSync(sourcePath, targetPath);
-      console.log('✅ dist/index.cjs created successfully');
-    } else {
-      console.log('❌ Error: index.cjs source file not found');
-      process.exit(1);
-    }
-  }
-
-  console.log('✅ Ready for CommonJS deployment');
+  
+  console.log('✅ Frontend assets built successfully');
+  console.log('✅ index.html found at', indexHtmlPath);
+  console.log('✅ Ready for production deployment');
   process.exit(0);
   
 } else {
