@@ -23,6 +23,7 @@ import {
   Database,
   TrendingUp
 } from 'lucide-react';
+import { NotificationAnalyticsDashboard } from './NotificationAnalyticsDashboard';
 
 interface NotificationStatus {
   pending: number;
@@ -465,23 +466,7 @@ export function BrevoNotificationPanel() {
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5" />
-                Email Analytics
-              </CardTitle>
-              <CardDescription>
-                Delivery statistics and performance metrics
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-600">
-                Analytics dashboard coming soon. This will include delivery rates, 
-                open rates, click tracking, and detailed performance metrics.
-              </p>
-            </CardContent>
-          </Card>
+          <NotificationAnalyticsDashboard />
         </TabsContent>
       </Tabs>
     </div>
