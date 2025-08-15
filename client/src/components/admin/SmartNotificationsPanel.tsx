@@ -85,13 +85,20 @@ export function SmartNotificationsPanel() {
 
   const handlePreviewTemplate = async (templateId: string, variant?: string) => {
     try {
+      console.log('🔍 Previewing template:', templateId);
       const response = await fetch(`/api/admin/smart-notifications/templates/${templateId}/preview${variant ? `?variant=${variant}` : ''}`);
       const result = await response.json();
+      console.log('🔍 Preview response:', result);
       if (result.success) {
         setPreviewContent(result.data);
+        console.log('🔍 Preview content set:', result.data);
+      } else {
+        console.error('Preview failed:', result);
+        alert('Failed to preview template: ' + (result.error || 'Unknown error'));
       }
     } catch (error) {
       console.error('Failed to preview template:', error);
+      alert('Failed to preview template: ' + error.message);
     }
   };
 
@@ -131,11 +138,7 @@ export function SmartNotificationsPanel() {
     abTests: []
   };
 
-  // Templates debugging
-  console.log('🔍 Dashboard data:', dashboard);
-  console.log('🔍 Dashboard?.data:', dashboard?.data);
-  console.log('🔍 Templates from dashboardData:', dashboardData.templates);
-  console.log('🔍 Templates length:', dashboardData.templates?.length);
+  // Templates are now working correctly!
 
   return (
     <div className="space-y-6">
@@ -290,51 +293,13 @@ export function SmartNotificationsPanel() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <div className="bg-yellow-100 p-2 rounded mb-2 text-sm">
-                    <strong>Debug Info:</strong> Found {dashboardData.templates?.length || 0} templates
-                    {dashboardData.templates?.length > 0 && (
-                      <div className="mt-1 text-xs">
-                        Templates: {dashboardData.templates.map(t => t.name).join(', ')}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Force render templates for testing */}
-                  <div className="space-y-2">
-                    <div className="p-4 bg-green-100 border-2 border-green-400 rounded">
-                      <h3 className="font-bold text-green-800">🟢 Order Confirmation - EUR</h3>
-                      <p className="text-sm text-green-600">English • EUR Shop • 2 variants</p>
-                      <Button size="sm" className="mt-2" onClick={() => handlePreviewTemplate('order-confirmation-eur')}>
-                        Preview EUR Template
-                      </Button>
-                    </div>
-                    <div className="p-4 bg-blue-100 border-2 border-blue-400 rounded">
-                      <h3 className="font-bold text-blue-800">🔵 Potvrda Narudžbe - KM</h3>
-                      <p className="text-sm text-blue-600">Bosnian • KM Shop • 0 variants</p>
-                      <Button size="sm" className="mt-2" onClick={() => handlePreviewTemplate('order-confirmation-km')}>
-                        Preview KM Template
-                      </Button>
-                    </div>
-                    <div className="p-4 bg-red-100 border-2 border-red-400 rounded">
-                      <h3 className="font-bold text-red-800">🔴 Payment Failed - EUR</h3>
-                      <p className="text-sm text-red-600">English • EUR Shop • 0 variants</p>
-                      <Button size="sm" className="mt-2" onClick={() => handlePreviewTemplate('payment-failed-eur')}>
-                        Preview Payment Failed
-                      </Button>
-                    </div>
-                  </div>
-
-                  <hr className="my-4" />
-                  
-                  {/* Original dynamic rendering */}
                   {(dashboardData.templates && dashboardData.templates.length > 0) ? (
-                    <div className="space-y-2">
-                      <p className="text-sm font-semibold">Dynamic Templates:</p>
+                    <div className="space-y-3">
                       {dashboardData.templates.map((template) => (
-                        <div key={template.id} className="flex items-center justify-between p-4 border-2 border-purple-200 rounded-lg bg-purple-50">
+                        <div key={template.id} className="flex items-center justify-between p-4 border rounded-lg hover:shadow-sm transition-shadow bg-white">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
-                              <p className="font-medium text-lg">{template.name}</p>
+                              <h3 className="font-medium text-lg">{template.name}</h3>
                               <Mail className="w-4 h-4 text-primary" />
                             </div>
                             <div className="flex items-center gap-2">
@@ -369,10 +334,9 @@ export function SmartNotificationsPanel() {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center text-red-500 py-8 bg-red-50 border border-red-200 rounded">
-                      <Mail className="w-12 h-12 mx-auto mb-4 text-red-400" />
-                      <p><strong>No templates found!</strong></p>
-                      <p className="text-xs mt-2">Data: {JSON.stringify(dashboardData.templates)}</p>
+                    <div className="text-center text-gray-500 py-8">
+                      <Mail className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                      <p>No templates available</p>
                     </div>
                   )}
                 </div>
@@ -436,13 +400,25 @@ export function SmartNotificationsPanel() {
                 </div>
 
                 {previewContent && (
-                  <div className="mt-4 p-4 border rounded-lg bg-gray-50">
-                    <h4 className="font-medium mb-2">Preview</h4>
-                    <p className="text-sm"><strong>Subject:</strong> {previewContent.subject}</p>
-                    <div className="mt-2 text-xs text-gray-600 max-h-32 overflow-y-auto">
-                      <div dangerouslySetInnerHTML={{ 
-                        __html: previewContent.htmlContent?.substring(0, 500) + '...' 
-                      }} />
+                  <div className="mt-4 p-4 border-2 border-green-500 rounded-lg bg-green-50">
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-medium text-green-800">📧 Template Preview</h4>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setPreviewContent(null)}
+                      >
+                        ✕ Close
+                      </Button>
+                    </div>
+                    <p className="text-sm mb-3"><strong>Subject:</strong> {previewContent.subject}</p>
+                    <div className="bg-white p-3 rounded border max-h-64 overflow-y-auto">
+                      <div 
+                        className="prose prose-sm max-w-none"
+                        dangerouslySetInnerHTML={{ 
+                          __html: previewContent.htmlContent || 'No content available'
+                        }} 
+                      />
                     </div>
                   </div>
                 )}
