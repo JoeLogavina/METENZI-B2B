@@ -83,7 +83,8 @@ export function useWalletState() {
     queryKey: WALLET_QUERY_KEYS.wallet(user?.id),
     queryFn: async () => {
       const response = await apiRequest("GET", "/api/wallet");
-      return await response.json();
+      console.log('💰 Wallet API direct response:', response);
+      return response; // apiRequest already parses JSON
     },
     enabled: !!user?.id,
     staleTime: 0, // Always consider data stale to force fresh requests
@@ -107,8 +108,7 @@ export function useWalletState() {
     queryKey: WALLET_QUERY_KEYS.transactions(user?.id),
     queryFn: async () => {
       const response = await apiRequest("GET", "/api/wallet/transactions");
-      const data = await response.json();
-      return data.data || [];
+      return response.data || []; // apiRequest already parses JSON
     },
     enabled: !!user?.id,
     staleTime: 0, // Always consider data stale
