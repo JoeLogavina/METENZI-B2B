@@ -193,15 +193,8 @@ export default function CheckoutPage() {
       };
       
       
-      const response = await apiRequest("POST", "/api/orders", orderPayload);
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Order creation failed:", errorData);
-        throw new Error(errorData.message || "Failed to place order");
-      }
-      
-      const result = await response.json();
+      const result = await apiRequest("POST", "/api/orders", orderPayload);
+      console.log('🚀 Order creation response:', result);
       return result;
     },
     onSuccess: (order) => {
