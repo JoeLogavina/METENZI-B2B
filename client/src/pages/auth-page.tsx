@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, ShieldCheck, Building2 } from "lucide-react";
 import { Redirect } from "wouter";
 
@@ -18,6 +19,8 @@ export default function AuthPage() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
+    confirmPassword: "",
+    username: "",
     companyName: "",
     firstName: "",
     lastName: "",
@@ -26,6 +29,34 @@ export default function AuthPage() {
     city: "",
     address: "",
   });
+
+  // List of countries for dropdown
+  const countries = [
+    "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Argentina", "Armenia", "Australia",
+    "Austria", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belarus", "Belgium",
+    "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei",
+    "Bulgaria", "Burkina Faso", "Burundi", "Cambodia", "Cameroon", "Canada", "Cape Verde", "Chad",
+    "Chile", "China", "Colombia", "Comoros", "Congo", "Costa Rica", "Croatia", "Cuba", "Cyprus",
+    "Czech Republic", "Denmark", "Djibouti", "Dominica", "Dominican Republic", "Ecuador", "Egypt",
+    "El Salvador", "Eritrea", "Estonia", "Ethiopia", "Fiji", "Finland", "France", "Gabon", "Gambia",
+    "Georgia", "Germany", "Ghana", "Greece", "Grenada", "Guatemala", "Guinea", "Guyana", "Haiti",
+    "Honduras", "Hungary", "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland", "Israel",
+    "Italy", "Jamaica", "Japan", "Jordan", "Kazakhstan", "Kenya", "Kuwait", "Kyrgyzstan", "Laos",
+    "Latvia", "Lebanon", "Lesotho", "Liberia", "Libya", "Lithuania", "Luxembourg", "Madagascar",
+    "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands", "Mauritania", "Mauritius",
+    "Mexico", "Micronesia", "Moldova", "Monaco", "Mongolia", "Montenegro", "Morocco", "Mozambique",
+    "Myanmar", "Namibia", "Nauru", "Nepal", "Netherlands", "New Zealand", "Nicaragua", "Niger",
+    "Nigeria", "North Korea", "North Macedonia", "Norway", "Oman", "Pakistan", "Palau", "Panama",
+    "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland", "Portugal", "Qatar", "Romania",
+    "Russia", "Rwanda", "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines",
+    "Samoa", "San Marino", "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Sierra Leone",
+    "Singapore", "Slovakia", "Slovenia", "Solomon Islands", "Somalia", "South Africa", "South Korea",
+    "South Sudan", "Spain", "Sri Lanka", "Sudan", "Suriname", "Sweden", "Switzerland", "Syria",
+    "Taiwan", "Tajikistan", "Tanzania", "Thailand", "Togo", "Tonga", "Trinidad and Tobago", "Tunisia",
+    "Turkey", "Turkmenistan", "Tuvalu", "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom",
+    "United States", "Uruguay", "Uzbekistan", "Vanuatu", "Vatican City", "Venezuela", "Vietnam",
+    "Yemen", "Zambia", "Zimbabwe"
+  ];
 
   // Get redirect parameter from URL
   const urlParams = new URLSearchParams(window.location.search);
@@ -131,7 +162,7 @@ export default function AuthPage() {
       }
       loginMutation.mutate({ email: formData.email, password: formData.password });
     } else {
-      if (!formData.email || !formData.password || !formData.companyName || !formData.firstName || !formData.lastName) {
+      if (!formData.email || !formData.password || !formData.confirmPassword || !formData.username || !formData.companyName || !formData.firstName || !formData.lastName || !formData.phone) {
         toast({
           title: "Validation Error",
           description: "Please fill in all required fields",
@@ -139,8 +170,20 @@ export default function AuthPage() {
         });
         return;
       }
+      
+      if (formData.password !== formData.confirmPassword) {
+        toast({
+          title: "Validation Error",
+          description: "Passwords do not match",
+          variant: "destructive",
+        });
+        return;
+      }
+      // Exclude confirmPassword from data sent to backend
+      const { confirmPassword, ...registrationData } = formData;
+      
       registerMutation.mutate({
-        ...formData,
+        ...registrationData,
         tenantId: "eur", // Default to EUR tenant
         role: "b2b_user",
         branchType: "main_company"
@@ -152,6 +195,13 @@ export default function AuthPage() {
     setFormData(prev => ({
       ...prev,
       [e.target.name]: e.target.value,
+    }));
+  };
+
+  const handleSelectChange = (field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value,
     }));
   };
 
@@ -305,6 +355,22 @@ export default function AuthPage() {
                         placeholder="Enter company name"
                       />
                     </div>
+
+                    <div>
+                      <Label htmlFor="username" className="text-sm font-medium text-gray-700">
+                        Username *
+                      </Label>
+                      <Input
+                        id="username"
+                        name="username"
+                        type="text"
+                        required
+                        value={formData.username}
+                        onChange={handleChange}
+                        className="mt-1"
+                        placeholder="Enter username"
+                      />
+                    </div>
                   </>
                 )}
 
@@ -341,16 +407,35 @@ export default function AuthPage() {
                 </div>
 
                 {!isLoginMode && (
+                  <div>
+                    <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">
+                      Confirm Password *
+                    </Label>
+                    <Input
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      type="password"
+                      required
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      className="mt-1"
+                      placeholder="Confirm your password"
+                    />
+                  </div>
+                )}
+
+                {!isLoginMode && (
                   <>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="phone" className="text-sm font-medium text-gray-700">
-                          Phone
+                          Phone *
                         </Label>
                         <Input
                           id="phone"
                           name="phone"
                           type="text"
+                          required
                           value={formData.phone}
                           onChange={handleChange}
                           className="mt-1"
@@ -361,15 +446,18 @@ export default function AuthPage() {
                         <Label htmlFor="country" className="text-sm font-medium text-gray-700">
                           Country
                         </Label>
-                        <Input
-                          id="country"
-                          name="country"
-                          type="text"
-                          value={formData.country}
-                          onChange={handleChange}
-                          className="mt-1"
-                          placeholder="Enter country"
-                        />
+                        <Select value={formData.country} onValueChange={(value) => handleSelectChange('country', value)}>
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="Select country" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {countries.map((country) => (
+                              <SelectItem key={country} value={country}>
+                                {country}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
 
