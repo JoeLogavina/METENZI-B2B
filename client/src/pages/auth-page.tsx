@@ -186,7 +186,7 @@ export default function AuthPage() {
         ...registrationData,
         tenantId: "eur", // Default to EUR tenant
         role: "b2b_user",
-        branchType: "main_company"
+        branchType: "main"
       });
     }
   };
