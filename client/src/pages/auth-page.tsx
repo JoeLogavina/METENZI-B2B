@@ -15,7 +15,7 @@ export default function AuthPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
-    username: "",
+    email: "",
     password: "",
   });
 
@@ -24,7 +24,7 @@ export default function AuthPage() {
   const redirectParam = urlParams.get('redirect');
 
   const loginMutation = useMutation({
-    mutationFn: async (credentials: { username: string; password: string }) => {
+    mutationFn: async (credentials: { email: string; password: string }) => {
       const res = await apiRequest("POST", "/api/login", credentials);
       return res;
     },
@@ -79,7 +79,7 @@ export default function AuthPage() {
     onError: (error: any) => {
       toast({
         title: "Login Failed",
-        description: error.message || "Invalid username or password",
+        description: error.message || "Invalid email or password",
         variant: "destructive",
       });
     },
@@ -87,7 +87,7 @@ export default function AuthPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.username || !formData.password) {
+    if (!formData.email || !formData.password) {
       toast({
         title: "Validation Error",
         description: "Please fill in all fields",
@@ -173,18 +173,18 @@ export default function AuthPage() {
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                  <Label htmlFor="username" className="text-sm font-medium text-gray-700">
-                    Username
+                  <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+                    Email
                   </Label>
                   <Input
-                    id="username"
-                    name="username"
-                    type="text"
+                    id="email"
+                    name="email"
+                    type="email"
                     required
-                    value={formData.username}
+                    value={formData.email}
                     onChange={handleChange}
                     className="mt-1"
-                    placeholder="Enter your username"
+                    placeholder="Enter your email"
                   />
                 </div>
 

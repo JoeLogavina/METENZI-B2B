@@ -56,9 +56,9 @@ export const orderCounters = pgTable("order_counters", {
 // User storage table
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: varchar("username").unique().notNull(),
+  username: varchar("username").unique(),
   password: varchar("password").notNull(),
-  email: varchar("email").unique(),
+  email: varchar("email").unique().notNull(),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),

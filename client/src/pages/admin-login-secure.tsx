@@ -8,13 +8,13 @@ import { Eye, EyeOff, Shield, Lock, AlertTriangle } from "lucide-react";
 import { useCsrf } from "@/hooks/use-csrf";
 
 interface LoginFormData {
-  username: string;
+  email: string;
   password: string;
 }
 
 export default function AdminLoginSecure() {
   const [formData, setFormData] = useState<LoginFormData>({
-    username: "",
+    email: "",
     password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -72,7 +72,7 @@ export default function AdminLoginSecure() {
         const user = await response.json();
         toast({
           title: "Login Successful",
-          description: `Welcome back, ${user.username}!`,
+          description: `Welcome back, ${user.email}!`,
         });
         
         // Reset attempts on successful login
@@ -148,17 +148,17 @@ export default function AdminLoginSecure() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="username" className="text-slate-200">
-                  Username
+                <Label htmlFor="email" className="text-slate-200">
+                  Email
                 </Label>
                 <Input
-                  id="username"
-                  name="username"
-                  type="text"
-                  value={formData.username}
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
                   onChange={handleInputChange}
                   className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 focus:border-[#FFB20F] focus:ring-[#FFB20F]/20"
-                  placeholder="Enter admin username"
+                  placeholder="Enter admin email"
                   required
                   disabled={isLoading || isBlocked || csrfLoading}
                 />

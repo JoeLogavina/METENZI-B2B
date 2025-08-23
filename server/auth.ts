@@ -72,28 +72,28 @@ export function setupAuth(app: Express) {
   app.use(passport.session());
 
   passport.use(
-    new LocalStrategy(async (username, password, done) => {
+    new LocalStrategy({ usernameField: 'email' }, async (email, password, done) => {
       try {
-        const user = await storage.getUserByUsername(username);
+        const user = await storage.getUserByEmail(email);
 
         if (!user) {
-          logAuth.loginFailure(username, 'unknown', 'User not found');
+          logAuth.loginFailure(email, 'unknown', 'User not found');
           return done(null, false);
         }
 
         const passwordMatch = await comparePasswords(password, user.password);
 
         if (!passwordMatch) {
-          logAuth.loginFailure(username, 'unknown', 'Invalid password');
+          logAuth.loginFailure(email, 'unknown', 'Invalid password');
           return done(null, false);
         } else {
-          logAuth.loginSuccess(user.id, user.username, 'unknown');
+          logAuth.loginSuccess(user.id, user.email, 'unknown');
           return done(null, user);
         }
       } catch (error) {
         logger.error('Authentication error', {
           category: 'auth',
-          username,
+          email,
           error: error instanceof Error ? error.message : 'Unknown error',
           stack: error instanceof Error ? error.stack : undefined
         });
@@ -110,7 +110,7 @@ export function setupAuth(app: Express) {
       logger.debug('User deserialized successfully', {
         category: 'auth',
         userId: user.id,
-        username: user.username
+        email: user.email
       });
       done(null, user);
     } else {
@@ -133,9 +133,9 @@ export function setupAuth(app: Express) {
 
   app.post("/api/register", async (req, res, next) => {
     try {
-      const existingUser = await storage.getUserByUsername(req.body.username);
+      const existingUser = await storage.getUserByEmail(req.body.email);
       if (existingUser) {
-        return res.status(400).send("Username already exists");
+        return res.status(400).send("Email already exists");
       }
 
       const user = await storage.createUser({
@@ -150,7 +150,7 @@ export function setupAuth(app: Express) {
     } catch (error) {
       logger.error('User registration failed', {
         category: 'auth',
-        username: req.body?.username,
+        email: req.body?.email,
         error: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
         ip: req.ip
