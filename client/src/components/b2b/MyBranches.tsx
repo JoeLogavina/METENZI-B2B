@@ -120,7 +120,83 @@ export function MyBranches({}: MyBranchesProps) {
 
   const { mainCompany, branches } = hierarchy.data;
   const isMainCompany = user?.branchType === 'main_company' || user?.id === mainCompany.id;
+  const isBranchUser = user?.branchType === 'branch';
 
+  // If user is a branch, show only their profile information
+  if (isBranchUser) {
+    const currentBranch = branches.find(branch => branch.id === user?.id);
+    
+    return (
+      <div className="space-y-6">
+        {/* Header for Branch User */}
+        <div className="flex items-center gap-3">
+          <Building2 className="h-8 w-8 text-[#FFB20F]" />
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">My Branch Profile</h2>
+            <p className="text-gray-600">Your branch information and access details</p>
+          </div>
+        </div>
+
+        {/* Current Branch Card */}
+        {currentBranch && (
+          <Card className="border-l-4 border-l-[#FFB20F]">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="h-5 w-5" />
+                Branch Profile
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-gray-600">Branch Name</Label>
+                  <p className="font-semibold">{currentBranch.branchName}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-600">Username</Label>
+                  <p className="font-semibold">{currentBranch.username}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-600">Email</Label>
+                  <p className="font-semibold">{currentBranch.email || 'N/A'}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-600">Branch Code</Label>
+                  <p className="font-semibold">{currentBranch.branchCode || 'N/A'}</p>
+                </div>
+              </div>
+              <div className="mt-4 flex items-center gap-2">
+                <Badge variant="default" className="bg-[#FFB20F] text-black">
+                  Branch User
+                </Badge>
+                <Badge variant={currentBranch.isActive ? "default" : "secondary"}>
+                  {currentBranch.isActive ? 'Active' : 'Inactive'}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Access Information */}
+        <Card className="bg-blue-50 border-blue-200">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <Shield className="h-5 w-5 text-blue-600 mt-0.5" />
+              <div>
+                <h4 className="font-semibold text-blue-900 mb-1">Branch Access & Resources</h4>
+                <p className="text-sm text-blue-700">
+                  As a branch user, you have access to the product catalog, can place orders, and manage transactions. 
+                  Your activities contribute to the main company's overall business operations.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Main company view (existing layout)
   return (
     <div className="space-y-6">
       {/* Header */}

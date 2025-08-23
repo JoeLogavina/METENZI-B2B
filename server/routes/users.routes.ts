@@ -61,34 +61,13 @@ router.get('/:id/hierarchy', async (req, res) => {
     // Filter branches based on user role and permissions
     let filteredBranches = hierarchy.branches;
     
-    console.log('🔍 Branch filtering debug:', {
-      requestingUserId: req.user.id,
-      requestingUserRole: req.user.role,
-      requestedUserId: userId,
-      totalBranches: hierarchy.branches.length,
-      branchIds: hierarchy.branches.map(b => ({ id: b.id, username: b.username }))
-    });
-    
     // If requesting user is not admin/super_admin and is not the main company
     if (req.user.id !== userId && req.user.role !== 'admin' && req.user.role !== 'super_admin') {
       const requestingUser = await storage.getUser(req.user.id);
       
-      console.log('🔍 Requesting user details:', {
-        id: requestingUser?.id,
-        username: requestingUser?.username,
-        branchType: requestingUser?.branchType,
-        parentCompanyId: requestingUser?.parentCompanyId
-      });
-      
       // If requesting user is a branch, they should only see their own branch
       if (requestingUser && requestingUser.branchType === 'branch') {
-        console.log('🔍 Filtering branches for branch user');
-        filteredBranches = hierarchy.branches.filter(branch => {
-          const match = branch.id === req.user!.id;
-          console.log('🔍 Branch filter check:', { branchId: branch.id, requestingUserId: req.user!.id, match });
-          return match;
-        });
-        console.log('🔍 Filtered branches count:', filteredBranches.length);
+        filteredBranches = hierarchy.branches.filter(branch => branch.id === req.user!.id);
       }
     }
     
