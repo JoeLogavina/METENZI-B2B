@@ -29,6 +29,14 @@ router.get('/:id/hierarchy', async (req, res) => {
   try {
     const { id: userId } = userParamsSchema.parse(req.params);
     
+    // Verify user is authenticated
+    if (!req.user) {
+      return res.status(401).json({
+        error: 'UNAUTHORIZED',
+        message: 'Authentication required'
+      });
+    }
+    
     // Verify user has access to this data
     if (req.user.id !== userId && req.user.role !== 'admin' && req.user.role !== 'super_admin') {
       // Allow if user is requesting their parent company hierarchy
@@ -50,9 +58,22 @@ router.get('/:id/hierarchy', async (req, res) => {
       });
     }
     
+    // Filter branches based on user role and permissions
+    let filteredBranches = hierarchy.branches;
+    
+    // If requesting user is not admin/super_admin and is not the main company
+    if (req.user.id !== userId && req.user.role !== 'admin' && req.user.role !== 'super_admin') {
+      const requestingUser = await storage.getUser(req.user.id);
+      
+      // If requesting user is a branch, they should only see their own branch
+      if (requestingUser && requestingUser.branchType === 'branch') {
+        filteredBranches = hierarchy.branches.filter(branch => branch.id === req.user!.id);
+      }
+    }
+    
     // Remove passwords from response
     const { password: mainPassword, ...mainCompanyWithoutPassword } = hierarchy.mainCompany;
-    const branchesWithoutPasswords = hierarchy.branches.map(({ password, ...branch }) => branch);
+    const branchesWithoutPasswords = filteredBranches.map(({ password, ...branch }) => branch);
     
     res.json({
       data: {
@@ -81,6 +102,14 @@ router.get('/:id/hierarchy', async (req, res) => {
 router.get('/:id/branches', async (req, res) => {
   try {
     const { id: parentCompanyId } = userParamsSchema.parse(req.params);
+    
+    // Verify user is authenticated
+    if (!req.user) {
+      return res.status(401).json({
+        error: 'UNAUTHORIZED',
+        message: 'Authentication required'
+      });
+    }
     
     // Verify user has access to this data
     if (req.user.id !== parentCompanyId && req.user.role !== 'admin' && req.user.role !== 'super_admin') {
@@ -124,6 +153,14 @@ router.post('/:id/branches', async (req, res) => {
   try {
     const { id: parentCompanyId } = userParamsSchema.parse(req.params);
     const branchData = createBranchSchema.parse(req.body);
+    
+    // Verify user is authenticated
+    if (!req.user) {
+      return res.status(401).json({
+        error: 'UNAUTHORIZED',
+        message: 'Authentication required'
+      });
+    }
     
     // Verify user has permission to create branches for this company
     // Only the main company user or admins can create branches
