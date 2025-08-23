@@ -199,6 +199,33 @@ export default function AuthPage() {
                   <ShieldCheck className="h-6 w-6 text-primary" />
                 )}
               </div>
+
+              {/* Mode Toggle Buttons */}
+              <div className="flex bg-gray-100 rounded-lg p-1 mb-4">
+                <button
+                  type="button"
+                  onClick={() => setIsLoginMode(true)}
+                  className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                    isLoginMode 
+                      ? 'bg-white text-gray-900 shadow-sm' 
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  Sign In
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsLoginMode(false)}
+                  className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                    !isLoginMode 
+                      ? 'bg-white text-gray-900 shadow-sm' 
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  Register
+                </button>
+              </div>
+
               <CardTitle className="text-2xl font-bold text-gray-900">
                 {isLoginMode ? (
                   redirectParam === 'admin' 
@@ -394,18 +421,8 @@ export default function AuthPage() {
                 </Button>
               </form>
 
-              <div className="mt-6 text-center">
-                <button
-                  type="button"
-                  onClick={() => setIsLoginMode(!isLoginMode)}
-                  className="text-sm text-primary hover:underline"
-                >
-                  {isLoginMode ? "Need to register a new company? Click here" : "Already have an account? Sign in"}
-                </button>
-              </div>
-
               {isLoginMode && (
-                <div className="mt-4 text-center space-y-1">
+                <div className="mt-6 text-center space-y-1">
                   <p className="text-xs text-gray-500">
                     Demo accounts - Email/Password:
                   </p>
