@@ -14,9 +14,17 @@ export default function AuthPage() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [isLoginMode, setIsLoginMode] = useState(true);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
+    companyName: "",
+    firstName: "",
+    lastName: "",
+    phone: "",
+    country: "",
+    city: "",
+    address: "",
   });
 
   // Get redirect parameter from URL
@@ -85,17 +93,59 @@ export default function AuthPage() {
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.email || !formData.password) {
+  const registerMutation = useMutation({
+    mutationFn: async (registrationData: any) => {
+      const res = await apiRequest("POST", "/api/register", registrationData);
+      return res;
+    },
+    onSuccess: (data) => {
       toast({
-        title: "Validation Error",
-        description: "Please fill in all fields",
+        title: "Registration successful",
+        description: "Your company account has been created!",
+      });
+      
+      // Update user data in cache immediately
+      queryClient.setQueryData(["/api/user"], data);
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Registration Failed",
+        description: error.message || "Registration failed",
         variant: "destructive",
       });
-      return;
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (isLoginMode) {
+      if (!formData.email || !formData.password) {
+        toast({
+          title: "Validation Error",
+          description: "Please fill in all fields",
+          variant: "destructive",
+        });
+        return;
+      }
+      loginMutation.mutate({ email: formData.email, password: formData.password });
+    } else {
+      if (!formData.email || !formData.password || !formData.companyName || !formData.firstName || !formData.lastName) {
+        toast({
+          title: "Validation Error",
+          description: "Please fill in all required fields",
+          variant: "destructive",
+        });
+        return;
+      }
+      registerMutation.mutate({
+        ...formData,
+        tenantId: "eur", // Default to EUR tenant
+        role: "b2b_user",
+        branchType: "main_company"
+      });
     }
-    loginMutation.mutate(formData);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -150,31 +200,90 @@ export default function AuthPage() {
                 )}
               </div>
               <CardTitle className="text-2xl font-bold text-gray-900">
-                {redirectParam === 'admin' 
-                  ? 'Admin Portal Access'
-                  : redirectParam === 'eur'
-                  ? 'EUR Panel Access'
-                  : redirectParam === 'km'
-                  ? 'KM Panel Access'
-                  : 'Sign in to your account'
-                }
+                {isLoginMode ? (
+                  redirectParam === 'admin' 
+                    ? 'Admin Portal Access'
+                    : redirectParam === 'eur'
+                    ? 'EUR Panel Access'
+                    : redirectParam === 'km'
+                    ? 'KM Panel Access'
+                    : 'Sign in to your account'
+                ) : (
+                  'Register Your Company'
+                )}
               </CardTitle>
               <p className="text-sm text-gray-600 mt-2">
-                {redirectParam === 'admin' 
-                  ? 'Administrative access for both EUR and KM tenants'
-                  : redirectParam === 'eur'
-                  ? 'European market B2B software licensing'
-                  : redirectParam === 'km'
-                  ? 'Bosnian market B2B software licensing'
-                  : 'Access your B2B software license portal'
-                }
+                {isLoginMode ? (
+                  redirectParam === 'admin' 
+                    ? 'Administrative access for both EUR and KM tenants'
+                    : redirectParam === 'eur'
+                    ? 'European market B2B software licensing'
+                    : redirectParam === 'km'
+                    ? 'Bosnian market B2B software licensing'
+                    : 'Access your B2B software license portal'
+                ) : (
+                  'Create your company account for B2B software licensing'
+                )}
               </p>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
+                {!isLoginMode && (
+                  <>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="firstName" className="text-sm font-medium text-gray-700">
+                          First Name *
+                        </Label>
+                        <Input
+                          id="firstName"
+                          name="firstName"
+                          type="text"
+                          required
+                          value={formData.firstName}
+                          onChange={handleChange}
+                          className="mt-1"
+                          placeholder="Enter first name"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="lastName" className="text-sm font-medium text-gray-700">
+                          Last Name *
+                        </Label>
+                        <Input
+                          id="lastName"
+                          name="lastName"
+                          type="text"
+                          required
+                          value={formData.lastName}
+                          onChange={handleChange}
+                          className="mt-1"
+                          placeholder="Enter last name"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="companyName" className="text-sm font-medium text-gray-700">
+                        Company Name *
+                      </Label>
+                      <Input
+                        id="companyName"
+                        name="companyName"
+                        type="text"
+                        required
+                        value={formData.companyName}
+                        onChange={handleChange}
+                        className="mt-1"
+                        placeholder="Enter company name"
+                      />
+                    </div>
+                  </>
+                )}
+
                 <div>
                   <Label htmlFor="email" className="text-sm font-medium text-gray-700">
-                    Email
+                    Email {!isLoginMode && '*'}
                   </Label>
                   <Input
                     id="email"
@@ -190,7 +299,7 @@ export default function AuthPage() {
 
                 <div>
                   <Label htmlFor="password" className="text-sm font-medium text-gray-700">
-                    Password
+                    Password {!isLoginMode && '*'}
                   </Label>
                   <Input
                     id="password"
@@ -204,30 +313,110 @@ export default function AuthPage() {
                   />
                 </div>
 
+                {!isLoginMode && (
+                  <>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="phone" className="text-sm font-medium text-gray-700">
+                          Phone
+                        </Label>
+                        <Input
+                          id="phone"
+                          name="phone"
+                          type="text"
+                          value={formData.phone}
+                          onChange={handleChange}
+                          className="mt-1"
+                          placeholder="Enter phone number"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="country" className="text-sm font-medium text-gray-700">
+                          Country
+                        </Label>
+                        <Input
+                          id="country"
+                          name="country"
+                          type="text"
+                          value={formData.country}
+                          onChange={handleChange}
+                          className="mt-1"
+                          placeholder="Enter country"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="city" className="text-sm font-medium text-gray-700">
+                        City
+                      </Label>
+                      <Input
+                        id="city"
+                        name="city"
+                        type="text"
+                        value={formData.city}
+                        onChange={handleChange}
+                        className="mt-1"
+                        placeholder="Enter city"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="address" className="text-sm font-medium text-gray-700">
+                        Address
+                      </Label>
+                      <Input
+                        id="address"
+                        name="address"
+                        type="text"
+                        value={formData.address}
+                        onChange={handleChange}
+                        className="mt-1"
+                        placeholder="Enter address"
+                      />
+                    </div>
+                  </>
+                )}
+
                 <Button
                   type="submit"
                   className="w-full"
-                  disabled={loginMutation.isPending}
+                  disabled={loginMutation.isPending || registerMutation.isPending}
                 >
-                  {loginMutation.isPending ? (
+                  {(loginMutation.isPending || registerMutation.isPending) ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      Signing in...
+                      {isLoginMode ? "Signing in..." : "Creating account..."}
                     </>
                   ) : (
-                    "Sign in"
+                    isLoginMode ? "Sign in" : "Register Company"
                   )}
                 </Button>
               </form>
 
-              <div className="mt-6 text-center space-y-1">
-                <p className="text-xs text-gray-500">
-                  Admin: admin / Kalendar1
-                </p>
-                <p className="text-xs text-gray-500">
-                  B2B User: b2buser / Kalendar1
-                </p>
+              <div className="mt-6 text-center">
+                <button
+                  type="button"
+                  onClick={() => setIsLoginMode(!isLoginMode)}
+                  className="text-sm text-primary hover:underline"
+                >
+                  {isLoginMode ? "Need to register a new company? Click here" : "Already have an account? Sign in"}
+                </button>
               </div>
+
+              {isLoginMode && (
+                <div className="mt-4 text-center space-y-1">
+                  <p className="text-xs text-gray-500">
+                    Demo accounts - Email/Password:
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    b2b@example.com / password
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    admin@example.com / Kalendar1
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
