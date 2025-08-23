@@ -42,7 +42,9 @@ import {
   Phone,
   BookOpen,
   Mail,
-  Bot
+  Bot,
+  ChevronDown,
+  ChevronRight
 } from "lucide-react";
 import WalletManagement from "@/components/wallet-management";
 import UserForm from "@/components/user-form";
@@ -165,6 +167,41 @@ export default function AdminPanel() {
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [editProductId, setEditProductId] = useState<string | null>(null);
+  const [expandedCompanies, setExpandedCompanies] = useState<Set<string>>(new Set());
+
+  // Toggle expand/collapse for company branches
+  const toggleCompanyExpansion = (companyId: string) => {
+    const newExpanded = new Set(expandedCompanies);
+    if (newExpanded.has(companyId)) {
+      newExpanded.delete(companyId);
+    } else {
+      newExpanded.add(companyId);
+    }
+    setExpandedCompanies(newExpanded);
+  };
+
+  // Group users hierarchically
+  const groupUsersHierarchically = (users: any[]) => {
+    const mainCompanies = users.filter(user => user.branchType === 'main_company' || user.branchType === 'main');
+    const branches = users.filter(user => user.branchType === 'branch');
+    
+    const result: any[] = [];
+    
+    mainCompanies.forEach(company => {
+      result.push(company);
+      
+      if (expandedCompanies.has(company.id)) {
+        const companyBranches = branches.filter(branch => branch.parentCompanyId === company.id);
+        result.push(...companyBranches);
+      }
+    });
+    
+    // Add users without company (admin, etc.)
+    const othersUsers = users.filter(user => !user.branchType || (user.branchType !== 'main_company' && user.branchType !== 'main' && user.branchType !== 'branch'));
+    result.push(...othersUsers);
+    
+    return result;
+  };
   
   // Admin Support notification system - fetch ticket stats for badge count
   const { data: adminTicketStats } = useQuery({
@@ -666,16 +703,34 @@ export default function AdminPanel() {
                             </td>
                           </tr>
                         ) : (
-                          (users || []).map((userData: any) => {
+                          groupUsersHierarchically(users || []).map((userData: any, index: number) => {
                             // Find wallet data for this user
                             const userWallet = walletData.find((wallet: any) => wallet.id === userData.id);
                             
+                            // Check if this is a main company with branches
+                            const isMainCompany = userData.branchType === 'main_company' || userData.branchType === 'main';
+                            const hasBranches = isMainCompany && (users || []).some(u => u.parentCompanyId === userData.id);
+                            const isBranch = userData.branchType === 'branch';
+                            const isExpanded = expandedCompanies.has(userData.id);
+                            
                             return (
-                              <tr key={userData.id} className="hover:bg-gray-50">
+                              <tr key={userData.id} className={`hover:bg-gray-50 ${isBranch ? 'bg-gray-25' : ''}`}>
                                 <td className="px-6 py-2 whitespace-nowrap">
-                                  <div className="flex items-center">
+                                  <div className={`flex items-center ${isBranch ? 'ml-8' : ''}`}>
+                                    {hasBranches && (
+                                      <button
+                                        onClick={() => toggleCompanyExpansion(userData.id)}
+                                        className="mr-2 p-1 hover:bg-gray-100 rounded"
+                                      >
+                                        {isExpanded ? (
+                                          <ChevronDown className="h-4 w-4 text-[#6E6F71]" />
+                                        ) : (
+                                          <ChevronRight className="h-4 w-4 text-[#6E6F71]" />
+                                        )}
+                                      </button>
+                                    )}
                                     <div className="flex-shrink-0 h-8 w-8">
-                                      <div className="h-8 w-8 bg-[#6E6F71] rounded-full flex items-center justify-center">
+                                      <div className={`h-8 w-8 ${isBranch ? 'bg-blue-500' : 'bg-[#6E6F71]'} rounded-full flex items-center justify-center`}>
                                         <span className="text-white text-xs font-medium">
                                           {userData.firstName?.charAt(0) || userData.username?.charAt(0) || 'U'}
                                         </span>
@@ -692,6 +747,11 @@ export default function AdminPanel() {
                                         >
                                           {userData.firstName} {userData.lastName}
                                         </button>
+                                        {isBranch && userData.branchName && (
+                                          <span className="ml-2 text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                                            {userData.branchName}
+                                          </span>
+                                        )}
                                       </div>
                                       <div className="text-xs text-gray-500">@{userData.username}</div>
                                     </div>
