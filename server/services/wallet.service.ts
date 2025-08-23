@@ -70,8 +70,8 @@ export class WalletService {
         id: crypto.randomUUID(),
         userId,
         tenantId,
-        depositBalance: '5000.00',
-        creditLimit: '5000.00',
+        depositBalance: '0.00',
+        creditLimit: '0.00',
         creditUsed: '0.00',
         isActive: true
       })
