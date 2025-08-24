@@ -355,7 +355,7 @@ export class WalletService {
    * Get all wallets for admin (cross-tenant view)
    */
   async getAllWallets(adminRole: string): Promise<WalletData[]> {
-    // Admin access to all wallets across tenants
+    // Admin access to all wallets across tenants, but only main B2B companies (not branches)
     const allWallets = await db
       .select({
         id: wallets.id,
@@ -373,9 +373,18 @@ export class WalletService {
       })
       .from(wallets)
       .innerJoin(users, eq(wallets.userId, users.id))
+      .where(eq(users.role, 'b2b_user')) // Only main B2B companies, no branches
       .orderBy(wallets.tenantId, wallets.createdAt);
 
-    return allWallets.map(wallet => {
+    // Group by userId to avoid duplicates across tenants (use EUR as primary)
+    const uniqueWallets = new Map();
+    allWallets.forEach(wallet => {
+      if (!uniqueWallets.has(wallet.userId) || wallet.tenantId === 'eur') {
+        uniqueWallets.set(wallet.userId, wallet);
+      }
+    });
+
+    return Array.from(uniqueWallets.values()).map(wallet => {
       const depositBalance = parseFloat(wallet.depositBalance);
       const creditLimit = parseFloat(wallet.creditLimit);
       const creditUsed = parseFloat(wallet.creditUsed);

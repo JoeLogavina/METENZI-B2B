@@ -817,8 +817,12 @@ export default function AdminPanel() {
                                           size="sm"
                                           variant="ghost"
                                           onClick={() => {
-                                            setActiveSection('wallet-management');
-                                            // You could also set selected user here
+                                            navigateTo('user-detail', userData.id, `${userData.username} Details`);
+                                            setTimeout(() => {
+                                              // Set the UserDetailView to show wallet tab
+                                              const event = new CustomEvent('set-user-wallet-tab');
+                                              window.dispatchEvent(event);
+                                            }, 100);
                                           }}
                                           className="text-[#6E6F71] hover:bg-[#6E6F71] hover:text-white p-1"
                                           title="Manage wallet"

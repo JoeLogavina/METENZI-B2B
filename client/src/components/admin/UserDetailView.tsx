@@ -46,6 +46,15 @@ export function UserDetailView({ userId, onBack, onViewBranches }: UserDetailVie
   const [activeTab, setActiveTab] = useState('profile');
   const [newDeposit, setNewDeposit] = useState('');
   const [newCreditLimit, setNewCreditLimit] = useState('');
+
+  // Listen for wallet tab navigation
+  useEffect(() => {
+    const handleWalletTabSwitch = () => {
+      setActiveTab('wallet');
+    };
+    window.addEventListener('set-user-wallet-tab', handleWalletTabSwitch);
+    return () => window.removeEventListener('set-user-wallet-tab', handleWalletTabSwitch);
+  }, []);
   
   const { data: user, isLoading } = useQuery<{ data: User }>({
     queryKey: ['admin', 'users', userId],
