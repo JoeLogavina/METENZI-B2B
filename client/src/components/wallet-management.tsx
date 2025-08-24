@@ -54,36 +54,56 @@ export default function WalletManagement() {
     const handleSelectUser = (event: any) => {
       const { userId, userData } = event.detail || {};
       if (userId && userData) {
-        // Convert userData to WalletUser format if needed
-        const walletUserData: WalletUser = {
-          id: userData.id,
-          username: userData.username,
-          firstName: userData.firstName || '',
-          lastName: userData.lastName || '',
-          email: userData.email || '',
-          role: userData.role,
-          tenantId: userData.tenantId || 'eur',
-          balance: {
-            depositBalance: '0.00',
-            creditLimit: '0.00', 
-            creditUsed: '0.00',
-            availableCredit: '0.00',
-            totalAvailable: '0.00',
-            isOverlimit: false
-          }
-        };
-        setSelectedUser(walletUserData);
+        // Find the user from walletUsers to get actual wallet balance data
+        const actualWalletUser = walletUsers.find(user => user.id === userId);
+        if (actualWalletUser) {
+          // Use actual wallet data with real balances
+          setSelectedUser(actualWalletUser);
+        } else {
+          // Fallback: create user data but we'll refresh it below
+          const walletUserData: WalletUser = {
+            id: userData.id,
+            username: userData.username,
+            firstName: userData.firstName || '',
+            lastName: userData.lastName || '',
+            email: userData.email || '',
+            role: userData.role,
+            tenantId: userData.tenantId || 'eur',
+            balance: {
+              depositBalance: '0.00',
+              creditLimit: '0.00', 
+              creditUsed: '0.00',
+              availableCredit: '0.00',
+              totalAvailable: '0.00',
+              isOverlimit: false
+            }
+          };
+          setSelectedUser(walletUserData);
+          // Force refresh wallet data to get actual balances
+          queryClient.refetchQueries({ queryKey: ["/api/admin/wallets"] });
+        }
       }
     };
     window.addEventListener('select-wallet-user', handleSelectUser);
     return () => window.removeEventListener('select-wallet-user', handleSelectUser);
-  }, []);
+  }, [walletUsers, queryClient]);
 
   // Fetch all users with wallet data
   const { data: walletUsers = [], isLoading: walletsLoading } = useQuery<WalletUser[]>({
     queryKey: ["/api/admin/wallets"],
     select: (data) => Array.isArray(data) ? data : [],
   });
+
+  // Auto-update selectedUser when walletUsers data changes (after transactions)
+  useEffect(() => {
+    if (selectedUser && walletUsers.length > 0) {
+      const updatedUser = walletUsers.find(user => user.id === selectedUser.id);
+      if (updatedUser && JSON.stringify(updatedUser.balance) !== JSON.stringify(selectedUser.balance)) {
+        // Update selectedUser with fresh balance data
+        setSelectedUser(updatedUser);
+      }
+    }
+  }, [walletUsers, selectedUser]);
 
   // Fetch transactions for selected user
   const { data: userTransactions = [], isLoading: transactionsLoading } = useQuery<Transaction[]>({
@@ -111,9 +131,14 @@ export default function WalletManagement() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/wallets"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/wallets", selectedUser?.id, "transactions"] });
       
-      // Force refresh the selected user's wallet data immediately
+      // Force refresh and update selectedUser with fresh data immediately
       if (selectedUser) {
-        queryClient.refetchQueries({ queryKey: ["/api/admin/wallets"] });
+        queryClient.refetchQueries({ queryKey: ["/api/admin/wallets"] }).then(() => {
+          // After refresh, find and update the selectedUser with fresh data
+          setTimeout(() => {
+            queryClient.getQueryData(["/api/admin/wallets"]);
+          }, 100);
+        });
       }
       
       setShowTransactionDialog(false);
