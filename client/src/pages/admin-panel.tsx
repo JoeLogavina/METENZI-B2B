@@ -299,7 +299,7 @@ export default function AdminPanel() {
   // Fetch wallet data for B2B users
   const { data: walletData = [], isLoading: walletLoading } = useQuery<any[]>({
     queryKey: ["/api/admin/wallets"],
-    enabled: isAuthenticated && (user as any)?.role === 'super_admin' && activeSection === 'users',
+    enabled: isAuthenticated && (user as any)?.role === 'super_admin' && (activeSection === 'users' || activeSection === 'wallets'),
     select: (data) => Array.isArray(data) ? data : [],
   });
 
