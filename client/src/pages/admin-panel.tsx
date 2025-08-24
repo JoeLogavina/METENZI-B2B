@@ -109,6 +109,7 @@ export default function AdminPanel() {
     breadcrumb: [{ label: 'Dashboard', view: 'dashboard' }]
   });
 
+
   // Navigation functions
   const navigateTo = (view: AdminView, id?: string, label?: string) => {
     const newBreadcrumb = [...adminState.breadcrumb];
@@ -168,6 +169,7 @@ export default function AdminPanel() {
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [editProductId, setEditProductId] = useState<string | null>(null);
   const [expandedCompanies, setExpandedCompanies] = useState<Set<string>>(new Set());
+
 
   // Toggle expand/collapse for company branches
   const toggleCompanyExpansion = (companyId: string) => {
