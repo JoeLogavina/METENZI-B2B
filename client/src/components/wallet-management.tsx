@@ -49,6 +49,12 @@ export default function WalletManagement() {
   const [transactionType, setTransactionType] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
 
+  // Fetch all users with wallet data (must be declared before using in useEffect)
+  const { data: walletUsers = [], isLoading: walletsLoading } = useQuery<WalletUser[]>({
+    queryKey: ["/api/admin/wallets"],
+    select: (data) => Array.isArray(data) ? data : [],
+  });
+
   // Listen for automatic user selection from other components
   useEffect(() => {
     const handleSelectUser = (event: any) => {
@@ -87,12 +93,6 @@ export default function WalletManagement() {
     window.addEventListener('select-wallet-user', handleSelectUser);
     return () => window.removeEventListener('select-wallet-user', handleSelectUser);
   }, [walletUsers, queryClient]);
-
-  // Fetch all users with wallet data
-  const { data: walletUsers = [], isLoading: walletsLoading } = useQuery<WalletUser[]>({
-    queryKey: ["/api/admin/wallets"],
-    select: (data) => Array.isArray(data) ? data : [],
-  });
 
   // Auto-update selectedUser when walletUsers data changes (after transactions)
   useEffect(() => {
