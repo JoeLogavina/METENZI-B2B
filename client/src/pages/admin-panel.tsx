@@ -1120,7 +1120,7 @@ export default function AdminPanel() {
               />
             )}
 
-            {activeSection === 'wallets' && <WalletManagement />}
+            {activeSection === 'wallet-management' && <WalletManagement />}
 
             {activeSection === 'keys' && <EmbeddedKeyManagement />}
 
