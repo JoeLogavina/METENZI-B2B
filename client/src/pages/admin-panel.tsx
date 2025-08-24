@@ -88,7 +88,8 @@ type AdminView =
   | 'support'
   | 'notifications'
   | 'analytics'
-  | 'smart-notifications';
+  | 'smart-notifications'
+  | 'company-registration';
 
 interface AdminState {
   currentView: AdminView;
@@ -169,6 +170,20 @@ export default function AdminPanel() {
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [editProductId, setEditProductId] = useState<string | null>(null);
   const [expandedCompanies, setExpandedCompanies] = useState<Set<string>>(new Set());
+  const [registrationFormData, setRegistrationFormData] = useState({
+    email: "",
+    password: "",
+    confirmPassword: "",
+    username: "",
+    companyName: "",
+    firstName: "",
+    lastName: "",
+    phone: "",
+    country: "",
+    city: "",
+    address: "",
+    vatOrRegistrationNo: "",
+  });
 
 
   // Toggle expand/collapse for company branches
@@ -449,6 +464,7 @@ export default function AdminPanel() {
   const sidebarItems = [
     { id: 'dashboard', icon: BarChart3, label: 'Dashboard', allowed: true },
     { id: 'users', icon: Users, label: 'User Management', allowed: (user as any)?.role === 'super_admin' },
+    { id: 'company-registration', icon: UserCheck, label: 'Company Registration', allowed: (user as any)?.role === 'super_admin' },
     { id: 'categories', icon: FileText, label: 'Category Management', allowed: true },
     { id: 'products', icon: Package, label: 'Product Management', allowed: true },
     { id: 'price-management', icon: DollarSign, label: 'Price Management', allowed: true },
@@ -646,6 +662,334 @@ export default function AdminPanel() {
 
             {activeSection === 'categories' && (
               <CategoryManagement />
+            )}
+
+            {activeSection === 'company-registration' && user?.role === 'super_admin' && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-[#6E6F71] uppercase tracking-[0.5px]">COMPANY REGISTRATION</h3>
+                    <p className="text-[#6E6F71]">Register new B2B companies directly from admin panel</p>
+                  </div>
+                </div>
+
+                {/* Registration Form */}
+                <div className="bg-white rounded-lg border border-gray-200 p-6">
+                  <form onSubmit={(e) => {
+                    e.preventDefault();
+                    
+                    if (!registrationFormData.email || !registrationFormData.password || !registrationFormData.confirmPassword || 
+                        !registrationFormData.username || !registrationFormData.companyName || !registrationFormData.firstName || 
+                        !registrationFormData.lastName || !registrationFormData.phone) {
+                      toast({
+                        title: "Validation Error",
+                        description: "Please fill in all required fields",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+                    
+                    if (registrationFormData.password !== registrationFormData.confirmPassword) {
+                      toast({
+                        title: "Validation Error",
+                        description: "Passwords do not match",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+                    
+                    // Exclude confirmPassword from data sent to backend
+                    const { confirmPassword, ...registrationData } = registrationFormData;
+                    
+                    // Register the company
+                    queryClient.setMutationDefaults(['registerCompany'], {
+                      mutationFn: async (data: any) => {
+                        const res = await apiRequest("POST", "/api/register", {
+                          ...data,
+                          tenantId: "eur",
+                          role: "b2b_user",
+                          branchType: "main"
+                        });
+                        return res;
+                      }
+                    });
+                    
+                    queryClient.getMutationCache()
+                      .build(queryClient, {
+                        mutationKey: ['registerCompany'],
+                        mutationFn: async (data: any) => {
+                          const res = await apiRequest("POST", "/api/register", {
+                            ...data,
+                            tenantId: "eur",
+                            role: "b2b_user",
+                            branchType: "main"
+                          });
+                          return res;
+                        },
+                        onSuccess: () => {
+                          toast({
+                            title: "Registration Successful",
+                            description: "Company has been registered successfully!",
+                          });
+                          
+                          // Clear form
+                          setRegistrationFormData({
+                            email: "",
+                            password: "",
+                            confirmPassword: "",
+                            username: "",
+                            companyName: "",
+                            firstName: "",
+                            lastName: "",
+                            phone: "",
+                            country: "",
+                            city: "",
+                            address: "",
+                            vatOrRegistrationNo: "",
+                          });
+                          
+                          // Refresh users list
+                          queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+                        },
+                        onError: (error: any) => {
+                          toast({
+                            title: "Registration Failed",
+                            description: error.message || "Registration failed",
+                            variant: "destructive",
+                          });
+                        },
+                      })
+                      .execute(registrationData);
+                  }} className="space-y-6">
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Company Information */}
+                      <div className="space-y-4">
+                        <h4 className="text-sm font-medium text-[#6E6F71] uppercase tracking-[0.5px]">Company Information</h4>
+                        
+                        <div>
+                          <Label htmlFor="companyName" className="text-sm font-medium text-gray-700">
+                            Company Name *
+                          </Label>
+                          <Input
+                            id="companyName"
+                            name="companyName"
+                            type="text"
+                            required
+                            value={registrationFormData.companyName}
+                            onChange={(e) => setRegistrationFormData(prev => ({...prev, companyName: e.target.value}))}
+                            className="mt-1"
+                            placeholder="Enter company name"
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="vatOrRegistrationNo" className="text-sm font-medium text-gray-700">
+                            Tax Number / VAT Number
+                          </Label>
+                          <Input
+                            id="vatOrRegistrationNo"
+                            name="vatOrRegistrationNo"
+                            type="text"
+                            value={registrationFormData.vatOrRegistrationNo}
+                            onChange={(e) => setRegistrationFormData(prev => ({...prev, vatOrRegistrationNo: e.target.value}))}
+                            className="mt-1"
+                            placeholder="Enter tax/VAT number"
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="phone" className="text-sm font-medium text-gray-700">
+                            Phone Number *
+                          </Label>
+                          <Input
+                            id="phone"
+                            name="phone"
+                            type="tel"
+                            required
+                            value={registrationFormData.phone}
+                            onChange={(e) => setRegistrationFormData(prev => ({...prev, phone: e.target.value}))}
+                            className="mt-1"
+                            placeholder="Enter phone number"
+                          />
+                        </div>
+                      </div>
+                      
+                      {/* Personal Information */}
+                      <div className="space-y-4">
+                        <h4 className="text-sm font-medium text-[#6E6F71] uppercase tracking-[0.5px]">Contact Person</h4>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="firstName" className="text-sm font-medium text-gray-700">
+                              First Name *
+                            </Label>
+                            <Input
+                              id="firstName"
+                              name="firstName"
+                              type="text"
+                              required
+                              value={registrationFormData.firstName}
+                              onChange={(e) => setRegistrationFormData(prev => ({...prev, firstName: e.target.value}))}
+                              className="mt-1"
+                              placeholder="Enter first name"
+                            />
+                          </div>
+                          
+                          <div>
+                            <Label htmlFor="lastName" className="text-sm font-medium text-gray-700">
+                              Last Name *
+                            </Label>
+                            <Input
+                              id="lastName"
+                              name="lastName"
+                              type="text"
+                              required
+                              value={registrationFormData.lastName}
+                              onChange={(e) => setRegistrationFormData(prev => ({...prev, lastName: e.target.value}))}
+                              className="mt-1"
+                              placeholder="Enter last name"
+                            />
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+                            Email Address *
+                          </Label>
+                          <Input
+                            id="email"
+                            name="email"
+                            type="email"
+                            required
+                            value={registrationFormData.email}
+                            onChange={(e) => setRegistrationFormData(prev => ({...prev, email: e.target.value}))}
+                            className="mt-1"
+                            placeholder="Enter email address"
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="username" className="text-sm font-medium text-gray-700">
+                            Username *
+                          </Label>
+                          <Input
+                            id="username"
+                            name="username"
+                            type="text"
+                            required
+                            value={registrationFormData.username}
+                            onChange={(e) => setRegistrationFormData(prev => ({...prev, username: e.target.value}))}
+                            className="mt-1"
+                            placeholder="Enter username"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Address Information */}
+                    <div className="space-y-4">
+                      <h4 className="text-sm font-medium text-[#6E6F71] uppercase tracking-[0.5px]">Address Information</h4>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <Label htmlFor="country" className="text-sm font-medium text-gray-700">
+                            Country
+                          </Label>
+                          <Input
+                            id="country"
+                            name="country"
+                            type="text"
+                            value={registrationFormData.country}
+                            onChange={(e) => setRegistrationFormData(prev => ({...prev, country: e.target.value}))}
+                            className="mt-1"
+                            placeholder="Enter country"
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="city" className="text-sm font-medium text-gray-700">
+                            City
+                          </Label>
+                          <Input
+                            id="city"
+                            name="city"
+                            type="text"
+                            value={registrationFormData.city}
+                            onChange={(e) => setRegistrationFormData(prev => ({...prev, city: e.target.value}))}
+                            className="mt-1"
+                            placeholder="Enter city"
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="address" className="text-sm font-medium text-gray-700">
+                            Address
+                          </Label>
+                          <Input
+                            id="address"
+                            name="address"
+                            type="text"
+                            value={registrationFormData.address}
+                            onChange={(e) => setRegistrationFormData(prev => ({...prev, address: e.target.value}))}
+                            className="mt-1"
+                            placeholder="Enter address"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Password Information */}
+                    <div className="space-y-4">
+                      <h4 className="text-sm font-medium text-[#6E6F71] uppercase tracking-[0.5px]">Account Security</h4>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+                            Password *
+                          </Label>
+                          <Input
+                            id="password"
+                            name="password"
+                            type="password"
+                            required
+                            value={registrationFormData.password}
+                            onChange={(e) => setRegistrationFormData(prev => ({...prev, password: e.target.value}))}
+                            className="mt-1"
+                            placeholder="Enter password"
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">
+                            Confirm Password *
+                          </Label>
+                          <Input
+                            id="confirmPassword"
+                            name="confirmPassword"
+                            type="password"
+                            required
+                            value={registrationFormData.confirmPassword}
+                            onChange={(e) => setRegistrationFormData(prev => ({...prev, confirmPassword: e.target.value}))}
+                            className="mt-1"
+                            placeholder="Confirm password"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-end pt-4 border-t border-gray-200">
+                      <Button
+                        type="submit"
+                        className="bg-[#FFB20F] hover:bg-[#e6a00e] text-white"
+                      >
+                        <UserCheck className="w-4 h-4 mr-2" />
+                        REGISTER COMPANY
+                      </Button>
+                    </div>
+                  </form>
+                </div>
+              </div>
             )}
 
             {activeSection === 'users' && user?.role === 'super_admin' && (
