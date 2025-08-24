@@ -62,6 +62,7 @@ import { AdminSupportManagement } from "@/components/admin/AdminSupportManagemen
 import { BrevoNotificationPanel } from "@/components/admin/BrevoNotificationPanel";
 import { NotificationAnalyticsDashboard } from "@/components/admin/NotificationAnalyticsDashboard";
 import { SmartNotificationsPanel } from "@/components/admin/SmartNotificationsPanel";
+import OrdersManagement from "@/components/admin/OrdersManagement";
 
 interface DashboardStats {
   totalUsers: number;
@@ -449,6 +450,7 @@ export default function AdminPanel() {
   const sidebarItems = [
     { id: 'dashboard', icon: BarChart3, label: 'Dashboard', allowed: true },
     { id: 'users', icon: Users, label: 'User Management', allowed: (user as any)?.role === 'super_admin' },
+    { id: 'orders', icon: ShoppingCart, label: 'Orders Management', allowed: true },
     { id: 'categories', icon: FileText, label: 'Category Management', allowed: true },
     { id: 'products', icon: Package, label: 'Product Management', allowed: true },
     { id: 'price-management', icon: DollarSign, label: 'Price Management', allowed: true },
@@ -642,6 +644,10 @@ export default function AdminPanel() {
                   </CardContent>
                 </Card>
               </div>
+            )}
+
+            {activeSection === 'orders' && (
+              <OrdersManagement />
             )}
 
             {activeSection === 'categories' && (
