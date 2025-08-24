@@ -817,10 +817,13 @@ export default function AdminPanel() {
                                           size="sm"
                                           variant="ghost"
                                           onClick={() => {
-                                            navigateTo('user-detail', userData.id, `${userData.username} Details`);
+                                            // Set selected user and navigate to wallet management with auto-selection
+                                            setActiveSection('wallet-management');
                                             setTimeout(() => {
-                                              // Set the UserDetailView to show wallet tab
-                                              const event = new CustomEvent('set-user-wallet-tab');
+                                              // Trigger automatic user selection in wallet management
+                                              const event = new CustomEvent('select-wallet-user', { 
+                                                detail: { userId: userData.id, userData: userData }
+                                              });
                                               window.dispatchEvent(event);
                                             }, 100);
                                           }}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,6 +48,36 @@ export default function WalletManagement() {
   const [showTransactionDialog, setShowTransactionDialog] = useState(false);
   const [transactionType, setTransactionType] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Listen for automatic user selection from other components
+  useEffect(() => {
+    const handleSelectUser = (event: any) => {
+      const { userId, userData } = event.detail || {};
+      if (userId && userData) {
+        // Convert userData to WalletUser format if needed
+        const walletUserData: WalletUser = {
+          id: userData.id,
+          username: userData.username,
+          firstName: userData.firstName || '',
+          lastName: userData.lastName || '',
+          email: userData.email || '',
+          role: userData.role,
+          tenantId: userData.tenantId || 'eur',
+          balance: {
+            depositBalance: '0.00',
+            creditLimit: '0.00', 
+            creditUsed: '0.00',
+            availableCredit: '0.00',
+            totalAvailable: '0.00',
+            isOverlimit: false
+          }
+        };
+        setSelectedUser(walletUserData);
+      }
+    };
+    window.addEventListener('select-wallet-user', handleSelectUser);
+    return () => window.removeEventListener('select-wallet-user', handleSelectUser);
+  }, []);
 
   // Fetch all users with wallet data
   const { data: walletUsers = [], isLoading: walletsLoading } = useQuery<WalletUser[]>({
