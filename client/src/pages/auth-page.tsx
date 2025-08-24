@@ -28,6 +28,7 @@ export default function AuthPage() {
     country: "",
     city: "",
     address: "",
+    vatOrRegistrationNo: "",
   });
 
   // List of countries for dropdown
@@ -488,6 +489,21 @@ export default function AuthPage() {
                         onChange={handleChange}
                         className="mt-1"
                         placeholder="Enter address"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="vatOrRegistrationNo" className="text-sm font-medium text-gray-700">
+                        Tax Number / VAT Number
+                      </Label>
+                      <Input
+                        id="vatOrRegistrationNo"
+                        name="vatOrRegistrationNo"
+                        type="text"
+                        value={formData.vatOrRegistrationNo}
+                        onChange={handleChange}
+                        className="mt-1"
+                        placeholder="Enter tax/VAT number"
                       />
                     </div>
                   </>
