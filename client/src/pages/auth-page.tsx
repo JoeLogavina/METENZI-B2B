@@ -8,13 +8,16 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, ShieldCheck, Building2 } from "lucide-react";
-import { Redirect } from "wouter";
+import { Loader2, ShieldCheck, Building2, Package, User, LogOut, Settings, HelpCircle, ShoppingCart, FileText } from "lucide-react";
+import { Redirect, Link, useLocation } from "wouter";
+import { useDeviceDetection } from "@/hooks/mobile/useDeviceDetection";
 
 export default function AuthPage() {
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [location, setLocation] = useLocation();
+  const { isMobile } = useDeviceDetection();
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [formData, setFormData] = useState({
     email: "",
@@ -206,6 +209,14 @@ export default function AuthPage() {
     }));
   };
 
+  // Define sidebar items for the auth page
+  const sidebarItems = [
+    { icon: Package, label: "B2B SHOP", active: false, href: "/", allowed: true },
+    { icon: ShoppingCart, label: "CATALOG", active: false, href: "/catalog", allowed: true },
+    { icon: User, label: "REGISTER", active: true, href: "/auth", allowed: true },
+    { icon: HelpCircle, label: "SUPPORT", active: false, href: "/support", allowed: true },
+  ];
+
   // Redirect based on authentication - using React Router redirect instead of window.location
   if (!isLoading && isAuthenticated && user) {
     console.log('Auth redirect logic:', { redirectParam, userTenant: user.tenantId, userRole: user.role });
@@ -233,49 +244,100 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Left side - Login Form */}
-      <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-8">
-          <Card>
-            <CardHeader className="text-center">
-              <div className="mx-auto w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
-                {redirectParam === 'admin' ? (
-                  <ShieldCheck className="h-6 w-6 text-primary" />
-                ) : redirectParam === 'eur' ? (
-                  <Building2 className="h-6 w-6 text-blue-600" />
-                ) : redirectParam === 'km' ? (
-                  <Building2 className="h-6 w-6 text-green-600" />
-                ) : (
-                  <ShieldCheck className="h-6 w-6 text-primary" />
-                )}
-              </div>
+    <div className="min-h-screen bg-[#f5f6f5] flex font-['Inter',-apple-system,BlinkMacSystemFont,sans-serif]">
+      {/* Sidebar */}
+      <div className="w-64 text-white flex-shrink-0 bg-[#404040]">
+        {/* Header */}
+        <div className="p-4 border-b border-[#5a5b5d]">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-[#FFB20F] rounded flex items-center justify-center">
+              <Package className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-sm uppercase tracking-[0.5px]">B2B PORTAL</h2>
+              <p className="text-xs text-gray-300 uppercase tracking-[0.5px]">ENTERPRISE</p>
+            </div>
+          </div>
+        </div>
 
-              {/* Mode Toggle Buttons */}
-              <div className="flex bg-gray-100 rounded-lg p-1 mb-4">
-                <button
-                  type="button"
-                  onClick={() => setIsLoginMode(true)}
-                  className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                    isLoginMode 
-                      ? 'bg-white text-gray-900 shadow-sm' 
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  Sign In
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsLoginMode(false)}
-                  className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                    !isLoginMode 
-                      ? 'bg-white text-gray-900 shadow-sm' 
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  Register
-                </button>
+        {/* Navigation */}
+        <nav className="mt-4">
+          {sidebarItems.map((item, index) => (
+            <Link key={index} href={item.href}>
+              <div
+                className={`flex items-center px-4 py-3 text-lg transition-colors duration-200 cursor-pointer ${
+                  item.active 
+                    ? 'bg-[#FFB20F] text-white border-r-4 border-[#e6a00e]' 
+                    : 'text-white hover:bg-[#7a7b7d] hover:text-white'
+                }`}
+              >
+                <item.icon className="w-6 h-6 mr-3" />
+                <span className="uppercase tracking-[0.5px] font-medium text-sm">{item.label}</span>
               </div>
+            </Link>
+          ))}
+        </nav>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <header className="bg-[#6E6F71] border-b border-[#5a5b5d] px-6 py-4 shadow-[0_2px_5px_rgba(0,0,0,0.1)]">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Package className="w-6 h-6 text-white" />
+              <h1 className="text-xl font-semibold text-white uppercase tracking-[0.5px]">
+                {isLoginMode ? 'USER LOGIN' : 'COMPANY REGISTRATION'}
+              </h1>
+            </div>
+            <div className="flex items-center space-x-4">
+              <span className="text-white text-sm">B2B SOFTWARE LICENSING</span>
+            </div>
+          </div>
+        </header>
+
+        {/* Main Content Area */}
+        <div className="flex-1 flex items-center justify-center p-8">
+          <div className="max-w-md w-full space-y-8">
+            <Card>
+              <CardHeader className="text-center">
+                <div className="mx-auto w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
+                  {redirectParam === 'admin' ? (
+                    <ShieldCheck className="h-6 w-6 text-primary" />
+                  ) : redirectParam === 'eur' ? (
+                    <Building2 className="h-6 w-6 text-blue-600" />
+                  ) : redirectParam === 'km' ? (
+                    <Building2 className="h-6 w-6 text-green-600" />
+                  ) : (
+                    <ShieldCheck className="h-6 w-6 text-primary" />
+                  )}
+                </div>
+
+                {/* Mode Toggle Buttons */}
+                <div className="flex bg-gray-100 rounded-lg p-1 mb-4">
+                  <button
+                    type="button"
+                    onClick={() => setIsLoginMode(true)}
+                    className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                      isLoginMode 
+                        ? 'bg-white text-gray-900 shadow-sm' 
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Sign In
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsLoginMode(false)}
+                    className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                      !isLoginMode 
+                        ? 'bg-white text-gray-900 shadow-sm' 
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Register
+                  </button>
+                </div>
 
               <CardTitle className="text-2xl font-bold text-gray-900">
                 {isLoginMode ? (
@@ -542,39 +604,7 @@ export default function AuthPage() {
           </Card>
         </div>
       </div>
-
-      {/* Right side - Hero Section */}
-      <div className="hidden lg:block relative flex-1">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary to-primary/80" />
-        <div className="relative flex items-center justify-center h-full px-8">
-          <div className="text-center text-white max-w-md">
-            <h1 className="text-4xl font-bold mb-6">
-              B2B Software Licenses
-            </h1>
-            <p className="text-xl text-primary-foreground/90 mb-8">
-              Streamlined license management for enterprise customers
-            </p>
-            <div className="space-y-4 text-left">
-              <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-white rounded-full" />
-                <span>Browse and purchase software licenses</span>
-              </div>
-              <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-white rounded-full" />
-                <span>Role-based access control</span>
-              </div>
-              <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-white rounded-full" />
-                <span>Comprehensive admin dashboard</span>
-              </div>
-              <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-white rounded-full" />
-                <span>Secure license key management</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+    </div>
     </div>
   );
 }
