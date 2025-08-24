@@ -100,14 +100,7 @@ export default function WalletManagement() {
       amount: string;
       description: string;
     }) => {
-      const response = await apiRequest("/api/admin/wallets/transaction", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(transactionData)
-      });
-      return response;
+      return await apiRequest("POST", "/api/admin/wallets/transaction", transactionData);
     },
     onSuccess: () => {
       toast({
