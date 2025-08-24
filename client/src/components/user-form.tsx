@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 
 const userFormSchema = z.object({
@@ -17,6 +18,15 @@ const userFormSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters").optional(),
   role: z.enum(["b2b_user", "admin", "super_admin"]),
   isActive: z.boolean().default(true),
+  // Additional registration fields
+  companyName: z.string().min(1, "Company name is required"),
+  phone: z.string().min(1, "Phone number is required"),
+  country: z.string().min(1, "Country is required"),
+  city: z.string().min(1, "City is required"),
+  address: z.string().min(1, "Address is required"),
+  contactPerson: z.string().optional(),
+  companyDescription: z.string().optional(),
+  vatOrRegistrationNo: z.string().optional(),
 });
 
 type UserFormData = z.infer<typeof userFormSchema>;
@@ -41,6 +51,15 @@ export default function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
       password: "",
       role: user?.role || "b2b_user",
       isActive: user?.isActive ?? true,
+      // Additional registration fields  
+      companyName: user?.companyName || "",
+      phone: user?.phone || "",
+      country: user?.country || "",
+      city: user?.city || "",
+      address: user?.address || "",
+      contactPerson: user?.contactPerson || "",
+      companyDescription: user?.companyDescription || "",
+      vatOrRegistrationNo: user?.vatOrRegistrationNo || "",
     },
   });
 
@@ -71,7 +90,7 @@ export default function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 max-h-[70vh] overflow-y-auto px-1">
         <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
@@ -148,6 +167,172 @@ export default function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
                   type="email"
                   className="border-gray-300 focus:border-[#FFB20F] focus:ring-[#FFB20F]"
                   placeholder="Enter email address"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="companyName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-[#6E6F71] uppercase tracking-[0.5px] text-xs font-medium">
+                Company Name
+              </FormLabel>
+              <FormControl>
+                <Input 
+                  {...field} 
+                  className="border-gray-300 focus:border-[#FFB20F] focus:ring-[#FFB20F]"
+                  placeholder="Enter company name"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="phone"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-[#6E6F71] uppercase tracking-[0.5px] text-xs font-medium">
+                  Phone
+                </FormLabel>
+                <FormControl>
+                  <Input 
+                    {...field} 
+                    className="border-gray-300 focus:border-[#FFB20F] focus:ring-[#FFB20F]"
+                    placeholder="Enter phone number"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="contactPerson"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-[#6E6F71] uppercase tracking-[0.5px] text-xs font-medium">
+                  Contact Person
+                </FormLabel>
+                <FormControl>
+                  <Input 
+                    {...field} 
+                    className="border-gray-300 focus:border-[#FFB20F] focus:ring-[#FFB20F]"
+                    placeholder="Enter contact person"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="country"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-[#6E6F71] uppercase tracking-[0.5px] text-xs font-medium">
+                  Country
+                </FormLabel>
+                <FormControl>
+                  <Input 
+                    {...field} 
+                    className="border-gray-300 focus:border-[#FFB20F] focus:ring-[#FFB20F]"
+                    placeholder="Enter country"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="city"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-[#6E6F71] uppercase tracking-[0.5px] text-xs font-medium">
+                  City
+                </FormLabel>
+                <FormControl>
+                  <Input 
+                    {...field} 
+                    className="border-gray-300 focus:border-[#FFB20F] focus:ring-[#FFB20F]"
+                    placeholder="Enter city"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <FormField
+          control={form.control}
+          name="address"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-[#6E6F71] uppercase tracking-[0.5px] text-xs font-medium">
+                Address
+              </FormLabel>
+              <FormControl>
+                <Textarea 
+                  {...field} 
+                  className="border-gray-300 focus:border-[#FFB20F] focus:ring-[#FFB20F]"
+                  placeholder="Enter company address"
+                  rows={2}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="vatOrRegistrationNo"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-[#6E6F71] uppercase tracking-[0.5px] text-xs font-medium">
+                VAT or Registration No.
+              </FormLabel>
+              <FormControl>
+                <Input 
+                  {...field} 
+                  className="border-gray-300 focus:border-[#FFB20F] focus:ring-[#FFB20F]"
+                  placeholder="Enter VAT or registration number"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="companyDescription"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-[#6E6F71] uppercase tracking-[0.5px] text-xs font-medium">
+                Company Description
+              </FormLabel>
+              <FormControl>
+                <Textarea 
+                  {...field} 
+                  className="border-gray-300 focus:border-[#FFB20F] focus:ring-[#FFB20F]"
+                  placeholder="Tell us about your company"
+                  rows={3}
                 />
               </FormControl>
               <FormMessage />
