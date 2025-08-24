@@ -107,8 +107,15 @@ export default function WalletManagement() {
         title: "Success",
         description: "Transaction added successfully",
       });
+      // Refresh all wallet data to ensure the UI updates properly
       queryClient.invalidateQueries({ queryKey: ["/api/admin/wallets"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/wallets", selectedUser?.id, "transactions"] });
+      
+      // Force refresh the selected user's wallet data immediately
+      if (selectedUser) {
+        queryClient.refetchQueries({ queryKey: ["/api/admin/wallets"] });
+      }
+      
       setShowTransactionDialog(false);
       setTransactionType("");
     },
@@ -378,12 +385,12 @@ export default function WalletManagement() {
                           </div>
                           <div className="text-right">
                             <p className={`text-sm font-semibold ${
-                              transaction.type === 'deposit' || transaction.type === 'refund' 
+                              transaction.type === 'deposit' || transaction.type === 'refund' || transaction.type === 'credit_limit' || transaction.type === 'adjustment'
                                 ? 'text-green-600' 
                                 : 'text-red-600'
                             }`}>
-                              {transaction.type === 'deposit' || transaction.type === 'refund' ? '+' : '-'}
-                              {formatCurrency(transaction.amount, selectedUser.tenantId)}
+                              {transaction.type === 'deposit' || transaction.type === 'refund' || transaction.type === 'credit_limit' || transaction.type === 'adjustment' ? '+' : '-'}
+                              {formatCurrency(Math.abs(parseFloat(transaction.amount)), selectedUser.tenantId)}
                             </p>
                             <p className="text-xs text-gray-500">
                               {new Date(transaction.createdAt).toLocaleDateString()}
