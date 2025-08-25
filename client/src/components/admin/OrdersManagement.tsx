@@ -73,17 +73,7 @@ interface Order {
   finalAmount: string;
   paymentMethod: string;
   paymentStatus: string;
-  billingInfo: {
-    companyName: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone: string;
-    address: string;
-    city: string;
-    postalCode: string;
-    country: string;
-  };
+  billingInfo: any; // API returns dynamic billing info structure
   items: OrderItem[];
   createdAt: string;
   updatedAt: string;
@@ -338,13 +328,13 @@ export default function OrdersManagement() {
               <div className="flex items-center justify-between text-sm">
                 <div className="space-y-1">
                   <p className="text-[#6E6F71]">
-                    <span className="font-medium">Customer:</span> {order.billingInfo.firstName} {order.billingInfo.lastName}
+                    <span className="font-medium">Customer:</span> {order.billingInfo?.firstName || 'N/A'} {order.billingInfo?.lastName || 'N/A'}
                   </p>
                   <p className="text-[#6E6F71]">
-                    <span className="font-medium">Company:</span> {order.billingInfo.companyName}
+                    <span className="font-medium">Company:</span> {order.billingInfo?.companyName || 'N/A'}
                   </p>
                   <p className="text-[#6E6F71]">
-                    <span className="font-medium">Email:</span> {order.billingInfo.email}
+                    <span className="font-medium">Email:</span> {order.billingInfo?.email || 'N/A'}
                   </p>
                 </div>
                 <div className="text-right">
@@ -434,12 +424,12 @@ export default function OrdersManagement() {
                         <div>
                           <h5 className="font-medium text-[#6E6F71] mb-2">Billing Information</h5>
                           <div className="space-y-1 text-gray-600">
-                            <p>{order.billingInfo.firstName} {order.billingInfo.lastName}</p>
-                            <p>{order.billingInfo.companyName}</p>
-                            <p>{order.billingInfo.email}</p>
-                            <p>{order.billingInfo.phone}</p>
-                            <p>{order.billingInfo.address}</p>
-                            <p>{order.billingInfo.city}, {order.billingInfo.country}</p>
+                            <p>{order.billingInfo?.firstName || ''} {order.billingInfo?.lastName || ''}</p>
+                            <p>{order.billingInfo?.companyName || 'N/A'}</p>
+                            <p>{order.billingInfo?.email || 'N/A'}</p>
+                            <p>{order.billingInfo?.phone || 'N/A'}</p>
+                            <p>{order.billingInfo?.address || 'N/A'}</p>
+                            <p>{order.billingInfo?.city || 'N/A'}, {order.billingInfo?.country || 'N/A'}</p>
                           </div>
                         </div>
                         <div>
