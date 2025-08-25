@@ -38,7 +38,6 @@ const AdminKeysManagement = lazy(() => import("@/pages/admin-keys-management"));
 const UserEditPage = lazy(() => import("@/pages/admin/user-edit"));
 const CategoryHierarchyDemoPage = lazy(() => import("@/pages/admin/category-hierarchy-demo"));
 const WalletPage = lazy(() => import("@/pages/wallet-page"));
-const OrdersPage = lazy(() => import("@/pages/orders"));
 const MyBranchesPage = lazy(() => import("@/pages/my-branches"));
 const SupportDashboard = lazy(() => import("@/pages/SupportDashboard"));
 const AdminSupportDashboard = lazy(() => import("@/pages/AdminSupportDashboard"));
@@ -110,11 +109,6 @@ function Router() {
               <CheckoutPage />
             </Suspense>
           )} />
-          <Route path="/eur/orders" component={() => (
-            <Suspense fallback={<OrdersLoadingFallback />}>
-              <OrdersPage />
-            </Suspense>
-          )} />
           <Route path="/eur/wallet" component={() => (
             <Suspense fallback={<WalletLoadingFallback />}>
               <WalletPage />
@@ -144,11 +138,6 @@ function Router() {
           <Route path="/km/checkout" component={() => (
             <Suspense fallback={<CheckoutLoadingFallback />}>
               <CheckoutPage />
-            </Suspense>
-          )} />
-          <Route path="/km/orders" component={() => (
-            <Suspense fallback={<OrdersLoadingFallback />}>
-              <OrdersPage />
             </Suspense>
           )} />
           <Route path="/km/wallet" component={() => (
@@ -210,21 +199,6 @@ function Router() {
           <Route path="/eur/wallet" component={() => (
             <Suspense fallback={<WalletLoadingFallback />}>
               <WalletPage />
-            </Suspense>
-          )} />
-          <Route path="/orders" component={() => (
-            <Suspense fallback={<OrdersLoadingFallback />}>
-              <OrdersPage />
-            </Suspense>
-          )} />
-          <Route path="/km/orders" component={() => (
-            <Suspense fallback={<OrdersLoadingFallback />}>
-              <OrdersPage />
-            </Suspense>
-          )} />
-          <Route path="/eur/orders" component={() => (
-            <Suspense fallback={<OrdersLoadingFallback />}>
-              <OrdersPage />
             </Suspense>
           )} />
           <Route path="/my-branches" component={() => (
